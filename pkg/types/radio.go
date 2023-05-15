@@ -5,5 +5,5 @@ type RadioType struct {
 	RADIO_PICTURE string   `json:"RADIO_PICTURE"`
 	TITLE         string   `json:"TITLE"`
 	TAGS          []string `json:"TAGS"`
-	__TYPE__      string   `json:"__TYPE__"`
+	TYPE_INTERNAL string   `json:"__TYPE__"`
 }

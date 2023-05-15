@@ -13,7 +13,7 @@ type ArtistType struct {
 	ART_PICTURE         string      `json:"ART_PICTURE"`
 	RANK                string      `json:"RANK"`
 	LOCALES             LocalesType `json:"LOCALES,omitempty"`
-	__TYPE__            string      `json:"__TYPE__"`
+	TYPE_INTERNAL       string      `json:"__TYPE__"`
 }
 
 type ArtistInfoTypeMinimal struct {
@@ -23,7 +23,7 @@ type ArtistInfoTypeMinimal struct {
 	NB_FAN          int      `json:"NB_FAN"`
 	LOCALES         []string `json:"LOCALES"`
 	ARTIST_IS_DUMMY bool     `json:"ARTIST_IS_DUMMY"`
-	__TYPE__        string   `json:"__TYPE__"`
+	TYPE_INTERNAL   string   `json:"__TYPE__"`
 }
 
 type ArtistInfoType struct {
@@ -34,5 +34,5 @@ type ArtistInfoType struct {
 	FACEBOOK        *string `json:"FACEBOOK,omitempty"`
 	NB_FAN          int     `json:"NB_FAN"`
 	TWITTER         *string `json:"TWITTER,omitempty"`
-	__TYPE__        string  `json:"__TYPE__"`
+	TYPE_INTERNAL   string  `json:"__TYPE__"`
 }

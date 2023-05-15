@@ -1,62 +1,62 @@
 package types
 
 type SearchTypeCommon struct {
-	count          int   `json:"count"`
-	total          int   `json:"total"`
-	filtered_count int   `json:"filtered_count"`
-	filtered_items []int `json:"filtered_items"`
-	next           int   `json:"next"`
+	Count         int   `json:"count"`
+	Total         int   `json:"total"`
+	FilteredCount int   `json:"filtered_count"`
+	FilteredItems []int `json:"filtered_items"`
+	Next          int   `json:"next"`
 }
 
 type AlbumSearchType struct {
 	SearchTypeCommon
-	data []AlbumTypeMinimal `json:"data"`
+	Data []AlbumTypeMinimal `json:"data"`
 }
 
 type ArtistSearchType struct {
 	SearchTypeCommon
-	data []ArtistInfoTypeMinimal `json:"data"`
+	Data []ArtistInfoTypeMinimal `json:"data"`
 }
 
 type PlaylistSearchType struct {
 	SearchTypeCommon
-	data []PlaylistInfoMinimal `json:"data"`
+	Data []PlaylistInfoMinimal `json:"data"`
 }
 
 type TrackSearchType struct {
 	SearchTypeCommon
-	data []TrackType `json:"data"`
+	Data []TrackType `json:"data"`
 }
 
 type ProfileSearchType struct {
 	SearchTypeCommon
-	data []ProfileTypeMinimal `json:"data"`
+	Data []ProfileTypeMinimal `json:"data"`
 }
 
 type RadioSearchType struct {
 	SearchTypeCommon
-	data []RadioType `json:"data"`
+	Data []RadioType `json:"data"`
 }
 
 type LiveSearchType struct {
 	SearchTypeCommon
-	data []interface{} `json:"data"`
+	Data []interface{} `json:"data"`
 }
 
 type ShowSearchType struct {
 	SearchTypeCommon
-	data []ShowEpisodeType `json:"data"`
+	Data []ShowEpisodeType `json:"data"`
 }
 
 type DiscographyType struct {
-	data           []AlbumType `json:"data"`
-	count          int         `json:"count"`
-	total          int         `json:"total"`
-	cache_version  int         `json:"cache_version"`
-	filtered_count int         `json:"filtered_count"`
-	art_id         int         `json:"art_id"`
-	start          int         `json:"start"`
-	nb             int         `json:"nb"`
+	Data          []AlbumType `json:"data"`
+	Count         int         `json:"count"`
+	Total         int         `json:"total"`
+	CacheVersion  int         `json:"cache_version"`
+	FilteredCount int         `json:"filtered_count"`
+	ArtID         int         `json:"art_id"`
+	Start         int         `json:"start"`
+	NB            int         `json:"nb"`
 }
 
 type SearchType struct {

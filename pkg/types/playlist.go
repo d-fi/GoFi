@@ -15,7 +15,7 @@ type PlaylistInfoMinimal struct {
 	HasArtistLinked   bool   `json:"HAS_ARTIST_LINKED"`
 	DateAdd           string `json:"DATE_ADD"`
 	DateMod           string `json:"DATE_MOD"`
-	__TYPE__          string `json:"__TYPE__"`
+	TYPE_INTERNAL     string `json:"__TYPE__"`
 }
 
 type PlaylistInfo struct {
@@ -39,7 +39,7 @@ type PlaylistInfo struct {
 	HasArtistLinked   bool   `json:"HAS_ARTIST_LINKED"`
 	IsSponsored       bool   `json:"IS_SPONSORED"`
 	IsEdito           bool   `json:"IS_EDITO"`
-	__TYPE__          string `json:"__TYPE__"`
+	TYPE_INTERNAL     string `json:"__TYPE__"`
 }
 
 type PlaylistTracksType struct {

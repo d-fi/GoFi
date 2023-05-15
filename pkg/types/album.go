@@ -17,7 +17,7 @@ type AlbumTypeMinimal struct {
 	TYPE                  string `json:"TYPE"`
 	ARTIST_IS_DUMMY       bool   `json:"ARTIST_IS_DUMMY"`
 	NUMBER_TRACK          int    `json:"NUMBER_TRACK"`
-	__TYPE__              string `json:"__TYPE__"`
+	TYPE_INTERNAL         string `json:"__TYPE__"`
 }
 
 type AlbumType struct {
@@ -48,7 +48,7 @@ type AlbumType struct {
 	STATUS                string       `json:"STATUS"`
 	TYPE                  string       `json:"TYPE"`
 	UPC                   string       `json:"UPC"`
-	__TYPE__              string       `json:"__TYPE__"`
+	TYPE_INTERNAL         string       `json:"__TYPE__"`
 }
 
 type AlbumTracksType struct {

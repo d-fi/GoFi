@@ -15,7 +15,7 @@ type DataType struct {
 	Slug            string         `json:"slug"`
 	BackgroundColor string         `json:"background_color"`
 	Pictures        []PicturesType `json:"pictures"`
-	__TYPE__        string         `json:"__TYPE__"`
+	TYPE_INTERNAL   string         `json:"__TYPE__"`
 }
 
 type ChannelDataType struct {

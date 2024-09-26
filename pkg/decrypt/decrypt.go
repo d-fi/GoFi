@@ -2,9 +2,12 @@ package decrypt
 
 import (
 	"crypto/aes"
+	"crypto/cipher"
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
+
+	"golang.org/x/crypto/blowfish"
 )
 
 type TrackType struct {
@@ -19,23 +22,41 @@ func Md5Hash(data string) string {
 }
 
 func GetSongFileName(track *TrackType, quality int) string {
+	// Step 1: Combine track details into a specific format
 	step1 := fmt.Sprintf("%s¤%d¤%s¤%s", track.MD5_ORIGIN, quality, track.SNG_ID, track.MEDIA_VERSION)
 
+	// Step 2: Generate MD5 hash and concatenate it with step1, ensuring it's a multiple of 16 bytes
 	step2 := Md5Hash(step1) + "¤" + step1 + "¤"
 	for len(step2)%16 > 0 {
 		step2 += " "
 	}
 
+	// AES-128-ECB encryption
 	cipherKey := []byte("jo6aey6haid2Teih")
 	block, err := aes.NewCipher(cipherKey)
 	if err != nil {
 		panic(err)
 	}
 
-	cipherText := make([]byte, len(step2))
-	block.Encrypt(cipherText, []byte(step2))
+	// Encrypt in ECB mode manually since Go's AES doesn't support ECB directly
+	encrypted := make([]byte, len(step2))
+	encryptECB(block, []byte(step2), encrypted)
 
-	return hex.EncodeToString(cipherText)
+	return hex.EncodeToString(encrypted)
+}
+
+// ECB mode encryption helper function since Go's crypto library doesn't directly support ECB.
+func encryptECB(block cipher.Block, src, dst []byte) {
+	bs := block.BlockSize()
+	if len(src)%bs != 0 {
+		panic("plaintext is not a multiple of the block size")
+	}
+
+	for len(src) > 0 {
+		block.Encrypt(dst, src[:bs])
+		src = src[bs:]
+		dst = dst[bs:]
+	}
 }
 
 func GetBlowfishKey(trackID string) string {
@@ -49,15 +70,16 @@ func GetBlowfishKey(trackID string) string {
 }
 
 func DecryptChunk(chunk []byte, blowfishKey string) []byte {
-	block, err := aes.NewCipher([]byte(blowfishKey))
+	iv := []byte{0, 1, 2, 3, 4, 5, 6, 7}
+	block, err := blowfish.NewCipher([]byte(blowfishKey))
 	if err != nil {
 		panic(err)
 	}
 
-	cipherText := make([]byte, len(chunk))
-	block.Decrypt(cipherText, chunk)
-
-	return cipherText
+	dst := make([]byte, len(chunk))
+	mode := cipher.NewCBCDecrypter(block, iv)
+	mode.CryptBlocks(dst, chunk)
+	return dst
 }
 
 func DecryptDownload(source []byte, trackID string) []byte {
@@ -81,14 +103,13 @@ func DecryptDownload(source []byte, trackID string) []byte {
 		chunk := make([]byte, chunkSize)
 		copy(chunk, source[position:position+chunkSize])
 
-		var chunkString string
 		if i%3 > 0 || chunkSize < 2048 {
-			chunkString = string(chunk)
+			copy(destBuffer[position:], chunk)
 		} else {
-			chunkString = string(DecryptChunk(chunk, blowfishKey))
+			decryptedChunk := DecryptChunk(chunk, blowfishKey)
+			copy(destBuffer[position:], decryptedChunk)
 		}
 
-		copy(destBuffer[position:position+len(chunkString)], chunkString)
 		position += chunkSize
 		i++
 	}

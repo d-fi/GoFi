@@ -3,8 +3,9 @@ package request
 import "encoding/json"
 
 type APIResponse struct {
-	Error   []string        `json:"error"`
+	Error   interface{}     `json:"error"`
 	Results json.RawMessage `json:"results"`
+	Payload interface{}     `json:"payload,omitempty"`
 }
 
 type PublicAPIResponseError struct {

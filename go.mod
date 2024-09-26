@@ -6,6 +6,7 @@ require (
 	github.com/dgraph-io/badger/v4 v4.3.0
 	github.com/go-resty/resty/v2 v2.15.2
 	github.com/stretchr/testify v1.9.0
+	golang.org/x/crypto v0.27.0
 )
 
 require (

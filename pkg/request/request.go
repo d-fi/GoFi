@@ -13,8 +13,17 @@ func checkResponse(data []byte) (json.RawMessage, error) {
 		return nil, fmt.Errorf("failed to unmarshal API response: %v", err)
 	}
 
-	if len(apiResponse.Error) > 0 {
-		return nil, fmt.Errorf("API error: %v", apiResponse.Error)
+	// Check if the response contains error data in different formats
+	switch errVal := apiResponse.Error.(type) {
+	case string:
+		return nil, fmt.Errorf("API error: %s", errVal)
+	case map[string]interface{}:
+		// Convert the map to a string for better error message readability
+		errorMessage := ""
+		for key, value := range errVal {
+			errorMessage += fmt.Sprintf("%s: %v, ", key, value)
+		}
+		return nil, fmt.Errorf("API error: %v", errorMessage)
 	}
 
 	return apiResponse.Results, nil

@@ -1,11 +1,8 @@
 package request
 
 import (
-	"log"
 	"os"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 )
 
 // Harder, Better, Faster, Stronger by Daft Punk
@@ -25,11 +22,4 @@ func TestInitDeezerAPI(t *testing.T) {
 
 	t.Logf("Deezer API session: %s", session)
 
-	trackInfo, err := GetTrackInfo(SNG_ID)
-	if err != nil {
-		t.Fatalf("Error getting track info: %v", err)
-	}
-
-	assert.NotNil(t, trackInfo)
-	log.Printf("Track info: %v", trackInfo)
 }

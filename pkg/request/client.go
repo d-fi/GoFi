@@ -46,29 +46,3 @@ func InitDeezerAPI(arl string) (string, error) {
 	Client.SetQueryParam("sid", data.Results.Session)
 	return data.Results.Session, nil
 }
-
-func Request(body map[string]interface{}, method string) (map[string]interface{}, error) {
-	resp, err := Client.R().
-		SetBody(body).
-		SetQueryParam("method", method).
-		Post("/gateway.php")
-
-	if err != nil {
-		return nil, err
-	}
-
-	var responseData map[string]interface{}
-	if err := json.Unmarshal(resp.Body(), &responseData); err != nil {
-		return nil, err
-	}
-
-	if len(responseData) > 0 {
-		return responseData, nil
-	}
-
-	errorMessage := ""
-	for key, value := range responseData["error"].(map[string]interface{}) {
-		errorMessage += fmt.Sprintf("%s: %v, ", key, value)
-	}
-	return nil, fmt.Errorf("API error: %s", errorMessage)
-}

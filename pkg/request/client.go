@@ -1,13 +1,15 @@
 package request
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 
 	"github.com/go-resty/resty/v2"
 )
 
-var Client = resty.New().SetBaseURL("https://api.deezer.com/1.0").
+var Client = resty.New().
+	SetBaseURL("https://api.deezer.com/1.0").
 	SetHeader("Accept", "*/*").
 	SetHeader("Accept-Encoding", "gzip, deflate").
 	SetHeader("Accept-Language", "en-US").
@@ -21,7 +23,8 @@ var Client = resty.New().SetBaseURL("https://api.deezer.com/1.0").
 	SetQueryParam("buildId", "ios12_universal").
 	SetQueryParam("screenHeight", "480").
 	SetQueryParam("screenWidth", "320").
-	SetQueryParam("lang", "en")
+	SetQueryParam("lang", "en").
+	SetTLSClientConfig(&tls.Config{InsecureSkipVerify: false})
 
 func InitDeezerAPI(arl string) (string, error) {
 	if len(arl) != 192 {
@@ -34,13 +37,22 @@ func InitDeezerAPI(arl string) (string, error) {
 		SetQueryParam("api_version", "1.0").
 		SetQueryParam("api_token", "").
 		Get("https://www.deezer.com/ajax/gw-light.php")
+
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("Failed to initialize Deezer API: %v", err)
+	}
+
+	if resp.IsError() {
+		return "", fmt.Errorf("Received error response from Deezer: %v", resp.Status())
 	}
 
 	var data UserData
 	if err := json.Unmarshal(resp.Body(), &data); err != nil {
-		return "", err
+		return "", fmt.Errorf("Failed to parse Deezer API response: %v", err)
+	}
+
+	if data.Results.Session == "" {
+		return "", fmt.Errorf("Failed to retrieve session from API response")
 	}
 
 	Client.SetQueryParam("sid", data.Results.Session)

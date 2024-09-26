@@ -1,7 +1,6 @@
 package api
 
 import (
-	"encoding/json"
 	"fmt"
 
 	"github.com/d-fi/GoFi/pkg/request"
@@ -9,13 +8,10 @@ import (
 )
 
 // Make POST requests to Deezer API
-func Request(body map[string]interface{}, method string) (map[string]interface{}, error) {
+func Request(body map[string]interface{}, method string) ([]byte, error) {
 	cacheKey := method + ":" + fmt.Sprintf("%v", body)
 	if cachedData, err := getCache(cacheKey); err == nil && len(cachedData) > 0 {
-		var results map[string]interface{}
-		if err := json.Unmarshal(cachedData, &results); err == nil {
-			return results, nil
-		}
+		return cachedData, nil
 	}
 
 	resp, err := request.Client.R().
@@ -27,33 +23,16 @@ func Request(body map[string]interface{}, method string) (map[string]interface{}
 		return nil, err
 	}
 
-	var responseData struct {
-		Error   map[string]interface{} `json:"error"`
-		Results map[string]interface{} `json:"results"`
-	}
-
-	if err := json.Unmarshal(resp.Body(), &responseData); err != nil {
-		return nil, err
-	}
-
-	if len(responseData.Results) > 0 {
-		cacheData, _ := json.Marshal(responseData.Results)
-		_ = setCache(cacheKey, cacheData)
-		return responseData.Results, nil
-	}
-
-	errorMessage := fmt.Sprintf("%v", responseData.Error)
-	return nil, fmt.Errorf("API error: %s", errorMessage)
+	responseBody := resp.Body()
+	_ = setCache(cacheKey, responseBody)
+	return responseBody, nil
 }
 
 // Make POST requests to Deezer light API
-func RequestLight(body map[string]interface{}, method string) (map[string]interface{}, error) {
+func RequestLight(body map[string]interface{}, method string) ([]byte, error) {
 	cacheKey := method + ":" + fmt.Sprintf("%v", body)
 	if cachedData, err := getCache(cacheKey); err == nil && len(cachedData) > 0 {
-		var results map[string]interface{}
-		if err := json.Unmarshal(cachedData, &results); err == nil {
-			return results, nil
-		}
+		return cachedData, nil
 	}
 
 	resp, err := request.Client.R().
@@ -68,33 +47,16 @@ func RequestLight(body map[string]interface{}, method string) (map[string]interf
 		return nil, err
 	}
 
-	var responseData struct {
-		Error   map[string]interface{} `json:"error"`
-		Results map[string]interface{} `json:"results"`
-	}
-
-	if err := json.Unmarshal(resp.Body(), &responseData); err != nil {
-		return nil, err
-	}
-
-	if len(responseData.Results) > 0 {
-		cacheData, _ := json.Marshal(responseData.Results)
-		_ = setCache(cacheKey, cacheData)
-		return responseData.Results, nil
-	}
-
-	errorMessage := fmt.Sprintf("%v", responseData.Error)
-	return nil, fmt.Errorf("API error: %s", errorMessage)
+	responseBody := resp.Body()
+	_ = setCache(cacheKey, responseBody)
+	return responseBody, nil
 }
 
 // Make GET requests to Deezer public API
-func RequestGet(method string, params map[string]interface{}, key string) (map[string]interface{}, error) {
-	cacheKey := method + key
+func RequestGet(method string, params map[string]interface{}, key string) ([]byte, error) {
+	cacheKey := method + ":" + key
 	if cachedData, err := getCache(cacheKey); err == nil && len(cachedData) > 0 {
-		var results map[string]interface{}
-		if err := json.Unmarshal(cachedData, &results); err == nil {
-			return results, nil
-		}
+		return cachedData, nil
 	}
 
 	queryParams := utils.ConvertToQueryParams(params)
@@ -107,32 +69,15 @@ func RequestGet(method string, params map[string]interface{}, key string) (map[s
 		return nil, err
 	}
 
-	var responseData struct {
-		Error   map[string]interface{} `json:"error"`
-		Results map[string]interface{} `json:"results"`
-	}
-
-	if err := json.Unmarshal(resp.Body(), &responseData); err != nil {
-		return nil, err
-	}
-
-	if len(responseData.Results) > 0 {
-		cacheData, _ := json.Marshal(responseData.Results)
-		_ = setCache(cacheKey, cacheData)
-		return responseData.Results, nil
-	}
-
-	errorMessage := fmt.Sprintf("%v", responseData.Error)
-	return nil, fmt.Errorf("API error: %s", errorMessage)
+	responseBody := resp.Body()
+	_ = setCache(cacheKey, responseBody)
+	return responseBody, nil
 }
 
 // Make GET requests to Deezer public API
-func RequestPublicApi(slug string) (map[string]interface{}, error) {
+func RequestPublicApi(slug string) ([]byte, error) {
 	if cachedData, err := getCache(slug); err == nil && len(cachedData) > 0 {
-		var data map[string]interface{}
-		if err := json.Unmarshal(cachedData, &data); err == nil {
-			return data, nil
-		}
+		return cachedData, nil
 	}
 
 	resp, err := request.Client.R().Get("https://api.deezer.com" + slug)
@@ -140,17 +85,7 @@ func RequestPublicApi(slug string) (map[string]interface{}, error) {
 		return nil, err
 	}
 
-	var data map[string]interface{}
-	if err := json.Unmarshal(resp.Body(), &data); err != nil {
-		return nil, err
-	}
-
-	if _, exists := data["error"]; exists {
-		errorMessage := fmt.Sprintf("%v", data["error"])
-		return nil, fmt.Errorf("API error: %s", errorMessage)
-	}
-
-	cacheData, _ := json.Marshal(data)
-	_ = setCache(slug, cacheData)
-	return data, nil
+	responseBody := resp.Body()
+	_ = setCache(slug, responseBody)
+	return responseBody, nil
 }

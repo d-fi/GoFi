@@ -46,35 +46,6 @@ func Request(body map[string]interface{}, method string) ([]byte, error) {
 	return results, nil
 }
 
-// Make POST requests to Deezer light API
-func RequestLight(body map[string]interface{}, method string) ([]byte, error) {
-	cacheKey := method + ":" + fmt.Sprintf("%v", body)
-	if cachedData, err := getCache(cacheKey); err == nil && len(cachedData) > 0 {
-		return cachedData, nil
-	}
-
-	resp, err := Client.R().
-		SetBody(body).
-		SetQueryParams(map[string]string{
-			"method":      method,
-			"api_version": "1.0",
-		}).
-		Post("https://www.deezer.com/ajax/gw-light.php")
-
-	if err != nil {
-		return nil, err
-	}
-
-	responseBody := resp.Body()
-	results, err := checkResponse(responseBody)
-	if err != nil {
-		return nil, err
-	}
-
-	_ = setCache(cacheKey, results)
-	return results, nil
-}
-
 // Make GET requests to Deezer public API
 func RequestGet(method string, params map[string]interface{}, key string) ([]byte, error) {
 	cacheKey := method + ":" + key

@@ -7,7 +7,7 @@ import (
 	"github.com/go-resty/resty/v2"
 )
 
-var client = resty.New().SetBaseURL("https://api.deezer.com/1.0").
+var Client = resty.New().SetBaseURL("https://api.deezer.com/1.0").
 	SetHeader("Accept", "*/*").
 	SetHeader("Accept-Encoding", "gzip, deflate").
 	SetHeader("Accept-Language", "en-US").
@@ -28,7 +28,7 @@ func InitDeezerAPI(arl string) (string, error) {
 		return "", fmt.Errorf("Invalid arl. Length should be 192 characters. You have provided %d characters.", len(arl))
 	}
 
-	resp, err := client.R().
+	resp, err := Client.R().
 		SetHeader("Cookie", "arl="+arl).
 		SetQueryParam("method", "deezer.ping").
 		SetQueryParam("api_version", "1.0").
@@ -43,12 +43,12 @@ func InitDeezerAPI(arl string) (string, error) {
 		return "", err
 	}
 
-	client.SetQueryParam("sid", data.Results.Session)
+	Client.SetQueryParam("sid", data.Results.Session)
 	return data.Results.Session, nil
 }
 
 func Request(body map[string]interface{}, method string) (map[string]interface{}, error) {
-	resp, err := client.R().
+	resp, err := Client.R().
 		SetBody(body).
 		SetQueryParam("method", method).
 		Post("/gateway.php")

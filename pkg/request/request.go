@@ -47,8 +47,8 @@ func Request(body map[string]interface{}, method string) ([]byte, error) {
 }
 
 // Make GET requests to Deezer public API
-func RequestGet(method string, params map[string]interface{}, key string) ([]byte, error) {
-	cacheKey := method + ":" + key
+func RequestGet(method string, params map[string]interface{}) ([]byte, error) {
+	cacheKey := method + ":get_request"
 	if cachedData, err := getCache(cacheKey); err == nil && len(cachedData) > 0 {
 		return cachedData, nil
 	}

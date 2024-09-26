@@ -1,5 +1,10 @@
 package types
 
+import (
+	"encoding/json"
+	"fmt"
+)
+
 // MediaType represents media details, including the type and URL.
 type MediaType struct {
 	TYPE string `json:"TYPE"` // 'preview'
@@ -164,4 +169,23 @@ type TrackTypePublicAPI struct {
 		Type        string `json:"type"`         // 'album'
 	} `json:"album"`
 	Type string `json:"type"` // 'track'
+}
+
+// UnmarshalJSON for SongContributors allows dynamic handling of multiple structures.
+func (sc *SongContributors) UnmarshalJSON(data []byte) error {
+	// Attempt to unmarshal directly into the struct
+	type Alias SongContributors
+	var tmp Alias
+	if err := json.Unmarshal(data, &tmp); err == nil {
+		*sc = SongContributors(tmp)
+		return nil
+	}
+
+	// If the above fails, try parsing as an empty array
+	if string(data) == "[]" || string(data) == "{}" {
+		*sc = SongContributors{}
+		return nil
+	}
+
+	return fmt.Errorf("failed to unmarshal SongContributors: %s", string(data))
 }

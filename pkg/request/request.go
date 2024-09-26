@@ -1,10 +1,24 @@
 package request
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/d-fi/GoFi/pkg/utils"
 )
+
+func checkResponse(data []byte) (json.RawMessage, error) {
+	var apiResponse APIResponse
+	if err := json.Unmarshal(data, &apiResponse); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal API response: %v", err)
+	}
+
+	if len(apiResponse.Error) > 0 {
+		return nil, fmt.Errorf("API error: %v", apiResponse.Error)
+	}
+
+	return apiResponse.Results, nil
+}
 
 // Make POST requests to Deezer API
 func Request(body map[string]interface{}, method string) ([]byte, error) {
@@ -23,8 +37,13 @@ func Request(body map[string]interface{}, method string) ([]byte, error) {
 	}
 
 	responseBody := resp.Body()
-	_ = setCache(cacheKey, responseBody)
-	return responseBody, nil
+	results, err := checkResponse(responseBody)
+	if err != nil {
+		return nil, err
+	}
+
+	_ = setCache(cacheKey, results)
+	return results, nil
 }
 
 // Make POST requests to Deezer light API
@@ -47,8 +66,13 @@ func RequestLight(body map[string]interface{}, method string) ([]byte, error) {
 	}
 
 	responseBody := resp.Body()
-	_ = setCache(cacheKey, responseBody)
-	return responseBody, nil
+	results, err := checkResponse(responseBody)
+	if err != nil {
+		return nil, err
+	}
+
+	_ = setCache(cacheKey, results)
+	return results, nil
 }
 
 // Make GET requests to Deezer public API
@@ -69,8 +93,13 @@ func RequestGet(method string, params map[string]interface{}, key string) ([]byt
 	}
 
 	responseBody := resp.Body()
-	_ = setCache(cacheKey, responseBody)
-	return responseBody, nil
+	results, err := checkResponse(responseBody)
+	if err != nil {
+		return nil, err
+	}
+
+	_ = setCache(cacheKey, results)
+	return results, nil
 }
 
 // Make GET requests to Deezer public API
@@ -85,6 +114,11 @@ func RequestPublicApi(slug string) ([]byte, error) {
 	}
 
 	responseBody := resp.Body()
-	_ = setCache(slug, responseBody)
-	return responseBody, nil
+	results, err := checkResponse(responseBody)
+	if err != nil {
+		return nil, err
+	}
+
+	_ = setCache(slug, results)
+	return results, nil
 }

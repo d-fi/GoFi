@@ -4,85 +4,72 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/d-fi/GoFi/pkg/api"
 	"github.com/d-fi/GoFi/pkg/decrypt"
+	"github.com/d-fi/GoFi/pkg/request"
 	"github.com/d-fi/GoFi/pkg/types"
-	"github.com/go-resty/resty/v2"
+	"github.com/d-fi/GoFi/pkg/utils"
 )
 
-var client = resty.New()
-
-// Path to save music, update this to match your configuration
-var MusicPath = "./music" // Change this to the desired path for storing music files
-
-// DownloadTrack downloads a track, adds metadata, and saves it to disk.
-func DownloadTrack(sngID string, quality int, ext string, coverSize int) (string, error) {
-	// Fetch track information
-	track, err := api.GetTrackInfo(sngID)
+// DownloadTrack downloads a track, adds metadata, and saves it to the specified directory.
+func DownloadTrack(options TrackDownloadOptions) (string, error) {
+	track, err := api.GetTrackInfo(options.SngID)
 	if err != nil {
 		return "", fmt.Errorf("failed to fetch track info: %v", err)
 	}
 
-	// Create directory if it does not exist
-	qualityPath := filepath.Join(MusicPath, fmt.Sprintf("%d", quality))
-	if _, err := os.Stat(qualityPath); os.IsNotExist(err) {
-		if err := os.MkdirAll(qualityPath, 0755); err != nil {
-			return "", fmt.Errorf("failed to create directory: %v", err)
-		}
+	// Create directory for saving the track if it does not exist
+	if err := os.MkdirAll(options.SaveToDir, 0755); err != nil {
+		return "", fmt.Errorf("failed to create directory: %v", err)
 	}
 
-	// Get the track download URL
-	trackData, err := GetTrackDownloadUrl(track, quality)
+	trackData, err := GetTrackDownloadUrl(track, options.Quality)
 	if err != nil || trackData == nil {
 		return "", fmt.Errorf("failed to retrieve downloadable URL: %v", err)
 	}
 
-	// Set up the save path for the track
-	safeTitle := strings.ReplaceAll(track.SNG_TITLE, "/", "_")
-	savedPath := filepath.Join(qualityPath, fmt.Sprintf("%s-%s.%s", safeTitle, track.SNG_ID, ext))
+	// Sanitize the track title to ensure it's safe for file systems
+	safeTitle := utils.SanitizeFileName(track.SNG_TITLE)
+	savedPath := filepath.Join(options.SaveToDir, fmt.Sprintf("%s-%s.%s", safeTitle, track.SNG_ID, options.Ext))
 
-	// Check if the file exists and update its timestamp if it does
+	// If the file exists, update its timestamp and return the path
 	if _, err := os.Stat(savedPath); err == nil {
-		currentTime := time.Now().Local()
-		if err := os.Chtimes(savedPath, currentTime, currentTime); err != nil {
+		if err := os.Chtimes(savedPath, time.Now(), time.Now()); err != nil {
 			return "", fmt.Errorf("failed to update file timestamps: %v", err)
 		}
-	} else {
-		// Download the track
-		resp, err := client.R().Get(trackData.TrackUrl)
-		if err != nil {
-			return "", fmt.Errorf("failed to download track: %v", err)
-		}
+		return savedPath, nil
+	}
 
-		// Check if decryption is needed and add metadata
-		var trackBody []byte
-		if trackData.IsEncrypted {
-			trackBody = decrypt.DecryptDownload(resp.Body(), track.SNG_ID)
-		} else {
-			trackBody = resp.Body()
-		}
+	// Download the track from the generated URL
+	resp, err := request.Client.R().Get(trackData.TrackUrl)
+	if err != nil {
+		return "", fmt.Errorf("failed to download track: %v", err)
+	}
 
-		// Add metadata to the track
-		trackWithMetadata, err := addTrackTags(trackBody, track, coverSize)
-		if err != nil {
-			return "", fmt.Errorf("failed to add metadata: %v", err)
-		}
+	// Decrypt the downloaded track if necessary
+	trackBody := resp.Body()
+	if trackData.IsEncrypted {
+		trackBody = decrypt.DecryptDownload(resp.Body(), track.SNG_ID)
+	}
 
-		// Write the track to disk
-		if err := os.WriteFile(savedPath, trackWithMetadata, 0644); err != nil {
-			return "", fmt.Errorf("failed to save track: %v", err)
-		}
+	// Add metadata to the downloaded track
+	trackWithMetadata, err := addTrackTags(trackBody, track, options.CoverSize)
+	if err != nil {
+		return "", fmt.Errorf("failed to add metadata: %v", err)
+	}
+
+	// Write the track to the specified directory
+	if err := os.WriteFile(savedPath, trackWithMetadata, 0644); err != nil {
+		return "", fmt.Errorf("failed to save track: %v", err)
 	}
 
 	return savedPath, nil
 }
 
-// addTrackTags adds metadata to the track. Implement this function based on your metadata requirements.
+// addTrackTags adds metadata to the track. Placeholder for actual tagging logic.
 func addTrackTags(body []byte, track types.TrackType, coverSize int) ([]byte, error) {
-	// Add track metadata handling code here
-	// This is a placeholder implementation. Replace with actual metadata tagging logic.
+	// Implement metadata tagging logic here
 	return body, nil
 }

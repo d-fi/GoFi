@@ -113,12 +113,18 @@ func RequestPublicApi(slug string) ([]byte, error) {
 		return nil, err
 	}
 
-	responseBody := resp.Body()
-	results, err := checkResponse(responseBody)
-	if err != nil {
-		return nil, err
+	results := resp.Body()
+
+	var errorResponse PublicAPIResponseError
+
+	// Unmarshal response to check for errors
+	if err := json.Unmarshal(results, &errorResponse); err == nil {
+		if errorResponse.Error.Type != "" {
+			return nil, fmt.Errorf("API error: %s - %s (Code: %d)", errorResponse.Error.Type, errorResponse.Error.Message, errorResponse.Error.Code)
+		}
 	}
 
+	// Cache the response if there are no errors
 	_ = setCache(slug, results)
 	return results, nil
 }

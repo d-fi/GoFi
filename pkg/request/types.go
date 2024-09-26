@@ -7,6 +7,14 @@ type APIResponse struct {
 	Results json.RawMessage `json:"results"`
 }
 
+type PublicAPIResponseError struct {
+	Error struct {
+		Type    string `json:"type"`
+		Message string `json:"message"`
+		Code    int    `json:"code"`
+	} `json:"error"`
+}
+
 type UserData struct {
 	Error   []interface{} `json:"error"`
 	Results struct {

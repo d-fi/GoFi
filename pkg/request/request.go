@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/d-fi/GoFi/pkg/cache"
 	"github.com/d-fi/GoFi/pkg/utils"
 )
 
@@ -32,7 +33,7 @@ func checkResponse(data []byte) (json.RawMessage, error) {
 // Make POST requests to Deezer API
 func Request(body map[string]interface{}, method string) ([]byte, error) {
 	cacheKey := method + ":" + fmt.Sprintf("%v", body)
-	if cachedData, err := getCache(cacheKey); err == nil && len(cachedData) > 0 {
+	if cachedData, err := cache.GetCache(cacheKey); err == nil && len(cachedData) > 0 {
 		return cachedData, nil
 	}
 
@@ -51,14 +52,14 @@ func Request(body map[string]interface{}, method string) ([]byte, error) {
 		return nil, err
 	}
 
-	_ = setCache(cacheKey, results)
+	_ = cache.SetCache(cacheKey, results)
 	return results, nil
 }
 
 // Make GET requests to Deezer public API
 func RequestGet(method string, params map[string]interface{}) ([]byte, error) {
 	cacheKey := method + ":get_request"
-	if cachedData, err := getCache(cacheKey); err == nil && len(cachedData) > 0 {
+	if cachedData, err := cache.GetCache(cacheKey); err == nil && len(cachedData) > 0 {
 		return cachedData, nil
 	}
 
@@ -78,13 +79,13 @@ func RequestGet(method string, params map[string]interface{}) ([]byte, error) {
 		return nil, err
 	}
 
-	_ = setCache(cacheKey, results)
+	_ = cache.SetCache(cacheKey, results)
 	return results, nil
 }
 
 // Make GET requests to Deezer public API
 func RequestPublicApi(slug string) ([]byte, error) {
-	if cachedData, err := getCache(slug); err == nil && len(cachedData) > 0 {
+	if cachedData, err := cache.GetCache(slug); err == nil && len(cachedData) > 0 {
 		return cachedData, nil
 	}
 
@@ -105,6 +106,6 @@ func RequestPublicApi(slug string) ([]byte, error) {
 	}
 
 	// Cache the response if there are no errors
-	_ = setCache(slug, results)
+	_ = cache.SetCache(slug, results)
 	return results, nil
 }

@@ -1,9 +1,10 @@
-package request
+package cache
 
 import (
 	"log"
 	"time"
 
+	"github.com/d-fi/GoFi/pkg/utils"
 	"github.com/dgraph-io/badger/v4"
 )
 
@@ -13,29 +14,28 @@ var (
 )
 
 func init() {
-	var err error
-	opts := badger.DefaultOptions("").
-		WithInMemory(true).
+	cacheDir := utils.GetSystemCacheDir("GoFi") + "/badger"
+	opts := badger.DefaultOptions(cacheDir).
 		WithLogger(nil).
-		WithBlockCacheSize(16 * 1024 * 1024). // Set block cache size to 16 MB
-		WithIndexCacheSize(8 * 1024 * 1024).  // Set index cache size to 8 MB
-		WithMemTableSize(8 * 1024 * 1024)     // Set MemTable size to 8 MB
+		WithBlockCacheSize(64 * 1024 * 1024). // 64 MB block cache
+		WithIndexCacheSize(32 * 1024 * 1024). // 32 MB index cache
+		WithMemTableSize(32 * 1024 * 1024)    // 32 MB MemTable
 
+	var err error
 	cache, err = badger.Open(opts)
 	if err != nil {
 		log.Fatalf("Failed to initialize cache: %v", err)
 	}
-
 }
 
-func setCache(key string, value []byte) error {
+func SetCache(key string, value []byte) error {
 	return cache.Update(func(txn *badger.Txn) error {
 		e := badger.NewEntry([]byte(key), value).WithTTL(ttl)
 		return txn.SetEntry(e)
 	})
 }
 
-func getCache(key string) ([]byte, error) {
+func GetCache(key string) ([]byte, error) {
 	var valCopy []byte
 	err := cache.View(func(txn *badger.Txn) error {
 		item, err := txn.Get([]byte(key))

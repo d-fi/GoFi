@@ -4,11 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/d-fi/GoFi/pkg/request"
 	"github.com/d-fi/GoFi/pkg/utils"
-	"github.com/go-resty/resty/v2"
 )
-
-var client = resty.New()
 
 // Make POST requests to Deezer API
 func Request(body map[string]interface{}, method string) (map[string]interface{}, error) {
@@ -20,7 +18,7 @@ func Request(body map[string]interface{}, method string) (map[string]interface{}
 		}
 	}
 
-	resp, err := client.R().
+	resp, err := request.Client.R().
 		SetBody(body).
 		SetQueryParam("method", method).
 		Post("/gateway.php")
@@ -58,7 +56,7 @@ func RequestLight(body map[string]interface{}, method string) (map[string]interf
 		}
 	}
 
-	resp, err := client.R().
+	resp, err := request.Client.R().
 		SetBody(body).
 		SetQueryParams(map[string]string{
 			"method":      method,
@@ -100,7 +98,7 @@ func RequestGet(method string, params map[string]interface{}, key string) (map[s
 	}
 
 	queryParams := utils.ConvertToQueryParams(params)
-	resp, err := client.R().
+	resp, err := request.Client.R().
 		SetQueryParams(queryParams).
 		SetQueryParam("method", method).
 		Get("/gateway.php")
@@ -137,7 +135,7 @@ func RequestPublicApi(slug string) (map[string]interface{}, error) {
 		}
 	}
 
-	resp, err := client.R().Get("https://api.deezer.com" + slug)
+	resp, err := request.Client.R().Get("https://api.deezer.com" + slug)
 	if err != nil {
 		return nil, err
 	}

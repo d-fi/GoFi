@@ -28,6 +28,7 @@ func init() {
 	}
 }
 
+// SetCache sets a value in the cache with the specified TTL.
 func SetCache(key string, value []byte) error {
 	return cache.Update(func(txn *badger.Txn) error {
 		e := badger.NewEntry([]byte(key), value).WithTTL(ttl)
@@ -35,6 +36,7 @@ func SetCache(key string, value []byte) error {
 	})
 }
 
+// GetCache retrieves a value from the cache.
 func GetCache(key string) ([]byte, error) {
 	var valCopy []byte
 	err := cache.View(func(txn *badger.Txn) error {
@@ -48,4 +50,14 @@ func GetCache(key string) ([]byte, error) {
 		})
 	})
 	return valCopy, err
+}
+
+// FlushCache flushes the pending writes to the disk.
+func FlushCache() error {
+	return cache.Flatten(0)
+}
+
+// CloseCache closes the Badger DB instance gracefully.
+func CloseCache() error {
+	return cache.Close()
 }

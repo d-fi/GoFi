@@ -131,6 +131,7 @@ func DownloadTrack(options TrackDownloadOptions) (string, error) {
 
 		if readErr != nil {
 			logger.Debug("Failed during download: %v", readErr)
+			_ = os.Remove(savedPath)
 			return "", fmt.Errorf("failed during download: %v", readErr)
 		}
 	}

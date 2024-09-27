@@ -62,12 +62,6 @@ func SaveLayout(props SaveLayoutProps) string {
 		}
 	}
 
-	// Use relative path if it starts with '{'
-	if strings.HasPrefix(props.Path, "{") {
-		props.Path = "./" + props.Path
-		logger.Debug("Updated path to be relative: %s", props.Path)
-	}
-
 	// Find keys inside {}
 	re := regexp.MustCompile(`\{([^}]*)\}`)
 	matches := re.FindAllStringSubmatch(props.Path, -1)
@@ -87,7 +81,7 @@ func SaveLayout(props SaveLayoutProps) string {
 			value = ""
 		}
 
-		if key == "TRACK_NUMBER" || key == "TRACK_POSITION" || key == "NO_TRACK_NUMBER" {
+		if key == "TRACK_NUMBER" || key == "TRACK_POSITION" || key == "NO_TRACK_NUMBER" || strings.HasSuffix(key, "TRACK_NUMBER") || strings.HasSuffix(key, "TRACK_POSITION") {
 			if value != "" {
 				num := atoiOrZero(fmt.Sprintf("%v", value))
 				formattedNum := fmt.Sprintf("%0*d", props.MinimumIntegerDigits, num)

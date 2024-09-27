@@ -2,6 +2,7 @@ package utils
 
 import (
 	"fmt"
+	"reflect"
 
 	"github.com/d-fi/GoFi/logger"
 )
@@ -13,7 +14,14 @@ func ConvertToQueryParams(params map[string]interface{}) map[string]string {
 	queryParams := make(map[string]string)
 	for key, value := range params {
 		if value != nil {
-			convertedValue := fmt.Sprintf("%v", value)
+			var convertedValue string
+			// Check if the value is a function
+			valueType := reflect.TypeOf(value)
+			if valueType.Kind() == reflect.Func {
+				convertedValue = "<nil>"
+			} else {
+				convertedValue = fmt.Sprintf("%v", value)
+			}
 			queryParams[key] = convertedValue
 			logger.Debug("Converted key: %s, value: %s", key, convertedValue)
 		} else {

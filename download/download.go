@@ -2,6 +2,7 @@ package download
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"time"
@@ -52,19 +53,80 @@ func DownloadTrack(options TrackDownloadOptions) (string, error) {
 		return savedPath, nil
 	}
 
-	// Download the track from the generated URL
-	resp, err := request.Client.R().Get(trackData.TrackUrl)
+	// Open the destination file
+	out, err := os.Create(savedPath)
+	if err != nil {
+		logger.Debug("Failed to create file: %v", err)
+		return "", fmt.Errorf("failed to create file: %v", err)
+	}
+	defer func() {
+		out.Close()
+		if err != nil {
+			logger.Debug("Removing incomplete file: %s", savedPath)
+			_ = os.Remove(savedPath)
+		}
+	}()
+
+	// Download the track from the generated URL with progress tracking
+	resp, err := request.Client.R().
+		SetDoNotParseResponse(true). // Do not parse the response to handle the stream manually
+		Get(trackData.TrackUrl)
+
 	if err != nil {
 		logger.Debug("Failed to download track: %v", err)
 		return "", fmt.Errorf("failed to download track: %v", err)
 	}
+	defer resp.RawBody().Close()
+
+	logger.Debug("Track download started")
+
+	// Get the total size of the file from the response headers
+	contentLength := resp.RawResponse.ContentLength
+
+	// Track download progress
+	buffer := make([]byte, 32*1024) // 32 KB buffer size
+	var totalBytesRead int64
+
+	for {
+		n, readErr := resp.RawBody().Read(buffer)
+		if n > 0 {
+			_, writeErr := out.Write(buffer[:n])
+			if writeErr != nil {
+				logger.Debug("Failed to write to file: %v", writeErr)
+				return "", fmt.Errorf("failed to write to file: %v", writeErr)
+			}
+
+			totalBytesRead += int64(n)
+
+			// Call the progress callback if provided
+			if options.OnProgress != nil && contentLength > 0 {
+				progress := float64(totalBytesRead) / float64(contentLength) * 100
+				options.OnProgress(progress, totalBytesRead, contentLength)
+			}
+		}
+
+		if readErr == io.EOF {
+			break
+		}
+
+		if readErr != nil {
+			logger.Debug("Failed during download: %v", readErr)
+			return "", fmt.Errorf("failed during download: %v", readErr)
+		}
+	}
+
 	logger.Debug("Track downloaded successfully")
 
 	// Decrypt the downloaded track if necessary
-	trackBody := resp.Body()
+	trackBody, err := os.ReadFile(savedPath)
+	if err != nil {
+		logger.Debug("Failed to read downloaded file for decryption: %v", err)
+		return "", fmt.Errorf("failed to read downloaded file for decryption: %v", err)
+	}
+
 	if trackData.IsEncrypted {
 		logger.Debug("Track is encrypted, starting decryption process")
-		trackBody = decrypt.DecryptDownload(resp.Body(), track.SNG_ID)
+		trackBody = decrypt.DecryptDownload(trackBody, track.SNG_ID)
 		logger.Debug("Track decrypted successfully")
 	}
 
@@ -76,12 +138,12 @@ func DownloadTrack(options TrackDownloadOptions) (string, error) {
 	}
 	logger.Debug("Metadata added successfully")
 
-	// Write the track to the specified directory
+	// Write the track with metadata back to the specified file
 	if err := os.WriteFile(savedPath, trackWithMetadata, 0644); err != nil {
-		logger.Debug("Failed to save track: %v", err)
-		return "", fmt.Errorf("failed to save track: %v", err)
+		logger.Debug("Failed to save track with metadata: %v", err)
+		return "", fmt.Errorf("failed to save track with metadata: %v", err)
 	}
-	logger.Debug("Track saved to: %s", savedPath)
+	logger.Debug("Track saved with metadata to: %s", savedPath)
 
 	return savedPath, nil
 }

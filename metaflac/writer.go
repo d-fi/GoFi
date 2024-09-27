@@ -39,7 +39,6 @@ type PictureSpec struct {
 // Metaflac handles FLAC metadata manipulation.
 type Metaflac struct {
 	buffer        []byte
-	marker        string
 	streamInfo    []byte
 	blocks        []Block
 	padding       []byte
@@ -110,6 +109,8 @@ func (m *Metaflac) init() error {
 		case PICTURE:
 			m.pictures = append(m.pictures, blockData)
 			m.parsePictureBlock(blockData)
+		case PADDING:
+			m.padding = blockData
 		}
 
 		offset += blockLength
@@ -278,7 +279,7 @@ func (m *Metaflac) GetVendorTag() string {
 func (m *Metaflac) GetTag(name string) []string {
 	var matchingTags []string
 	for _, tag := range m.tags {
-		if strings.HasPrefix(tag, name+"=") {
+		if strings.HasPrefix(strings.ToUpper(tag), strings.ToUpper(name)+"=") {
 			matchingTags = append(matchingTags, tag)
 		}
 	}
@@ -289,7 +290,7 @@ func (m *Metaflac) GetTag(name string) []string {
 func (m *Metaflac) RemoveTag(name string) {
 	var filteredTags []string
 	for _, tag := range m.tags {
-		if !strings.HasPrefix(tag, name+"=") {
+		if !strings.HasPrefix(strings.ToUpper(tag), strings.ToUpper(name)+"=") {
 			filteredTags = append(filteredTags, tag)
 		}
 	}
@@ -299,7 +300,7 @@ func (m *Metaflac) RemoveTag(name string) {
 // RemoveFirstTag removes the first tag with the given name.
 func (m *Metaflac) RemoveFirstTag(name string) {
 	for i, tag := range m.tags {
-		if strings.HasPrefix(tag, name+"=") {
+		if strings.HasPrefix(strings.ToUpper(tag), strings.ToUpper(name)+"=") {
 			m.tags = append(m.tags[:i], m.tags[i+1:]...)
 			break
 		}
@@ -322,9 +323,15 @@ func (m *Metaflac) SetTag(field string) error {
 
 // ImportPicture imports a picture into a PICTURE metadata block.
 func (m *Metaflac) ImportPicture(pictureData []byte, spec PictureSpec) {
+	// Clear existing pictures
+	m.pictures = [][]byte{}
+	m.picturesSpecs = []PictureSpec{}
+	m.picturesDatas = [][]byte{}
+
 	pictureBlock := m.buildPictureBlock(pictureData, spec)
 	m.pictures = append(m.pictures, pictureBlock)
 	m.picturesSpecs = append(m.picturesSpecs, spec)
+	m.picturesDatas = append(m.picturesDatas, pictureData)
 }
 
 // GetAllTags returns all tags.
@@ -371,23 +378,38 @@ func (m *Metaflac) buildMetadataBlock(blockType int, block []byte, isLast bool) 
 func (m *Metaflac) buildMetadata() [][]byte {
 	var metadata [][]byte
 
+	// STREAMINFO block
 	metadata = append(metadata, m.buildMetadataBlock(STREAMINFO, m.streamInfo, false))
 
+	// Other blocks
 	for _, block := range m.blocks {
 		metadata = append(metadata, m.buildMetadataBlock(block.BlockType, block.Data, false))
 	}
 
+	// VorbisComment block
 	vorbisCommentBlock := formatVorbisComment(m.vendorString, m.tags)
 	metadata = append(metadata, m.buildMetadataBlock(VORBIS_COMMENT, vorbisCommentBlock, false))
 
+	// PICTURE blocks
 	for _, picture := range m.pictures {
 		metadata = append(metadata, m.buildMetadataBlock(PICTURE, picture, false))
 	}
 
-	if m.padding == nil {
-		m.padding = make([]byte, 16384)
+	// Include padding if it exists and has length > 0
+	if len(m.padding) > 0 {
+		metadata = append(metadata, m.buildMetadataBlock(PADDING, m.padding, false))
 	}
-	metadata = append(metadata, m.buildMetadataBlock(PADDING, m.padding, true))
+
+	// Set the isLast flag on the last metadata block
+	if len(metadata) > 0 {
+		// Unset the isLast flag on all blocks
+		for i := range metadata {
+			metadata[i][0] &^= 0x80
+		}
+		// Set the isLast flag on the last block
+		lastIndex := len(metadata) - 1
+		metadata[lastIndex][0] |= 0x80
+	}
 
 	return metadata
 }

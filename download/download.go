@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/signal"
 	"path/filepath"
+	"syscall"
 	"time"
 
 	"github.com/d-fi/GoFi/api"
@@ -67,6 +69,24 @@ func DownloadTrack(options TrackDownloadOptions) (string, error) {
 		}
 	}()
 
+	// Set up signal handling for interrupt (Ctrl+C) to clean up the file
+	interrupt := make(chan os.Signal, 1)
+	signal.Notify(interrupt, syscall.SIGINT, syscall.SIGTERM)
+
+	// Channel to notify when download is complete
+	done := make(chan struct{})
+
+	go func() {
+		select {
+		case <-interrupt:
+			logger.Debug("Interrupt signal received, removing incomplete file: %s", savedPath)
+			_ = os.Remove(savedPath)
+			os.Exit(1)
+		case <-done:
+			// Download completed normally
+		}
+	}()
+
 	// Download the track from the generated URL with progress tracking
 	resp, err := request.Client.R().
 		SetDoNotParseResponse(true). // Do not parse the response to handle the stream manually
@@ -114,6 +134,9 @@ func DownloadTrack(options TrackDownloadOptions) (string, error) {
 			return "", fmt.Errorf("failed during download: %v", readErr)
 		}
 	}
+
+	// Notify that the download is complete
+	close(done)
 
 	logger.Debug("Track downloaded successfully")
 

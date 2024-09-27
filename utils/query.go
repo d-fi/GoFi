@@ -12,9 +12,13 @@ func ConvertToQueryParams(params map[string]interface{}) map[string]string {
 
 	queryParams := make(map[string]string)
 	for key, value := range params {
-		convertedValue := fmt.Sprintf("%v", value)
-		queryParams[key] = convertedValue
-		logger.Debug("Converted key: %s, value: %s", key, convertedValue)
+		if value != nil {
+			convertedValue := fmt.Sprintf("%v", value)
+			queryParams[key] = convertedValue
+			logger.Debug("Converted key: %s, value: %s", key, convertedValue)
+		} else {
+			logger.Debug("Skipping key with nil value: %s", key)
+		}
 	}
 
 	logger.Debug("Converted query params: %v", queryParams)

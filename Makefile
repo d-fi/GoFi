@@ -19,6 +19,7 @@ clean:
 
 # Run tests
 test:
+	$(GOCLEAN) -testcache
 	$(GOTEST) -v ./...
 
 # Default target

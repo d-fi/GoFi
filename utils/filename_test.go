@@ -30,7 +30,10 @@ func TestSanitizeFileName(t *testing.T) {
 		{".", ""},
 		{"   ", ""},
 		{"...", ""},
-		{"..filename..", "..filename"},
+		{"..filename..", "filename"},
+		{"filename...", "filename"},
+		{"...filename", "filename"},
+		{"...file...name...", "file...name"},
 	}
 
 	for _, test := range tests {

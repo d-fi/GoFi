@@ -18,9 +18,9 @@ func SanitizeFileName(name string) string {
 	safeName := reg.ReplaceAllString(name, "_")
 	logger.Debug("Replaced invalid characters in file name: %s", safeName)
 
-	// Trim trailing periods and spaces which are also problematic
-	safeName = strings.TrimRight(safeName, ". ")
-	logger.Debug("Trimmed trailing periods and spaces: %s", safeName)
+	// Trim leading and trailing periods and spaces which are also problematic
+	safeName = strings.Trim(safeName, ". ")
+	logger.Debug("Trimmed leading and trailing periods and spaces: %s", safeName)
 
 	return safeName
 }

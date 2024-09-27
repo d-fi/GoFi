@@ -8,8 +8,8 @@ import (
 
 	"github.com/d-fi/GoFi/pkg/api"
 	"github.com/d-fi/GoFi/pkg/decrypt"
+	"github.com/d-fi/GoFi/pkg/metadata"
 	"github.com/d-fi/GoFi/pkg/request"
-	"github.com/d-fi/GoFi/pkg/types"
 	"github.com/d-fi/GoFi/pkg/utils"
 )
 
@@ -55,7 +55,7 @@ func DownloadTrack(options TrackDownloadOptions) (string, error) {
 	}
 
 	// Add metadata to the downloaded track
-	trackWithMetadata, err := addTrackTags(trackBody, track, options.CoverSize)
+	trackWithMetadata, err := metadata.AddTrackTags(trackBody, track, options.CoverSize)
 	if err != nil {
 		return "", fmt.Errorf("failed to add metadata: %v", err)
 	}
@@ -66,10 +66,4 @@ func DownloadTrack(options TrackDownloadOptions) (string, error) {
 	}
 
 	return savedPath, nil
-}
-
-// addTrackTags adds metadata to the track. Placeholder for actual tagging logic.
-func addTrackTags(body []byte, track types.TrackType, coverSize int) ([]byte, error) {
-	// Implement metadata tagging logic here
-	return body, nil
 }

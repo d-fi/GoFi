@@ -169,13 +169,14 @@ func TestBuildPictureBlock(t *testing.T) {
 func TestBuildMetadata(t *testing.T) {
 	m := &Metaflac{
 		streamInfo:   []byte{0x00, 0x01},
-		blocks:       []Block{{BlockType: 3, Data: []byte{0x02, 0x03}}},
+		blocks:       []Block{{BlockType: SEEKTABLE, Data: []byte{0x02, 0x03}}},
 		tags:         []string{"TITLE=Test Song"},
 		vendorString: "test vendor",
 		pictures:     [][]byte{{0x04, 0x05}},
 		picturesSpecs: []PictureSpec{{
 			Type: 3, Mime: "image/jpeg",
 		}},
+		padding: []byte{0x00, 0x00}, // Added padding data to include the padding block
 	}
 
 	metadata := m.buildMetadata()
@@ -187,6 +188,12 @@ func TestBuildMetadata(t *testing.T) {
 	streamInfoBlock := metadata[0]
 	if streamInfoBlock[0]&0x7F != STREAMINFO {
 		t.Error("First metadata block is not STREAMINFO")
+	}
+
+	// Verify SEEKTABLE block
+	seekTableBlock := metadata[1]
+	if seekTableBlock[0]&0x7F != SEEKTABLE {
+		t.Error("Second metadata block is not SEEKTABLE")
 	}
 
 	// Verify VORBIS_COMMENT block

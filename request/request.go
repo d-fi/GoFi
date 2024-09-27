@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/d-fi/GoFi/logger"
 	"github.com/d-fi/GoFi/utils"
 	"github.com/hashicorp/golang-lru/v2/expirable"
 )
@@ -17,103 +18,115 @@ const (
 var cache = expirable.NewLRU[string, []byte](cacheSize, nil, cacheTTL)
 
 func checkResponse(data []byte) (json.RawMessage, error) {
+	logger.Debug("Checking API response")
 	var apiResponse APIResponse
 	if err := json.Unmarshal(data, &apiResponse); err != nil {
+		logger.Debug("Failed to unmarshal API response: %v", err)
 		return nil, fmt.Errorf("failed to unmarshal API response: %v", err)
 	}
 
-	// Check if the response contains error data in different formats
 	switch errVal := apiResponse.Error.(type) {
 	case string:
+		logger.Debug("API error: %s", errVal)
 		return nil, fmt.Errorf("API error: %s", errVal)
 	case map[string]interface{}:
-		// Convert the map to a string for better error message readability
 		errorMessage := ""
 		for key, value := range errVal {
 			errorMessage += fmt.Sprintf("%s: %v, ", key, value)
 		}
+		logger.Debug("API error: %v", errorMessage)
 		return nil, fmt.Errorf("API error: %v", errorMessage)
 	}
 
+	logger.Debug("API response checked successfully")
 	return apiResponse.Results, nil
 }
 
-// Request makes POST requests to the Deezer API.
 func Request(body map[string]interface{}, method string) ([]byte, error) {
 	cacheKey := method + ":" + fmt.Sprintf("%v", body)
 	if cachedData, ok := cache.Get(cacheKey); ok && len(cachedData) > 0 {
+		logger.Debug("Cache hit for request with method: %s", method)
 		return cachedData, nil
 	}
 
+	logger.Debug("Making request with method: %s", method)
 	resp, err := Client.R().
 		SetBody(body).
 		SetQueryParam("method", method).
 		Post("/gateway.php")
 
 	if err != nil {
+		logger.Debug("Failed to make request: %v", err)
 		return nil, err
 	}
 
 	responseBody := resp.Body()
 	results, err := checkResponse(responseBody)
 	if err != nil {
+		logger.Debug("Error in response: %v", err)
 		return nil, err
 	}
 
 	cache.Add(cacheKey, results)
+	logger.Debug("Request successful, response cached")
 	return results, nil
 }
 
-// RequestGet makes GET requests to the Deezer public API.
 func RequestGet(method string, params map[string]interface{}) ([]byte, error) {
 	cacheKey := method + ":get_request"
 	if cachedData, ok := cache.Get(cacheKey); ok && len(cachedData) > 0 {
+		logger.Debug("Cache hit for GET request with method: %s", method)
 		return cachedData, nil
 	}
 
 	queryParams := utils.ConvertToQueryParams(params)
+	logger.Debug("Making GET request with method: %s", method)
 	resp, err := Client.R().
 		SetQueryParams(queryParams).
 		SetQueryParam("method", method).
 		Get("/gateway.php")
 
 	if err != nil {
+		logger.Debug("Failed to make GET request: %v", err)
 		return nil, err
 	}
 
 	responseBody := resp.Body()
 	results, err := checkResponse(responseBody)
 	if err != nil {
+		logger.Debug("Error in GET response: %v", err)
 		return nil, err
 	}
 
 	cache.Add(cacheKey, results)
+	logger.Debug("GET request successful, response cached")
 	return results, nil
 }
 
-// RequestPublicApi makes GET requests to the Deezer public API.
 func RequestPublicApi(slug string) ([]byte, error) {
 	if cachedData, ok := cache.Get(slug); ok && len(cachedData) > 0 {
+		logger.Debug("Cache hit for public API request: %s", slug)
 		return cachedData, nil
 	}
 
+	logger.Debug("Making public API request: %s", slug)
 	resp, err := Client.R().Get("https://api.deezer.com" + slug)
 	if err != nil {
+		logger.Debug("Failed to make public API request: %v", err)
 		return nil, err
 	}
 
 	results := resp.Body()
 
 	var errorResponse PublicAPIResponseError
-
-	// Unmarshal response to check for errors
 	if err := json.Unmarshal(results, &errorResponse); err == nil {
 		if errorResponse.Error.Type != "" {
+			logger.Debug("API error: %s - %s (Code: %d)", errorResponse.Error.Type, errorResponse.Error.Message, errorResponse.Error.Code)
 			return nil, fmt.Errorf("API error: %s - %s (Code: %d)", errorResponse.Error.Type, errorResponse.Error.Message, errorResponse.Error.Code)
 		}
 	}
 
-	// Cache the response if there are no errors
 	cache.Add(slug, results)
+	logger.Debug("Public API request successful, response cached")
 	return results, nil
 }

@@ -6,10 +6,13 @@ import (
 	"strings"
 
 	"github.com/bogem/id3v2/v2"
+	"github.com/d-fi/GoFi/logger"
 	"github.com/d-fi/GoFi/types"
 )
 
 func WriteMetadataMp3(buffer []byte, track types.TrackType, album *types.AlbumTypePublicApi, cover []byte) ([]byte, error) {
+	logger.Debug("Starting MP3 metadata writing for track: %s", track.SNG_TITLE)
+
 	// Create a reader from the buffer
 	reader := bytes.NewReader(buffer)
 
@@ -20,6 +23,7 @@ func WriteMetadataMp3(buffer []byte, track types.TrackType, album *types.AlbumTy
 		// No existing tag or error reading, create a new one
 		tag = id3v2.NewEmptyTag()
 		audioData = buffer
+		logger.Debug("No existing tags found, creating new tag")
 	} else {
 		// Existing tag found, extract the audio data
 		tagSize := int(tag.Size())
@@ -27,22 +31,20 @@ func WriteMetadataMp3(buffer []byte, track types.TrackType, album *types.AlbumTy
 			tagSize = len(buffer)
 		}
 		audioData = buffer[tagSize:]
+		logger.Debug("Existing tags found, extracted audio data")
 	}
 
 	// Set frames
-
-	// TIT2 (Title/songname/content description)
 	tag.SetTitle(track.SNG_TITLE)
-
-	// TALB (Album/Movie/Show title)
 	tag.SetAlbum(track.ALB_TITLE)
 
-	// TPE1 (Lead performer(s)/Soloist(s))
+	// Set artist names
 	var artistNames []string
 	for _, artist := range track.ARTISTS {
 		artistNames = append(artistNames, artist.ART_NAME)
 	}
 	tag.SetArtist(strings.Join(artistNames, ", "))
+	logger.Debug("Set basic MP3 tags: TITLE, ALBUM, ARTIST")
 
 	// TLEN (Length)
 	durationMs := int(track.DURATION) * 1000
@@ -58,10 +60,10 @@ func WriteMetadataMp3(buffer []byte, track types.TrackType, album *types.AlbumTy
 		Text:     track.ISRC,
 	}
 	tag.AddFrame(tag.CommonID("ISRC"), isrcFrame)
+	logger.Debug("Set duration and ISRC")
 
 	// Album-related frames
 	if album != nil {
-		// Genres (TCON)
 		if len(album.Genres.Data) > 0 {
 			var genres []string
 			for _, genre := range album.Genres.Data {
@@ -70,15 +72,12 @@ func WriteMetadataMp3(buffer []byte, track types.TrackType, album *types.AlbumTy
 			tag.SetGenre(strings.Join(genres, ", "))
 		}
 
-		// Release date components
 		releaseDates := strings.Split(album.ReleaseDate, "-")
 		if len(releaseDates) >= 1 {
-			// TYER (Year)
 			tag.SetYear(releaseDates[0])
 		}
 		if len(releaseDates) >= 3 {
-			// TDAT (Date DDMM)
-			date := releaseDates[2] + releaseDates[1] // DDMM
+			date := releaseDates[2] + releaseDates[1]
 			dateFrame := id3v2.TextFrame{
 				Encoding: id3v2.EncodingUTF8,
 				Text:     date,
@@ -86,14 +85,12 @@ func WriteMetadataMp3(buffer []byte, track types.TrackType, album *types.AlbumTy
 			tag.AddFrame("TDAT", dateFrame)
 		}
 
-		// TPE2 (Album artist)
 		albumArtistFrame := id3v2.TextFrame{
 			Encoding: id3v2.EncodingUTF8,
 			Text:     album.Artist.Name,
 		}
 		tag.AddFrame("TPE2", albumArtistFrame)
 
-		// Custom TXXX frames
 		addUserTextFrame(tag, "RELEASETYPE", album.RecordType)
 		addUserTextFrame(tag, "BARCODE", album.UPC)
 		addUserTextFrame(tag, "LABEL", album.Label)
@@ -103,22 +100,18 @@ func WriteMetadataMp3(buffer []byte, track types.TrackType, album *types.AlbumTy
 			compilation = "1"
 		}
 		addUserTextFrame(tag, "COMPILATION", compilation)
+		logger.Debug("Set album-related tags and frames")
 	}
 
-	// TMED (Media type)
 	mediaTypeFrame := id3v2.TextFrame{
 		Encoding: id3v2.EncodingUTF8,
 		Text:     "Digital Media",
 	}
 	tag.AddFrame("TMED", mediaTypeFrame)
-
-	// Source TXXX frames
 	addUserTextFrame(tag, "SOURCE", "Deezer")
 	addUserTextFrame(tag, "SOURCEID", track.SNG_ID)
 
-	// Disk number and track number
 	if track.DISK_NUMBER != 0 {
-		// TPOS (Part of a set)
 		partOfSetFrame := id3v2.TextFrame{
 			Encoding: id3v2.EncodingUTF8,
 			Text:     fmt.Sprintf("%d", int(track.DISK_NUMBER)),
@@ -126,7 +119,6 @@ func WriteMetadataMp3(buffer []byte, track types.TrackType, album *types.AlbumTy
 		tag.AddFrame("TPOS", partOfSetFrame)
 	}
 
-	// TRCK (Track number)
 	trackNumber := fmt.Sprintf("%02d", int(track.TRACK_NUMBER))
 	if album != nil {
 		totalTracks := fmt.Sprintf("%02d", album.NbTracks)
@@ -143,11 +135,9 @@ func WriteMetadataMp3(buffer []byte, track types.TrackType, album *types.AlbumTy
 		tag.AddFrame("TRCK", trackFrame)
 	}
 
-	// Contributors
+	// Set contributors
 	if track.SNG_CONTRIBUTORS != nil {
 		contributors := track.SNG_CONTRIBUTORS
-
-		// TCOP (Copyright)
 		if len(contributors.MainArtist) > 0 {
 			var releaseYear string
 			if album != nil {
@@ -163,8 +153,6 @@ func WriteMetadataMp3(buffer []byte, track types.TrackType, album *types.AlbumTy
 			}
 			tag.AddFrame("TCOP", copyrightFrame)
 		}
-
-		// TPUB (Publisher)
 		if len(contributors.Publisher) > 0 {
 			publisherFrame := id3v2.TextFrame{
 				Encoding: id3v2.EncodingUTF8,
@@ -172,8 +160,6 @@ func WriteMetadataMp3(buffer []byte, track types.TrackType, album *types.AlbumTy
 			}
 			tag.AddFrame("TPUB", publisherFrame)
 		}
-
-		// TCOM (Composer)
 		if len(contributors.Composer) > 0 {
 			composerFrame := id3v2.TextFrame{
 				Encoding: id3v2.EncodingUTF8,
@@ -182,7 +168,6 @@ func WriteMetadataMp3(buffer []byte, track types.TrackType, album *types.AlbumTy
 			tag.AddFrame("TCOM", composerFrame)
 		}
 
-		// Additional TXXX frames for contributors
 		if len(contributors.Writer) > 0 {
 			addUserTextFrame(tag, "LYRICIST", strings.Join(contributors.Writer, ", "))
 		}
@@ -196,9 +181,10 @@ func WriteMetadataMp3(buffer []byte, track types.TrackType, album *types.AlbumTy
 			involvedPeople := append(contributors.Producer, contributors.Engineer...)
 			addUserTextFrame(tag, "INVOLVEDPEOPLE", strings.Join(involvedPeople, ", "))
 		}
+		logger.Debug("Set contributor-related tags")
 	}
 
-	// Lyrics (USLT)
+	// Set lyrics and explicit content
 	if track.LYRICS != nil {
 		lyricsFrame := id3v2.UnsynchronisedLyricsFrame{
 			Encoding:          id3v2.EncodingUTF8,
@@ -208,13 +194,11 @@ func WriteMetadataMp3(buffer []byte, track types.TrackType, album *types.AlbumTy
 		}
 		tag.AddUnsynchronisedLyricsFrame(lyricsFrame)
 	}
-
-	// Explicit lyrics TXXX frame
 	if track.EXPLICIT_LYRICS != nil {
 		addUserTextFrame(tag, "EXPLICIT", fmt.Sprintf("%t", *track.EXPLICIT_LYRICS))
 	}
 
-	// Cover art (APIC)
+	// Add cover art
 	if cover != nil {
 		picture := id3v2.PictureFrame{
 			Encoding:    id3v2.EncodingUTF8,
@@ -224,20 +208,23 @@ func WriteMetadataMp3(buffer []byte, track types.TrackType, album *types.AlbumTy
 			Picture:     cover,
 		}
 		tag.AddAttachedPicture(picture)
+		logger.Debug("Added cover art to MP3 metadata")
 	}
 
 	// Write the tag and audio data to a new buffer
 	var newBuffer bytes.Buffer
 	if _, err := tag.WriteTo(&newBuffer); err != nil {
+		logger.Debug("Failed to write MP3 tags: %v", err)
 		return nil, err
 	}
+
 	// Append the audio data
 	newBuffer.Write(audioData)
+	logger.Debug("Completed MP3 metadata writing for track: %s", track.SNG_TITLE)
 
 	return newBuffer.Bytes(), nil
 }
 
-// Helper function to add a TXXX frame
 func addUserTextFrame(tag *id3v2.Tag, description, value string) {
 	frame := id3v2.UserDefinedTextFrame{
 		Encoding:    id3v2.EncodingUTF8,
@@ -245,4 +232,5 @@ func addUserTextFrame(tag *id3v2.Tag, description, value string) {
 		Value:       value,
 	}
 	tag.AddFrame(tag.CommonID("UserDefinedText"), frame)
+	logger.Debug("Added TXXX frame: %s = %s", description, value)
 }

@@ -4,19 +4,24 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/d-fi/GoFi/logger"
 	"github.com/d-fi/GoFi/metaflac"
 	"github.com/d-fi/GoFi/types"
 )
 
 func WriteMetadataFlac(buffer []byte, track types.TrackType, album *types.AlbumTypePublicApi, dimension int, cover []byte) ([]byte, error) {
+	logger.Debug("Initializing FLAC metadata writing for track: %s", track.SNG_TITLE)
+
 	flac, err := metaflac.NewMetaflac(buffer)
 	if err != nil {
+		logger.Debug("Failed to initialize FLAC metadata: %v", err)
 		return nil, err
 	}
 
 	var RELEASE_YEAR string
 	if album != nil {
 		RELEASE_YEAR = strings.Split(album.ReleaseDate, "-")[0]
+		logger.Debug("Release year extracted: %s", RELEASE_YEAR)
 	}
 
 	flac.SetTag("TITLE=" + track.SNG_TITLE)
@@ -27,16 +32,19 @@ func WriteMetadataFlac(buffer []byte, track types.TrackType, album *types.AlbumT
 		artistNames = append(artistNames, artist.ART_NAME)
 	}
 	flac.SetTag("ARTIST=" + strings.Join(artistNames, ", "))
+	logger.Debug("Set basic track tags: TITLE, ALBUM, ARTIST")
 
 	flac.SetTag(fmt.Sprintf("TRACKNUMBER=%02d", int(track.TRACK_NUMBER)))
 
 	if album != nil {
 		TOTALTRACKS := fmt.Sprintf("%02d", album.NbTracks)
+		logger.Debug("Total tracks set: %s", TOTALTRACKS)
 
 		if len(album.Genres.Data) > 0 {
 			for _, genre := range album.Genres.Data {
 				flac.SetTag("GENRE=" + genre.Name)
 			}
+			logger.Debug("Set genre tags")
 		}
 
 		flac.SetTag("TRACKTOTAL=" + TOTALTRACKS)
@@ -47,12 +55,14 @@ func WriteMetadataFlac(buffer []byte, track types.TrackType, album *types.AlbumT
 		flac.SetTag("LABEL=" + album.Label)
 		flac.SetTag("DATE=" + album.ReleaseDate)
 		flac.SetTag("YEAR=" + RELEASE_YEAR)
+		logger.Debug("Set album-related tags")
 
 		compilation := "0"
 		if strings.Contains(strings.ToLower(album.Artist.Name), "various") {
 			compilation = "1"
 		}
 		flac.SetTag("COMPILATION=" + compilation)
+		logger.Debug("Set compilation tag")
 	}
 
 	if track.DISK_NUMBER != 0 {
@@ -103,6 +113,7 @@ func WriteMetadataFlac(buffer []byte, track types.TrackType, album *types.AlbumT
 		if len(contributors.Mixer) > 0 {
 			flac.SetTag("MIXER=" + strings.Join(contributors.Mixer, ", "))
 		}
+		logger.Debug("Set contributor tags")
 	}
 
 	if cover != nil {
@@ -116,11 +127,14 @@ func WriteMetadataFlac(buffer []byte, track types.TrackType, album *types.AlbumT
 			Colors:      0,
 		}
 		flac.ImportPicture(cover, spec)
+		logger.Debug("Imported cover picture with dimensions: %dx%d", dimension, dimension)
 	}
 
 	flac.SetTag("SOURCE=Deezer")
 	flac.SetTag("SOURCEID=" + track.SNG_ID)
+	logger.Debug("Set source-related tags")
 
 	newBuffer := flac.GetBuffer()
+	logger.Debug("FLAC metadata writing complete for track: %s", track.SNG_TITLE)
 	return newBuffer, nil
 }

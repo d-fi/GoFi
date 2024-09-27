@@ -13,10 +13,10 @@ type MediaType struct {
 
 // LyricsSync represents the synchronized lyrics with timestamps.
 type LyricsSync struct {
-	LrcTimestamp string `json:"lrc_timestamp"` // '[00:03.58]'
-	Milliseconds string `json:"milliseconds"`  // '3580'
-	Duration     string `json:"duration"`      // '8660'
-	Line         string `json:"line"`          // "Hey brother! There's an endless road to rediscover"
+	LrcTimestamp string      `json:"lrc_timestamp"` // '[00:03.58]'
+	Milliseconds string      `json:"milliseconds"`  // '3580'
+	Duration     StringOrInt `json:"duration"`      // '8660'
+	Line         string      `json:"line"`          // "Hey brother! There's an endless road to rediscover"
 }
 
 // LyricsType represents lyrics information, including text and synchronized data.
@@ -66,8 +66,8 @@ type SongType struct {
 	ARTIST_IS_DUMMY        bool                 `json:"ARTIST_IS_DUMMY"`            // false
 	ART_PICTURE            string               `json:"ART_PICTURE"`                // 'f2bc007e9133c946ac3c3907ddc5d2ea'
 	DATE_START             string               `json:"DATE_START"`                 // '0000-00-00'
-	DISK_NUMBER            *string              `json:"DISK_NUMBER,omitempty"`      // '1'
-	DURATION               string               `json:"DURATION"`                   // '224'
+	DISK_NUMBER            StringOrInt          `json:"DISK_NUMBER,omitempty"`      // '1'
+	DURATION               StringOrInt          `json:"DURATION"`                   // '224'
 	EXPLICIT_TRACK_CONTENT ExplicitTrackContent `json:"EXPLICIT_TRACK_CONTENT"`     // Explicit content status
 	ISRC                   string               `json:"ISRC"`                       // 'GBDUW0000059'
 	LYRICS_ID              int                  `json:"LYRICS_ID"`                  // 2780622
@@ -77,11 +77,11 @@ type SongType struct {
 	SMARTRADIO             StringOrInt          `json:"SMARTRADIO"`                 // Can be '0' or 0
 	SNG_ID                 string               `json:"SNG_ID"`                     // '3135556'
 	SNG_TITLE              string               `json:"SNG_TITLE"`                  // 'Harder, Better, Faster, Stronger'
-	SNG_CONTRIBUTORS       SongContributors     `json:"SNG_CONTRIBUTORS,omitempty"` // Song contributors
+	SNG_CONTRIBUTORS       *SongContributors    `json:"SNG_CONTRIBUTORS,omitempty"` // Song contributors
 	STATUS                 int                  `json:"STATUS"`                     // 3
 	S_MOD                  int                  `json:"S_MOD"`                      // 0
 	S_PREMIUM              int                  `json:"S_PREMIUM"`                  // 0
-	TRACK_NUMBER           string               `json:"TRACK_NUMBER"`               // '4'
+	TRACK_NUMBER           StringOrInt          `json:"TRACK_NUMBER"`               // '4'
 	URL_REWRITING          string               `json:"URL_REWRITING"`              // 'daft-punk'
 	VERSION                *string              `json:"VERSION,omitempty"`          // '(Extended Club Mix Edit)'
 	MD5_ORIGIN             string               `json:"MD5_ORIGIN"`                 // '51afcde9f56a132096c0496cc95eb24b'
@@ -139,12 +139,12 @@ type TrackTypePublicAPI struct {
 	ISRC                  string                  `json:"isrc"`                    // 'GBDUW0000059'
 	Link                  string                  `json:"link"`                    // 'https://www.deezer.com/track/3135556'
 	Share                 string                  `json:"share"`                   // Share link
-	Duration              int                     `json:"duration"`                // 224
+	Duration              StringOrInt             `json:"duration"`                // 224
 	TrackPosition         int                     `json:"track_position"`          // 4
-	DiskNumber            int                     `json:"disk_number"`             // 1
+	DiskNumber            StringOrInt             `json:"disk_number"`             // 1
 	Rank                  int                     `json:"rank"`                    // 956167
 	ReleaseDate           string                  `json:"release_date"`            // '2001-03-07'
-	ExplicitLyrics        bool                    `json:"explicit_lyrics"`         // Explicit lyrics status
+	ExplicitLyrics        *StringOrBool           `json:"explicit_lyrics"`         // Explicit lyrics status
 	ExplicitContentLyrics int                     `json:"explicit_content_lyrics"` // Explicit content lyrics status
 	ExplicitContentCover  int                     `json:"explicit_content_cover"`  // Explicit content cover status
 	Preview               string                  `json:"preview"`                 // Preview link

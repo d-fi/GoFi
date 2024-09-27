@@ -1,30 +1,31 @@
 package types
 
 import (
-	"encoding/json"
 	"fmt"
+	"strconv"
+	"strings"
 )
 
-// StringOrInt is a custom type that handles both string and int values during JSON unmarshaling.
-type StringOrInt struct {
-	Value string
+type StringOrInt int
+
+func (s *StringOrInt) UnmarshalJSON(data []byte) error {
+	dataStr := strings.Trim(string(data), "\"")
+	intValue, err := strconv.Atoi(dataStr)
+	if err != nil {
+		return fmt.Errorf("StringOrInt: cannot parse '%s' as int", dataStr)
+	}
+	*s = StringOrInt(intValue)
+	return nil
 }
 
-// UnmarshalJSON implements the json.Unmarshaler interface for StringOrInt.
-func (s *StringOrInt) UnmarshalJSON(data []byte) error {
-	// Attempt to unmarshal as a string
-	var str string
-	if err := json.Unmarshal(data, &str); err == nil {
-		s.Value = str
-		return nil
-	}
+type StringOrBool bool
 
-	// Attempt to unmarshal as an integer
-	var num int
-	if err := json.Unmarshal(data, &num); err == nil {
-		s.Value = fmt.Sprintf("%d", num)
-		return nil
+func (s *StringOrBool) UnmarshalJSON(data []byte) error {
+	dataStr := strings.Trim(string(data), "\"")
+	boolValue, err := strconv.ParseBool(dataStr)
+	if err != nil {
+		return fmt.Errorf("StringOrBool: cannot parse '%s' as bool", dataStr)
 	}
-
-	return fmt.Errorf("StringOrInt: failed to unmarshal as string or int")
+	*s = StringOrBool(boolValue)
+	return nil
 }

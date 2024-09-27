@@ -72,7 +72,7 @@ type SongType struct {
 	ISRC                   string               `json:"ISRC"`                       // 'GBDUW0000059'
 	LYRICS_ID              int                  `json:"LYRICS_ID"`                  // 2780622
 	LYRICS                 *LyricsType          `json:"LYRICS,omitempty"`           // Lyrics information
-	EXPLICIT_LYRICS        *string              `json:"EXPLICIT_LYRICS,omitempty"`  // Optional explicit lyrics status
+	EXPLICIT_LYRICS        *StringOrBool        `json:"EXPLICIT_LYRICS,omitempty"`  // Optional explicit lyrics status
 	RANK                   string               `json:"RANK"`                       // '787708'
 	SMARTRADIO             StringOrInt          `json:"SMARTRADIO"`                 // Can be '0' or 0
 	SNG_ID                 string               `json:"SNG_ID"`                     // '3135556'

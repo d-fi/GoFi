@@ -3,10 +3,18 @@ package request
 import (
 	"encoding/json"
 	"fmt"
+	"time"
 
-	"github.com/d-fi/GoFi/pkg/cache"
 	"github.com/d-fi/GoFi/pkg/utils"
+	"github.com/hashicorp/golang-lru/v2/expirable"
 )
+
+const (
+	cacheSize = 1000
+	cacheTTL  = 60 * time.Minute
+)
+
+var cache = expirable.NewLRU[string, []byte](cacheSize, nil, cacheTTL)
 
 func checkResponse(data []byte) (json.RawMessage, error) {
 	var apiResponse APIResponse
@@ -30,10 +38,10 @@ func checkResponse(data []byte) (json.RawMessage, error) {
 	return apiResponse.Results, nil
 }
 
-// Make POST requests to Deezer API
+// Request makes POST requests to the Deezer API.
 func Request(body map[string]interface{}, method string) ([]byte, error) {
 	cacheKey := method + ":" + fmt.Sprintf("%v", body)
-	if cachedData, err := cache.GetCache(cacheKey); err == nil && len(cachedData) > 0 {
+	if cachedData, ok := cache.Get(cacheKey); ok && len(cachedData) > 0 {
 		return cachedData, nil
 	}
 
@@ -52,14 +60,14 @@ func Request(body map[string]interface{}, method string) ([]byte, error) {
 		return nil, err
 	}
 
-	_ = cache.SetCache(cacheKey, results)
+	cache.Add(cacheKey, results)
 	return results, nil
 }
 
-// Make GET requests to Deezer public API
+// RequestGet makes GET requests to the Deezer public API.
 func RequestGet(method string, params map[string]interface{}) ([]byte, error) {
 	cacheKey := method + ":get_request"
-	if cachedData, err := cache.GetCache(cacheKey); err == nil && len(cachedData) > 0 {
+	if cachedData, ok := cache.Get(cacheKey); ok && len(cachedData) > 0 {
 		return cachedData, nil
 	}
 
@@ -79,13 +87,13 @@ func RequestGet(method string, params map[string]interface{}) ([]byte, error) {
 		return nil, err
 	}
 
-	_ = cache.SetCache(cacheKey, results)
+	cache.Add(cacheKey, results)
 	return results, nil
 }
 
-// Make GET requests to Deezer public API
+// RequestPublicApi makes GET requests to the Deezer public API.
 func RequestPublicApi(slug string) ([]byte, error) {
-	if cachedData, err := cache.GetCache(slug); err == nil && len(cachedData) > 0 {
+	if cachedData, ok := cache.Get(slug); ok && len(cachedData) > 0 {
 		return cachedData, nil
 	}
 
@@ -106,6 +114,6 @@ func RequestPublicApi(slug string) ([]byte, error) {
 	}
 
 	// Cache the response if there are no errors
-	_ = cache.SetCache(slug, results)
+	cache.Add(slug, results)
 	return results, nil
 }

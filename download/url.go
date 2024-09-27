@@ -160,7 +160,7 @@ func GetTrackDownloadUrl(track types.TrackType, quality int) (*TrackDownloadUrl,
 	// Attempt to get the URL with the official API.
 	url, err := GetTrackUrlFromServer(track.TRACK_TOKEN, formatName)
 	if err == nil && url != "" {
-		fileSize, err := utils.CheckURLFileSize(url)
+		fileSize, err := utils.CheckURLFileSize(url, nil)
 		if err == nil && fileSize > 0 {
 			logger.Debug("Track URL obtained and verified successfully. File size: %d bytes", fileSize)
 			return &TrackDownloadUrl{
@@ -189,7 +189,7 @@ func GetTrackDownloadUrl(track types.TrackType, quality int) (*TrackDownloadUrl,
 		MEDIA_VERSION: track.MEDIA_VERSION,
 	}, quality)
 	fallbackURL := fmt.Sprintf("https://e-cdns-proxy-%s.dzcdn.net/mobile/1/%s", string(track.MD5_ORIGIN[0]), filename)
-	fileSize, err := utils.CheckURLFileSize(fallbackURL)
+	fileSize, err := utils.CheckURLFileSize(fallbackURL, nil)
 	if err == nil && fileSize > 0 {
 		logger.Debug("Fallback URL obtained and verified successfully. File size: %d bytes", fileSize)
 		return &TrackDownloadUrl{

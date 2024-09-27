@@ -11,11 +11,20 @@ import (
 
 // CheckURLFileSize performs a HEAD request to check the availability of a URL
 // and returns the content length if available.
-func CheckURLFileSize(url string) (int64, error) {
-	logger.Debug("Checking URL file size for: %s", url)
+// The timeout parameter is optional; if nil, it defaults to 10 seconds.
+func CheckURLFileSize(url string, timeout *time.Duration) (int64, error) {
+	var clientTimeout time.Duration
+
+	if timeout != nil && *timeout > 0 {
+		clientTimeout = *timeout
+	} else {
+		clientTimeout = 10 * time.Second
+	}
+
+	logger.Debug("Checking URL file size for: %s with timeout: %s", url, clientTimeout)
 
 	client := &http.Client{
-		Timeout: 10 * time.Second,
+		Timeout: clientTimeout,
 	}
 
 	resp, err := client.Head(url)

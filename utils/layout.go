@@ -23,6 +23,14 @@ type SaveLayoutProps struct {
 func SaveLayout(props SaveLayoutProps) string {
 	logger.Debug("Starting save layout formatting for path: %s", props.Path)
 
+	// Ensure Track and Album are not nil
+	if props.Track == nil {
+		props.Track = make(map[string]interface{})
+	}
+	if props.Album == nil {
+		props.Album = make(map[string]interface{})
+	}
+
 	// Clone album info to avoid modifying the original map
 	albumInfo := make(map[string]interface{})
 	for k, v := range props.Album {

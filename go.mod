@@ -5,10 +5,12 @@ go 1.23
 toolchain go1.23.1
 
 require (
+	github.com/bogem/id3v2/v2 v2.1.4
 	github.com/go-resty/resty/v2 v2.15.2
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/stretchr/testify v1.9.0
 	golang.org/x/crypto v0.27.0
+	golang.org/x/text v0.18.0
 )
 
 require (

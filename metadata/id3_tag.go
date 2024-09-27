@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/bogem/id3v2/v2"
-	"github.com/d-fi/GoFi/pkg/types"
+	"github.com/d-fi/GoFi/types"
 )
 
 func WriteMetadataMp3(buffer []byte, track types.TrackType, album *types.AlbumTypePublicApi, cover []byte) ([]byte, error) {

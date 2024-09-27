@@ -5,8 +5,8 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/d-fi/GoFi/pkg/api"
-	"github.com/d-fi/GoFi/pkg/request"
+	"github.com/d-fi/GoFi/api"
+	"github.com/d-fi/GoFi/request"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/d-fi/GoFi/pkg/request"
+	"github.com/d-fi/GoFi/request"
 	"github.com/stretchr/testify/assert"
 )
 

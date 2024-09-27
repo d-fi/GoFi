@@ -6,11 +6,11 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/d-fi/GoFi/pkg/api"
-	"github.com/d-fi/GoFi/pkg/decrypt"
-	"github.com/d-fi/GoFi/pkg/metadata"
-	"github.com/d-fi/GoFi/pkg/request"
-	"github.com/d-fi/GoFi/pkg/utils"
+	"github.com/d-fi/GoFi/api"
+	"github.com/d-fi/GoFi/decrypt"
+	"github.com/d-fi/GoFi/metadata"
+	"github.com/d-fi/GoFi/request"
+	"github.com/d-fi/GoFi/utils"
 )
 
 // DownloadTrack downloads a track, adds metadata, and saves it to the specified directory.

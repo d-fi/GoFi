@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/d-fi/GoFi/pkg/request"
-	"github.com/d-fi/GoFi/pkg/types"
+	"github.com/d-fi/GoFi/request"
+	"github.com/d-fi/GoFi/types"
 )
 
 func GetTrackInfoPublicApi(sngID string) (types.TrackTypePublicAPI, error) {

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/d-fi/GoFi/pkg/metaflac"
-	"github.com/d-fi/GoFi/pkg/types"
+	"github.com/d-fi/GoFi/metaflac"
+	"github.com/d-fi/GoFi/types"
 )
 
 func WriteMetadataFlac(buffer []byte, track types.TrackType, album *types.AlbumTypePublicApi, dimension int, cover []byte) ([]byte, error) {

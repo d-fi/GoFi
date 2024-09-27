@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/d-fi/GoFi/pkg/request"
+	"github.com/d-fi/GoFi/request"
 	"github.com/hashicorp/golang-lru/v2/expirable"
 )
 

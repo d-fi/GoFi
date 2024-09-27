@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/d-fi/GoFi/pkg/decrypt"
-	"github.com/d-fi/GoFi/pkg/request"
-	"github.com/d-fi/GoFi/pkg/types"
-	"github.com/d-fi/GoFi/pkg/utils"
+	"github.com/d-fi/GoFi/decrypt"
+	"github.com/d-fi/GoFi/request"
+	"github.com/d-fi/GoFi/types"
+	"github.com/d-fi/GoFi/utils"
 )
 
 // WrongLicense error for when the user's license doesn't allow streaming certain formats.

@@ -7,8 +7,8 @@ import (
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 
-	"github.com/d-fi/GoFi/pkg/api"
-	"github.com/d-fi/GoFi/pkg/types"
+	"github.com/d-fi/GoFi/api"
+	"github.com/d-fi/GoFi/types"
 )
 
 // AddTrackTags adds metadata to the track buffer (MP3 or FLAC) based on track and album information.

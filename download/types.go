@@ -12,7 +12,7 @@ type UserData struct {
 type TrackDownloadUrl struct {
 	TrackUrl    string // The URL to download the track.
 	IsEncrypted bool   // Indicates if the track URL points to an encrypted file.
-	FileSize    int    // The size of the track file in bytes.
+	FileSize    int64  // The size of the track file in bytes.
 }
 
 // ProgressCallback defines a function type for tracking download progress.

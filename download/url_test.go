@@ -53,7 +53,7 @@ func TestGetTrackDownloadUrl(t *testing.T) {
 			if err == nil {
 				assert.NotNil(t, trackURL)
 				assert.NotEmpty(t, trackURL.TrackUrl)
-				assert.Greater(t, trackURL.FileSize, int(0))
+				assert.Greater(t, trackURL.FileSize, int64(0))
 			} else {
 				assert.Error(t, err)
 				assert.Contains(t, err.Error(), "Your account can't stream")

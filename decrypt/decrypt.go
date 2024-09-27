@@ -88,7 +88,6 @@ func DecryptChunk(chunk []byte, blowfishKey string) []byte {
 	dst := make([]byte, len(chunk))
 	mode := cipher.NewCBCDecrypter(block, iv)
 	mode.CryptBlocks(dst, chunk)
-	logger.Debug("Decrypted chunk: %x", dst)
 	return dst
 }
 

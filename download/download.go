@@ -26,12 +26,20 @@ func DownloadTrack(options TrackDownloadOptions) (string, error) {
 		return "", fmt.Errorf("failed to fetch track info: %v", err)
 	}
 
+	// Determine the file extension based on the quality
+	var ext string
+	if options.Quality == 9 {
+		ext = "flac"
+	} else {
+		ext = "mp3"
+	}
+
 	// Create directory for saving the track if it does not exist
 	if err := os.MkdirAll(options.SaveToDir, 0755); err != nil {
 		logger.Debug("Failed to create directory: %v", err)
 		return "", fmt.Errorf("failed to create directory: %v", err)
 	}
-	logger.Debug("Directory created: %s", options.SaveToDir)
+	logger.Debug("Directory created or already exists: %s", options.SaveToDir)
 
 	trackData, err := GetTrackDownloadUrl(track, options.Quality)
 	if err != nil || trackData == nil {
@@ -42,7 +50,7 @@ func DownloadTrack(options TrackDownloadOptions) (string, error) {
 
 	// Sanitize the track title to ensure it's safe for file systems
 	safeTitle := utils.SanitizeFileName(track.SNG_TITLE)
-	savedPath := filepath.Join(options.SaveToDir, fmt.Sprintf("%s-%s.%s", safeTitle, track.SNG_ID, options.Ext))
+	savedPath := filepath.Join(options.SaveToDir, fmt.Sprintf("%s-%s.%s", safeTitle, track.SNG_ID, ext))
 	logger.Debug("Saving track as: %s", savedPath)
 
 	// If the file exists, update its timestamp and return the path

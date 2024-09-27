@@ -20,10 +20,9 @@ type ProgressCallback func(progress float64, totalBytesRead, contentLength int64
 
 // TrackDownloadOptions contains all the details needed for downloading a track.
 type TrackDownloadOptions struct {
-	SngID      string           // Song ID
-	Quality    int              // Quality of the track (e.g., 128kbps, 320kbps, FLAC)
-	Ext        string           // File extension (e.g., mp3, flac)
-	CoverSize  int              // Cover size for album art
-	SaveToDir  string           // Directory to save the downloaded track
-	OnProgress ProgressCallback // Optional progress callback
+	SngID      string                                          // The ID of the track to download.
+	Quality    int                                             // The quality of the track (e.g., 1 for MP3_128, 3 for MP3_320, 9 for FLAC).
+	CoverSize  int                                             // The size of the album cover in pixels.
+	SaveToDir  string                                          // The directory where the track will be saved.
+	OnProgress func(progress float64, downloaded, total int64) // The progress callback function.
 }

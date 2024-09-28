@@ -18,7 +18,7 @@ import (
 )
 
 // DownloadTrack downloads a track, adds metadata, and saves it to the specified directory.
-func DownloadTrack(options TrackDownloadOptions) (string, error) {
+func DownloadTrack(options DownloadTrackOptions) (string, error) {
 	logger.Debug("Starting download for track ID: %s with quality: %d", options.SngID, options.Quality)
 	track, err := api.GetTrackInfo(options.SngID)
 	if err != nil {

@@ -2,6 +2,7 @@ package download
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 
@@ -13,8 +14,9 @@ import (
 )
 
 // DownloadTrackToBuffer downloads a track, decrypts if necessary, adds metadata, and returns the buffer.
-func DownloadTrackToBuffer(options DownloadTrackToBufferOptions) ([]byte, error) {
+func DownloadTrackToBuffer(ctx context.Context, options DownloadTrackToBufferOptions) ([]byte, error) {
 	logger.Debug("Starting download for track ID: %s with quality: %d", options.SngID, options.Quality)
+
 	track, err := api.GetTrackInfo(options.SngID)
 	if err != nil {
 		logger.Debug("Failed to fetch track info: %v", err)
@@ -28,11 +30,13 @@ func DownloadTrackToBuffer(options DownloadTrackToBufferOptions) ([]byte, error)
 	}
 	logger.Debug("Download URL retrieved: %s", trackData.TrackUrl)
 
-	// Download the track from the generated URL without saving to disk
-	resp, err := request.Client.R().
+	// Use the context to create an HTTP request with timeout or cancellation support
+	req := request.Client.R().
 		SetDoNotParseResponse(true).
-		Get(trackData.TrackUrl)
+		SetContext(ctx)
 
+	// Start downloading the track
+	resp, err := req.Get(trackData.TrackUrl)
 	if err != nil {
 		logger.Debug("Failed to download track: %v", err)
 		return nil, fmt.Errorf("failed to download track: %v", err)

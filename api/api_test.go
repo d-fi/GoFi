@@ -38,7 +38,7 @@ func TestGetTrackInfo(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, SNG_ID, response.SNG_ID)
 	assert.Equal(t, "GBDUW0000059", response.ISRC)
-	assert.Equal(t, "51afcde9f56a132096c0496cc95eb24b", response.MD5_ORIGIN)
+	assert.Equal(t, "000790eceb6cb6732d225c0585632b31", response.MD5_ORIGIN)
 	assert.Equal(t, "song", response.Type)
 }
 

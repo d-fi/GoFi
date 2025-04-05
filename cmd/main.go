@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -96,19 +97,19 @@ func main() {
 		searchMusic(query)
 	case "download":
 		if len(args) < 3 {
-			fmt.Println("Error: Usage: download <type> <id>")
+			fmt.Println("Error: Usage: download <type> <name|id>")
 			return
 		}
 		downloadType := args[1]
-		id := args[2]
+		nameOrID := strings.Join(args[2:], " ")
 		
 		switch downloadType {
 		case "track":
-			downloadTrack(id)
+			downloadTrackByNameOrID(nameOrID)
 		case "album":
-			downloadAlbum(id)
+			downloadAlbumByNameOrID(nameOrID)
 		case "playlist":
-			downloadPlaylist(id)
+			downloadPlaylistByNameOrID(nameOrID)
 		default:
 			fmt.Printf("Error: Unknown download type: %s\n", downloadType)
 			fmt.Println("Available types: track, album, playlist")
@@ -146,12 +147,14 @@ func printUsage() {
 	fmt.Println("  -log-level string Log level (debug, info, warn, error) (default \"info\")")
 	fmt.Println("\nCommands:")
 	fmt.Println("  search <query>               Search for tracks, albums, or artists")
-	fmt.Println("  download <type> <id>         Download track, album, or playlist")
+	fmt.Println("  download <type> <name|id>    Download track, album, or playlist by name or ID")
 	fmt.Println("    Types: track, album, playlist")
 	fmt.Println("\nExamples:")
-	fmt.Println("  ./d-fi -arl=YOUR_ARL search \"artist name\"")
-	fmt.Println("  ./d-fi -arl=YOUR_ARL download track 123456789")
-	fmt.Println("  ./d-fi -config=/path/to/config.json download album 123456789")
+	fmt.Println("  ./d-fi -arl=YOUR_ARL search \"daft punk\"")
+	fmt.Println("  ./d-fi -arl=YOUR_ARL download track \"Harder Better Faster Stronger\"")
+	fmt.Println("  ./d-fi -arl=YOUR_ARL download track 3135556")
+	fmt.Println("  ./d-fi -config=config.json download album \"Discovery\"")
+	fmt.Println("  ./d-fi -config=config.json download album 302127")
 }
 
 func searchMusic(query string) {
@@ -186,6 +189,180 @@ func searchMusic(query string) {
 			fmt.Printf("%d. %s (ID: %s)\n", i+1, artist.ART_NAME, artist.ART_ID)
 		}
 	}
+}
+
+func downloadTrackByNameOrID(nameOrID string) {
+	// Check if the input is an ID (all digits)
+	isID := true
+	for _, char := range nameOrID {
+		if char < '0' || char > '9' {
+			isID = false
+			break
+		}
+	}
+
+	var trackID string
+	if isID {
+		trackID = nameOrID
+		fmt.Printf("Downloading track with ID: %s\n", trackID)
+	} else {
+		// Search for the track by name
+		fmt.Printf("Searching for track: %s\n", nameOrID)
+		results, err := api.SearchMusic(nameOrID, 5, "TRACK")
+		if err != nil {
+			fmt.Printf("Error: Failed to search for track: %v\n", err)
+			return
+		}
+
+		if len(results.TRACK.Data) == 0 {
+			fmt.Println("Error: No tracks found with that name")
+			return
+		}
+
+		// Display the found tracks and ask the user to select one
+		fmt.Println("Found tracks:")
+		for i, track := range results.TRACK.Data {
+			fmt.Printf("%d. %s - %s (ID: %s)\n", i+1, track.ART_NAME, track.SNG_TITLE, track.SNG_ID)
+		}
+
+		if len(results.TRACK.Data) > 1 {
+			fmt.Print("\nSelect a track (1-5) or press Enter for the first result: ")
+			var choice string
+			fmt.Scanln(&choice)
+
+			if choice == "" {
+				trackID = results.TRACK.Data[0].SNG_ID
+			} else {
+				index, err := strconv.Atoi(choice)
+				if err != nil || index < 1 || index > len(results.TRACK.Data) {
+					fmt.Println("Invalid selection, using the first result")
+					trackID = results.TRACK.Data[0].SNG_ID
+				} else {
+					trackID = results.TRACK.Data[index-1].SNG_ID
+				}
+			}
+		} else {
+			trackID = results.TRACK.Data[0].SNG_ID
+		}
+	}
+
+	downloadTrack(trackID)
+}
+
+func downloadAlbumByNameOrID(nameOrID string) {
+	// Check if the input is an ID (all digits)
+	isID := true
+	for _, char := range nameOrID {
+		if char < '0' || char > '9' {
+			isID = false
+			break
+		}
+	}
+
+	var albumID string
+	if isID {
+		albumID = nameOrID
+		fmt.Printf("Downloading album with ID: %s\n", albumID)
+	} else {
+		// Search for the album by name
+		fmt.Printf("Searching for album: %s\n", nameOrID)
+		results, err := api.SearchMusic(nameOrID, 5, "ALBUM")
+		if err != nil {
+			fmt.Printf("Error: Failed to search for album: %v\n", err)
+			return
+		}
+
+		if len(results.ALBUM.Data) == 0 {
+			fmt.Println("Error: No albums found with that name")
+			return
+		}
+
+		// Display the found albums and ask the user to select one
+		fmt.Println("Found albums:")
+		for i, album := range results.ALBUM.Data {
+			fmt.Printf("%d. %s - %s (ID: %s)\n", i+1, album.ART_NAME, album.ALB_TITLE, album.ALB_ID)
+		}
+
+		if len(results.ALBUM.Data) > 1 {
+			fmt.Print("\nSelect an album (1-5) or press Enter for the first result: ")
+			var choice string
+			fmt.Scanln(&choice)
+
+			if choice == "" {
+				albumID = results.ALBUM.Data[0].ALB_ID
+			} else {
+				index, err := strconv.Atoi(choice)
+				if err != nil || index < 1 || index > len(results.ALBUM.Data) {
+					fmt.Println("Invalid selection, using the first result")
+					albumID = results.ALBUM.Data[0].ALB_ID
+				} else {
+					albumID = results.ALBUM.Data[index-1].ALB_ID
+				}
+			}
+		} else {
+			albumID = results.ALBUM.Data[0].ALB_ID
+		}
+	}
+
+	downloadAlbum(albumID)
+}
+
+func downloadPlaylistByNameOrID(nameOrID string) {
+	// Check if the input is an ID (all digits)
+	isID := true
+	for _, char := range nameOrID {
+		if char < '0' || char > '9' {
+			isID = false
+			break
+		}
+	}
+
+	var playlistID string
+	if isID {
+		playlistID = nameOrID
+		fmt.Printf("Downloading playlist with ID: %s\n", playlistID)
+	} else {
+		// Search for the playlist by name
+		fmt.Printf("Searching for playlist: %s\n", nameOrID)
+		results, err := api.SearchMusic(nameOrID, 5, "PLAYLIST")
+		if err != nil {
+			fmt.Printf("Error: Failed to search for playlist: %v\n", err)
+			return
+		}
+
+		if len(results.PLAYLIST.Data) == 0 {
+			fmt.Println("Error: No playlists found with that name")
+			return
+		}
+
+		// Display the found playlists and ask the user to select one
+		fmt.Println("Found playlists:")
+		for i, playlist := range results.PLAYLIST.Data {
+			fmt.Printf("%d. %s (ID: %s)\n", i+1, playlist.Title, playlist.PlaylistID)
+		}
+
+		if len(results.PLAYLIST.Data) > 1 {
+			fmt.Print("\nSelect a playlist (1-5) or press Enter for the first result: ")
+			var choice string
+			fmt.Scanln(&choice)
+
+			if choice == "" {
+				playlistID = results.PLAYLIST.Data[0].PlaylistID
+			} else {
+				index, err := strconv.Atoi(choice)
+				if err != nil || index < 1 || index > len(results.PLAYLIST.Data) {
+					fmt.Println("Invalid selection, using the first result")
+					playlistID = results.PLAYLIST.Data[0].PlaylistID
+				} else {
+					playlistID = results.PLAYLIST.Data[index-1].PlaylistID
+				}
+			}
+		} else {
+			playlistID = results.PLAYLIST.Data[0].PlaylistID
+		}
+	}
+
+	downloadPlaylist(playlistID)
 }
 
 func downloadTrack(trackID string) {

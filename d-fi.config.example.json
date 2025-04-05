@@ -1,0 +1,23 @@
+{
+	"concurrency": 3,
+	"saveLayout": {
+		"track": "./downloads/Tracks/{ART_NAME}/{ART_NAME} - {SNG_TITLE}",
+		"album": "./downloads/Albums/{ART_NAME}/{ALB_TITLE}/{TRACK_NUMBER} - {SNG_TITLE}",
+		"artist": "./downloads/Artists/{ART_NAME}/{SNG_TITLE}",
+		"playlist": "./downloads/Playlists/{TITLE}/{ART_NAME} - {SNG_TITLE}"
+	},
+	"playlist": {
+		"resolveFullPath": false
+	},
+	"trackNumber": false,
+	"fallbackTrack": true,
+	"fallbackQuality": false,
+	"coverSize": {
+		"128": 500,
+		"320": 500,
+		"flac": 1000
+	},
+	"cookies": {
+		"arl": "YOUR_ARL_TOKEN_HERE"
+	}
+}

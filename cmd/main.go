@@ -376,8 +376,11 @@ func downloadTrack(trackID string) {
 	}
 	
 	// Create the download directory based on the config
-	downloadDir := expandPathTemplate(appConfig.SaveLayout.Track, track, nil, "")
-	dir := filepath.Dir(downloadDir)
+	downloadPath := expandPathTemplate(appConfig.SaveLayout.Track, track, nil, "")
+	dir := filepath.Dir(downloadPath)
+	
+	// Extract just the filename part without extension
+	filename := filepath.Base(downloadPath)
 	
 	// Create the directory if it doesn't exist
 	if err := os.MkdirAll(dir, 0755); err != nil {
@@ -399,6 +402,7 @@ func downloadTrack(trackID string) {
 		Quality:    quality,
 		CoverSize:  appConfig.CoverSize.Flac,
 		SaveToDir:  dir,
+		Filename:   filename,
 		OnProgress: progressFunc,
 	}
 	
@@ -447,8 +451,11 @@ func downloadAlbum(albumID string) {
 			fmt.Printf("[%d/%d] Downloading: %s - %s\n", i+1, len(tracks.Data), track.ART_NAME, track.SNG_TITLE)
 			
 			// Create the download directory based on the config
-			downloadDir := expandPathTemplate(appConfig.SaveLayout.Album, track, &album, "")
-			dir := filepath.Dir(downloadDir)
+			downloadPath := expandPathTemplate(appConfig.SaveLayout.Album, track, &album, "")
+			dir := filepath.Dir(downloadPath)
+			
+			// Extract just the filename part without extension
+			filename := filepath.Base(downloadPath)
 			
 			// Create the directory if it doesn't exist
 			if err := os.MkdirAll(dir, 0755); err != nil {
@@ -465,6 +472,7 @@ func downloadAlbum(albumID string) {
 				Quality:   quality,
 				CoverSize: appConfig.CoverSize.Flac,
 				SaveToDir: dir,
+				Filename:  filename,
 			}
 			
 			filePath, err := download.DownloadTrack(options)
@@ -517,8 +525,11 @@ func downloadPlaylist(playlistID string) {
 			fmt.Printf("[%d/%d] Downloading: %s - %s\n", i+1, len(tracks.Data), track.ART_NAME, track.SNG_TITLE)
 			
 			// Create the download directory based on the config
-			downloadDir := expandPathTemplate(appConfig.SaveLayout.Playlist, track, nil, playlist.Title)
-			dir := filepath.Dir(downloadDir)
+			downloadPath := expandPathTemplate(appConfig.SaveLayout.Playlist, track, nil, playlist.Title)
+			dir := filepath.Dir(downloadPath)
+			
+			// Extract just the filename part without extension
+			filename := filepath.Base(downloadPath)
 			
 			// Create the directory if it doesn't exist
 			if err := os.MkdirAll(dir, 0755); err != nil {
@@ -535,6 +546,7 @@ func downloadPlaylist(playlistID string) {
 				Quality:   quality,
 				CoverSize: appConfig.CoverSize.Flac,
 				SaveToDir: dir,
+				Filename:  filename,
 			}
 			
 			filePath, err := download.DownloadTrack(options)

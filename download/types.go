@@ -24,6 +24,7 @@ type DownloadTrackOptions struct {
 	Quality    int                                             // The quality of the track (e.g., 1 for MP3_128, 3 for MP3_320, 9 for FLAC).
 	CoverSize  int                                             // The size of the album cover in pixels.
 	SaveToDir  string                                          // The directory where the track will be saved.
+	Filename   string                                          // The filename to use for the track (without extension).
 	OnProgress func(progress float64, downloaded, total int64) // The progress callback function.
 }
 

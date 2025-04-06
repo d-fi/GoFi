@@ -48,19 +48,48 @@ func DownloadTrack(options DownloadTrackOptions) (string, error) {
 	}
 	logger.Debug("Download URL retrieved: %s", trackData.TrackUrl)
 
-	// Sanitize the track title to ensure it's safe for file systems
-	safeTitle := utils.SanitizeFileName(track.SNG_TITLE)
-	savedPath := filepath.Join(options.SaveToDir, fmt.Sprintf("%s-%s.%s", safeTitle, track.SNG_ID, ext))
+	var savedPath string
+	if options.Filename != "" {
+		// Use the provided filename if available
+		savedPath = filepath.Join(options.SaveToDir, fmt.Sprintf("%s.%s", options.Filename, ext))
+	} else {
+		// Fall back to the default naming scheme
+		safeTitle := utils.SanitizeFileName(track.SNG_TITLE)
+		savedPath = filepath.Join(options.SaveToDir, fmt.Sprintf("%s-%s.%s", safeTitle, track.SNG_ID, ext))
+	}
 	logger.Debug("Saving track as: %s", savedPath)
 
-	// If the file exists, update its timestamp and return the path
+	// Check if the file exists with this name or with the ID-based name
 	if _, err := os.Stat(savedPath); err == nil {
+		// File exists with the specified name
 		if err := os.Chtimes(savedPath, time.Now(), time.Now()); err != nil {
 			logger.Debug("Failed to update file timestamps: %v", err)
 			return "", fmt.Errorf("failed to update file timestamps: %v", err)
 		}
 		logger.Debug("File already exists, updated timestamp: %s", savedPath)
 		return savedPath, nil
+	}
+
+	// Also check if the file exists with the default ID-based naming scheme
+	// if we're using a custom filename, to avoid duplicates
+	if options.Filename != "" {
+		safeTitle := utils.SanitizeFileName(track.SNG_TITLE)
+		defaultPath := filepath.Join(options.SaveToDir, fmt.Sprintf("%s-%s.%s", safeTitle, track.SNG_ID, ext))
+		if _, err := os.Stat(defaultPath); err == nil {
+			// Rename the file to match our new naming scheme
+			if err := os.Rename(defaultPath, savedPath); err != nil {
+				logger.Debug("Failed to rename existing file: %v", err)
+				// Continue anyway, as we'll just overwrite the file
+			} else {
+				// Successfully renamed, update timestamp and return
+				if err := os.Chtimes(savedPath, time.Now(), time.Now()); err != nil {
+					logger.Debug("Failed to update file timestamps: %v", err)
+					return "", fmt.Errorf("failed to update file timestamps: %v", err)
+				}
+				logger.Debug("File renamed and timestamp updated: %s", savedPath)
+				return savedPath, nil
+			}
+		}
 	}
 
 	// Open the destination file

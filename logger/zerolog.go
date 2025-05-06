@@ -28,6 +28,11 @@ func init() {
 	log.Logger = logger
 }
 
+// SetLogLevel sets the log level
+func SetLogLevel(level zerolog.Level) {
+	log.Logger = log.Logger.Level(level)
+}
+
 func Debug(msg string, args ...interface{}) {
 	log.Debug().Msgf(msg, args...)
 }

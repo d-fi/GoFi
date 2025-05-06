@@ -3,6 +3,7 @@ package request
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/d-fi/GoFi/logger"
@@ -27,6 +28,20 @@ func checkResponse(data []byte) (json.RawMessage, error) {
 
 	switch errVal := apiResponse.Error.(type) {
 	case string:
+		if errVal == "NEED_API_AUTH_REQUIRED" || errVal == "NEED_API_AUTH" {
+			// Try to re-initialize with ARL if not already done
+			arl := os.Getenv("DEEZER_ARL")
+			if arl != "" && !IsInitialized() {
+				logger.Debug("Auth required, trying to initialize with ARL from environment...")
+				_, initErr := InitDeezerAPI(arl)
+				if initErr != nil {
+					logger.Error("Failed to initialize with ARL from environment: %v", initErr)
+				} else {
+					logger.Debug("Successfully initialized with ARL, retrying request")
+					return nil, fmt.Errorf("API auth initialized, please retry: %s", errVal)
+				}
+			}
+		}
 		logger.Debug("API error: %s", errVal)
 		return nil, fmt.Errorf("API error: %s", errVal)
 	case map[string]interface{}:
@@ -48,6 +63,9 @@ func Request(body map[string]interface{}, method string) ([]byte, error) {
 		logger.Debug("Cache hit for request with method: %s", method)
 		return cachedData, nil
 	}
+
+	// Ensure ARL cookie is set
+	ensureAuth()
 
 	logger.Debug("Making request with method: %s", method)
 	resp, err := Client.R().
@@ -79,6 +97,9 @@ func RequestGet(method string, params map[string]interface{}) ([]byte, error) {
 		return cachedData, nil
 	}
 
+	// Ensure ARL cookie is set
+	ensureAuth()
+
 	queryParams := utils.ConvertToQueryParams(params)
 	logger.Debug("Making GET request with method: %s", method)
 	resp, err := Client.R().
@@ -109,6 +130,9 @@ func RequestPublicApi(slug string) ([]byte, error) {
 		return cachedData, nil
 	}
 
+	// Ensure ARL cookie is set for auth-required endpoints
+	ensureAuth()
+
 	logger.Debug("Making public API request: %s", slug)
 	resp, err := Client.R().Get("https://api.deezer.com" + slug)
 	if err != nil {
@@ -129,4 +153,20 @@ func RequestPublicApi(slug string) ([]byte, error) {
 	cache.Add(slug, results)
 	logger.Debug("Public API request successful, response cached")
 	return results, nil
+}
+
+// ensureAuth makes sure the API is initialized with an ARL token if available
+func ensureAuth() {
+	if !IsInitialized() {
+		arl := os.Getenv("DEEZER_ARL")
+		if arl != "" {
+			logger.Debug("Auto-initializing with ARL from environment...")
+			_, err := InitDeezerAPI(arl)
+			if err != nil {
+				logger.Error("Failed to auto-initialize: %v", err)
+			} else {
+				logger.Debug("Successfully auto-initialized with ARL")
+			}
+		}
+	}
 }

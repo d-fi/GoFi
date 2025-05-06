@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/d-fi/GoFi/logger"
@@ -38,6 +39,18 @@ func init() {
 		SetRetryCount(2).
 		SetRetryWaitTime(2 * time.Second).
 		SetRetryMaxWaitTime(5 * time.Second)
+
+	// Attempt to auto-initialize from environment variable
+	arl := os.Getenv("DEEZER_ARL")
+	if arl != "" {
+		logger.Debug("Found DEEZER_ARL environment variable, auto-initializing...")
+		_, err := InitDeezerAPI(arl)
+		if err != nil {
+			logger.Error("Failed to auto-initialize Deezer API: %v", err)
+		} else {
+			logger.Debug("Successfully auto-initialized Deezer API with ARL from environment")
+		}
+	}
 }
 
 // InitDeezerAPI initializes the Deezer API and sets up a session refresh ticker
@@ -45,9 +58,9 @@ func InitDeezerAPI(arl string) (string, error) {
 	userArl = arl
 	logger.Debug("Initializing Deezer API with ARL length: %d", len(arl))
 
-	if len(arl) != 192 {
+	if len(arl) < 100 {
 		logger.Debug("Invalid ARL length: %d", len(arl))
-		return "", fmt.Errorf("invalid arl, length should be 192 characters; you have provided %d characters", len(arl))
+		return "", fmt.Errorf("invalid arl, length should be long enough; you have provided %d characters", len(arl))
 	}
 
 	resp, err := Client.R().
@@ -80,6 +93,10 @@ func InitDeezerAPI(arl string) (string, error) {
 
 	sessionID = data.Results.Session
 	Client.SetQueryParam("sid", sessionID)
+	
+	// Set Cookie header globally to ensure all requests include the ARL
+	Client.SetHeader("Cookie", "arl="+arl)
+	
 	logger.Debug("Deezer API initialized successfully, session ID: %s", sessionID)
 
 	// Start the session refresh ticker if not already running
@@ -99,6 +116,16 @@ func InitDeezerAPI(arl string) (string, error) {
 	}
 
 	return sessionID, nil
+}
+
+// GetCurrentARL returns the ARL currently being used
+func GetCurrentARL() string {
+	return userArl
+}
+
+// IsInitialized returns whether the Deezer API has been initialized
+func IsInitialized() bool {
+	return sessionID != "" && userArl != ""
 }
 
 // refreshSession refreshes the Deezer session using the ARL

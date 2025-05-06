@@ -9,8 +9,11 @@ GoFi is a Go implementation of a music download tool, originally for Deezer but 
 ## Build Commands
 
 ```bash
-# Build the application
+# Build the application (legacy CLI)
 make build
+
+# Build the new CLI with Spotify support
+go build -o gofi ./cmd/gofi
 
 # Run tests
 make test
@@ -22,6 +25,22 @@ make clean
 go test -v ./path/to/package -run TestName
 ```
 
+## Usage Examples
+
+```bash
+# Authenticate with Spotify (required before using Spotify features)
+./gofi auth spotify
+
+# Download a Spotify track and convert to FLAC
+./gofi -q 9 download https://open.spotify.com/track/2YarjDYjBJuH63dUIh9OWv
+
+# Download a Spotify album to a specific directory
+./gofi -o ~/Music/Downloads -q 3 download https://open.spotify.com/album/1DFixLWuPkv3KT3TnV35m3
+
+# Download a Spotify playlist in FLAC quality to a specific directory
+./gofi -o ~/Music/Playlists -q 9 download https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M
+```
+
 ## Code Architecture
 
 ### Core Components
@@ -29,9 +48,10 @@ go test -v ./path/to/package -run TestName
 1. **API Clients**: Service-specific API clients for fetching music data
    - Deezer: `api/api.go`
    - Spotify: `internal/services/spotify/spotify.go`
+   - Service Matching: `api/spotify_deezer_match.go` matches content between services
 
 2. **Authentication**:
-   - Deezer: Uses ARL token stored in configuration
+   - Deezer: Uses ARL token stored in configuration or from environment variable
    - Spotify: OAuth2 flow in `internal/services/spotify/auth.go`
 
 3. **Download Engine**: `download/download.go` handles the actual download of music files
@@ -44,36 +64,42 @@ go test -v ./path/to/package -run TestName
    - Album cover art: `metadata/album_cover.go`
 
 5. **CLI Interface**:
-   - Legacy flag-based CLI: `cmd/main.go`
-   - New Cobra-based CLI: `cmd/gofi/cmd/`
+   - Legacy flag-based CLI: `cmd/main.go` (Deezer only)
+   - New Cobra-based CLI: `cmd/gofi/cmd/` (includes Spotify support)
 
-### Data Flow
+### Data Flow for Spotify Integration
 
-1. User provides a URL or search query
-2. URL parsing (`internal/utils/urlparser.go`) identifies service type and content ID
-3. Service-specific API fetches metadata (track, album, artist, playlist info)
-4. Download engine retrieves audio files with appropriate quality
-5. Metadata is added to downloaded files
-6. Files are saved according to configured path templates
+1. User provides a Spotify URL
+2. URL parsing (`internal/utils/urlparser.go`) identifies the content type (track, album, playlist)
+3. Spotify API fetches metadata through OAuth2 authentication
+4. The Spotify content is matched to equivalent Deezer content (`api/spotify_deezer_match.go`)
+5. Deezer API is used to download the matched tracks
+6. Metadata is added to downloaded files
+7. Files are saved according to the format: `<artist> - <track>.<ext>`
 
 ## Configuration
 
 The application accepts configuration through:
 1. Command-line flags
-2. Environment variables
+2. Environment variables in a `.env` file
 3. JSON configuration file
 
-Main configuration options:
-- Authentication tokens for music services
-- Download quality preferences
-- Output path templates
-- Concurrency settings
+Main environment variables:
+- `SPOTIFY_CLIENT_ID`: Spotify API client ID
+- `SPOTIFY_CLIENT_SECRET`: Spotify API client secret
+- `DEEZER_ARL`: Deezer authentication token
 
-## Feature Flags
+## Important File Paths
 
-- `fallbackQuality`: If true, falls back to lower quality when requested quality is unavailable
-- `fallbackTrack`: If true, attempts to find alternative tracks when the requested track is unavailable
-- `trackNumber`: If true, includes track numbers in filenames
+- **Spotify Authentication**: `~/.config/gofi/spotify_token.json` - Stores OAuth2 tokens
+- **Environment Variables**: `.env` file in project root directory
+
+## Cover Size Settings
+
+When downloading music, ensure appropriate cover sizes are used based on quality:
+- MP3 128kbps (quality=1): 500px
+- MP3 320kbps (quality=3): 500px
+- FLAC (quality=9): 1000px
 
 ## Testing
 
@@ -94,4 +120,4 @@ Current test coverage focuses on:
 
 ## Current Development
 
-The project is in the process of extending support beyond Deezer to include Spotify, with additional services planned. The `feat/spotify-integration` branch contains the latest work on Spotify integration.
+The project now includes full Spotify integration alongside Deezer support. Users can authenticate with Spotify, browse Spotify content, and download matched content from Deezer in high quality formats.

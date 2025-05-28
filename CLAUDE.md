@@ -67,8 +67,9 @@ go test -v ./path/to/package -run TestName
    - Legacy flag-based CLI: `cmd/main.go` (Deezer only)
    - New Cobra-based CLI: `cmd/gofi/cmd/` (includes Spotify support)
 
-### Data Flow for Spotify Integration
+### Data Flow
 
+#### For Spotify URLs:
 1. User provides a Spotify URL
 2. URL parsing (`internal/utils/urlparser.go`) identifies the content type (track, album, playlist)
 3. Spotify API fetches metadata through OAuth2 authentication
@@ -76,6 +77,14 @@ go test -v ./path/to/package -run TestName
 5. Deezer API is used to download the matched tracks
 6. Metadata is added to downloaded files
 7. Files are saved according to the format: `<artist> - <track>.<ext>`
+
+#### For Deezer URLs:
+1. User provides a Deezer URL
+2. URL parsing (`internal/utils/urlparser.go`) identifies the content type (track, album, playlist)
+3. Deezer API fetches content directly (no Spotify auth needed)
+4. Content is downloaded using the Deezer API
+5. Metadata is added to downloaded files
+6. Files are saved according to the format: `<artist> - <track>.<ext>`
 
 ## Configuration
 

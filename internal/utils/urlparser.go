@@ -15,10 +15,10 @@ const (
 	SpotifyTrack    ParsedURLType = "spotify:track"
 	SpotifyAlbum    ParsedURLType = "spotify:album"
 	SpotifyPlaylist ParsedURLType = "spotify:playlist"
-	DeezerTrack     ParsedURLType = "deezer:track" // Example if you handle Deezer too
+	DeezerTrack     ParsedURLType = "deezer:track"
 	DeezerAlbum     ParsedURLType = "deezer:album"
-	// ... other types
-	UnknownURL ParsedURLType = "unknown"
+	DeezerPlaylist  ParsedURLType = "deezer:playlist"
+	UnknownURL      ParsedURLType = "unknown"
 )
 
 // ParsedURLInfo holds the parsed information from a music URL.
@@ -34,7 +34,8 @@ var (
 	spotifyURLRegex = regexp.MustCompile(`https?://open\.spotify\.com/(intl-\w+/)?(track|album|playlist)/([a-zA-Z0-9]+)`)
 	// Regex for spotify: URI scheme
 	spotifyURIRegex = regexp.MustCompile(`spotify:(track|album|playlist):([a-zA-Z0-9]+)`)
-	// 🔄 TODO: Add regex for Deezer, Tidal, etc. if needed
+	// Regex for deezer.com URLs
+	deezerURLRegex = regexp.MustCompile(`https?://(?:www\.)?deezer\.com/(?:\w+/)?(track|album|playlist)/(\d+)`)
 )
 
 // ParseMusicURL analyzes a string to determine if it's a supported music URL
@@ -81,7 +82,23 @@ func ParseMusicURL(inputURL string) (*ParsedURLInfo, error) {
 		return &ParsedURLInfo{Source: "spotify", Type: parsedType, ID: id, URL: inputURL}, nil
 	}
 
-	// 🔄 TODO: Add checks for other services (Deezer, Tidal) here
+	// Check Deezer URLs
+	if matches := deezerURLRegex.FindStringSubmatch(inputURL); len(matches) == 3 {
+		id := matches[2]
+		urlType := matches[1]
+		var parsedType ParsedURLType
+		switch urlType {
+		case "track":
+			parsedType = DeezerTrack
+		case "album":
+			parsedType = DeezerAlbum
+		case "playlist":
+			parsedType = DeezerPlaylist
+		default:
+			return nil, fmt.Errorf("unknown deezer URL type: %s", urlType)
+		}
+		return &ParsedURLInfo{Source: "deezer", Type: parsedType, ID: id, URL: inputURL}, nil
+	}
 
 	// Attempt generic URL parsing if specific patterns fail
 	parsed, err := url.Parse(inputURL)
@@ -91,7 +108,10 @@ func ParseMusicURL(inputURL string) (*ParsedURLInfo, error) {
 			// Generic Spotify URL detected, but couldn't determine type/ID
 			return nil, fmt.Errorf("detected Spotify URL, but could not extract track/album/playlist ID: %s", inputURL)
 		}
-		// Add generic checks for other services if needed
+		if strings.Contains(parsed.Host, "deezer.com") {
+			// Generic Deezer URL detected, but couldn't determine type/ID
+			return nil, fmt.Errorf("detected Deezer URL, but could not extract track/album/playlist ID: %s", inputURL)
+		}
 	}
 
 	return nil, fmt.Errorf("unsupported or unrecognized music URL format: %s", inputURL)

@@ -1,13 +1,14 @@
 # GoFi
 
-GoFi is a Go implementation of a music download tool. It allows you to search and download music from Deezer, with Spotify integration for finding tracks.
+GoFi is a Go implementation of a music download tool. It allows you to download music from both Deezer and Spotify URLs.
 
 ## Features
 
-- Search for tracks, albums, artists and playlists
-- Download high-quality music (MP3, FLAC)
-- Support for downloading by name or ID
-- **Spotify integration** for finding and downloading Spotify content via Deezer
+- **Automatic URL detection** - Works with both Spotify and Deezer URLs
+- Download high-quality music (MP3, FLAC) 
+- Support for tracks, albums, and playlists from both services
+- **Spotify integration** - Spotify content is matched and downloaded from Deezer
+- **Direct Deezer downloads** - No Spotify authentication needed for Deezer URLs
 - Command-line interface for easy automation
 - Written in Go for high performance and cross-platform compatibility
 - Support for configuration files
@@ -29,10 +30,14 @@ cd GoFi
 
 2. Build the application:
 ```bash
+# Build the new CLI with URL auto-detection
+go build -o gofi ./cmd/gofi
+
+# Or use the Makefile for the legacy CLI
 make build
 ```
 
-This will create a binary named `d-fi` in the project root directory.
+This will create a binary named `gofi` in the project root directory.
 
 ## Usage
 
@@ -84,40 +89,34 @@ export DEEZER_ARL=your_deezer_arl_here
 Before using Spotify features, you need to authenticate:
 
 ```bash
-./d-fi auth spotify
+./gofi auth spotify
 ```
 
 This will start the OAuth flow and open a browser window for you to authorize the application.
 
 ### Basic Commands
 
-#### Downloading from Spotify URLs
+#### Downloading with URLs
 
-You can download tracks, albums, or playlists directly from Spotify URLs:
-
-```bash
-# Download a Spotify track
-./d-fi download https://open.spotify.com/track/2YarjDYjBJuH63dUIh9OWv
-
-# Download a Spotify album
-./d-fi download https://open.spotify.com/album/1DFixLWuPkv3KT3TnV35m3
-
-# Download a Spotify playlist
-./d-fi download https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M
-```
-
-The application will search for matching content on Deezer and download it.
-
-#### Downloading from Deezer
-
-You can continue to download directly from Deezer:
+GoFi automatically detects whether you're using a Spotify or Deezer URL:
 
 ```bash
-# By ID (direct download)
-./d-fi download track 3135556
-./d-fi download album 302127
-./d-fi download playlist 1234567890
+# Download from Spotify URLs (requires Spotify authentication)
+./gofi download https://open.spotify.com/track/2YarjDYjBJuH63dUIh9OWv
+./gofi download https://open.spotify.com/album/1DFixLWuPkv3KT3TnV35m3
+./gofi download https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M
+
+# Download from Deezer URLs (no Spotify auth needed)
+./gofi download https://www.deezer.com/track/3135556
+./gofi download https://www.deezer.com/album/302127
+./gofi download https://www.deezer.com/playlist/1234567890
+
+# Specify output directory and quality
+./gofi -o ~/Music/Downloads -q 9 download https://www.deezer.com/playlist/13872511521
 ```
+
+For Spotify URLs, the app will search for matching content on Deezer and download it.
+For Deezer URLs, content is downloaded directly.
 
 ### Quality Settings
 
@@ -130,7 +129,7 @@ GoFi supports different quality settings for music downloads:
 Specify quality with the `-q` flag:
 
 ```bash
-./d-fi -q 9 download https://open.spotify.com/track/2YarjDYjBJuH63dUIh9OWv
+./gofi -q 9 download https://open.spotify.com/track/2YarjDYjBJuH63dUIh9OWv
 ```
 
 ### Advanced Options
@@ -140,12 +139,12 @@ Specify quality with the `-q` flag:
 - `-l, --log-level`: Set the log level (debug, info, warn, error)
 
 ```bash
-./d-fi -o ./my-music -q 9 -l debug download https://open.spotify.com/album/1DFixLWuPkv3KT3TnV35m3
+./gofi -o ./my-music -q 9 -l debug download https://open.spotify.com/album/1DFixLWuPkv3KT3TnV35m3
 ```
 
 ## Troubleshooting
 
-- If you get Spotify authentication errors, run `./d-fi auth spotify` to re-authenticate
+- If you get Spotify authentication errors, run `./gofi auth spotify` to re-authenticate
 - If downloads fail, try increasing the log level with `-l debug` for more information
 - ARL tokens expire periodically, so you may need to obtain a new one if you haven't used the tool in a while
 

@@ -62,7 +62,8 @@ func (sp *SimpleProgress) render() {
 		spinner := []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
 		elapsed := time.Since(sp.startTime)
 		idx := int(elapsed.Milliseconds()/100) % len(spinner)
-		fmt.Printf("\r%s %s %s", IconDownload, sp.description, spinner[idx])
+		// Clear the entire line first, then print
+		fmt.Printf("\r\033[K%s %s %s", IconDownload, sp.description, spinner[idx])
 		return
 	}
 	
@@ -102,8 +103,9 @@ func (sp *SimpleProgress) render() {
 	
 	bar := strings.Repeat("█", filled) + strings.Repeat("░", barWidth-filled)
 	
-	// Clear line and print progress
-	fmt.Printf("\r%s %s [%s] %d%% (%.1f/%.1f MB, %.1f MB/s)%s", 
+	// Clear the entire line first, then print progress
+	// \r moves cursor to beginning, \033[K clears from cursor to end of line
+	fmt.Printf("\r\033[K%s %s [%s] %d%% (%.1f/%.1f MB, %.1f MB/s)%s", 
 		IconDownload, 
 		sp.description,
 		bar,
@@ -116,5 +118,5 @@ func (sp *SimpleProgress) render() {
 
 // Clear clears the progress line
 func (sp *SimpleProgress) Clear() {
-	fmt.Printf("\r%s\r", strings.Repeat(" ", 100))
+	fmt.Printf("\r\033[K")
 }

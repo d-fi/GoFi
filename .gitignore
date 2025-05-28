@@ -30,4 +30,7 @@ build/
 
 # Go workspace file
 go.work
+d-fi-core.txt
+**/.claude/settings.local.json
+
 .env

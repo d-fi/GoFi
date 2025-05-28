@@ -57,6 +57,7 @@ go test -v ./path/to/package -run TestName
 3. **Download Engine**: `download/download.go` handles the actual download of music files
    - Concurrent downloads for albums/playlists
    - Quality selection (FLAC, MP3 320kbps, MP3 128kbps)
+   - File existence checking to avoid re-downloads
 
 4. **Metadata Management**: Adds appropriate metadata to downloaded files
    - ID3 tags for MP3: `metadata/id3_tag.go`
@@ -66,6 +67,13 @@ go test -v ./path/to/package -run TestName
 5. **CLI Interface**:
    - Legacy flag-based CLI: `cmd/main.go` (Deezer only)
    - New Cobra-based CLI: `cmd/gofi/cmd/` (includes Spotify support)
+   - Improved download handler: `cmd/gofi/cmd/download_handler_improved.go`
+
+6. **User Interface**: Beautiful terminal output
+   - Display manager: `internal/ui/display.go`
+   - Custom progress bars: `internal/ui/simple_progress.go`
+   - Color-coded output using `github.com/fatih/color`
+   - Icons and visual feedback for better UX
 
 ### Data Flow
 
@@ -129,4 +137,11 @@ Current test coverage focuses on:
 
 ## Current Development
 
-The project now includes full Spotify integration alongside Deezer support. Users can authenticate with Spotify, browse Spotify content, and download matched content from Deezer in high quality formats.
+The project now includes:
+- Full Spotify integration alongside Deezer support
+- Automatic URL detection for both Spotify and Deezer URLs
+- Beautiful CLI interface with progress bars and colored output
+- Smart file management that skips already downloaded files
+- Improved error handling and user feedback
+
+Users can authenticate with Spotify, browse Spotify content, and download matched content from Deezer in high quality formats. Deezer URLs work directly without requiring Spotify authentication.

@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"fmt"
+	"os"
 
 	"github.com/spf13/cobra"
 )
@@ -26,11 +26,12 @@ Examples:
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		url := args[0]
-		fmt.Printf("Processing URL: %s\n", url)
 		
-		err := downloadHandler(url, downloadPath, quality)
+		// Use the improved download handler with better UI
+		err := downloadHandlerImproved(url, downloadPath, quality)
 		if err != nil {
-			fmt.Printf("Error: %v\n", err)
+			// Error is already printed by the handler
+			os.Exit(1)
 		}
 	},
 }

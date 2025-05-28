@@ -5,13 +5,15 @@ GoFi is a Go implementation of a music download tool. It allows you to download 
 ## Features
 
 - **Automatic URL detection** - Works with both Spotify and Deezer URLs
-- Download high-quality music (MP3, FLAC) 
+- **Beautiful CLI interface** - Clean progress bars, colored output, and organized display
+- Download high-quality music (MP3 128/320kbps, FLAC lossless)
 - Support for tracks, albums, and playlists from both services
 - **Spotify integration** - Spotify content is matched and downloaded from Deezer
 - **Direct Deezer downloads** - No Spotify authentication needed for Deezer URLs
+- **Smart file management** - Skips already downloaded files, organized folder structure
 - Command-line interface for easy automation
 - Written in Go for high performance and cross-platform compatibility
-- Support for configuration files
+- Support for configuration files and environment variables
 - Concurrent downloads for albums and playlists
 
 ## Installation
@@ -117,6 +119,16 @@ GoFi automatically detects whether you're using a Spotify or Deezer URL:
 
 For Spotify URLs, the app will search for matching content on Deezer and download it.
 For Deezer URLs, content is downloaded directly.
+
+### User Interface
+
+GoFi features a polished command-line interface with:
+
+- **Progress Bars**: Real-time download progress with speed and ETA
+- **Colored Output**: Easy-to-read color-coded messages
+- **Status Icons**: Visual feedback with ✓ for success, ✗ for errors, ℹ for info
+- **Smart Display**: Clean, organized output that doesn't clutter your terminal
+- **Download Summary**: Clear summary of successful and failed downloads
 
 ### Quality Settings
 

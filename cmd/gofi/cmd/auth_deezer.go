@@ -14,7 +14,7 @@ var authDeezerCmd = &cobra.Command{
 	Use:   "deezer",
 	Short: "Authenticate with Deezer using browser cookies",
 	Long: `Authenticate with Deezer by reading the ARL cookie from your browser.
-This command will automatically check Chrome, Firefox, Edge, and Safari (on macOS)
+This command will automatically check Chrome, Firefox, Edge, Arc, and Safari (on macOS)
 for the Deezer ARL cookie and save it to your environment.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		// Try to get ARL from browser cookies
@@ -27,6 +27,7 @@ for the Deezer ARL cookie and save it to your environment.`,
 			fmt.Println("  • Chrome")
 			fmt.Println("  • Firefox")
 			fmt.Println("  • Edge")
+			fmt.Println("  • Arc")
 			if runtime.GOOS == "darwin" {
 				fmt.Println("  • Safari")
 			}

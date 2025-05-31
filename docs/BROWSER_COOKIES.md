@@ -7,6 +7,7 @@ GoFi can automatically read the Deezer ARL cookie from your browser, making auth
 - **Chrome** (Windows, macOS, Linux)
 - **Firefox** (Windows, macOS, Linux)
 - **Microsoft Edge** (Windows, macOS, Linux)
+- **Arc** (Windows, macOS, Linux)
 - **Safari** (macOS only)
 
 ## Usage

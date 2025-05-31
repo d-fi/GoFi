@@ -25,6 +25,7 @@ const (
 	Firefox BrowserType = "firefox"
 	Safari  BrowserType = "safari"
 	Edge    BrowserType = "edge"
+	Arc     BrowserType = "arc"
 )
 
 // CookieReader provides methods to read cookies from browsers
@@ -49,7 +50,7 @@ func (cr *CookieReader) GetDeezerARL() (string, error) {
 	}
 
 	switch cr.browser {
-	case Chrome, Edge:
+	case Chrome, Edge, Arc:
 		return cr.getChromiumCookie(cookiePath, "arl", ".deezer.com")
 	case Firefox:
 		return cr.getFirefoxCookie(cookiePath, "arl", ".deezer.com")
@@ -84,6 +85,8 @@ func (cr *CookieReader) getCookiePath() (string, error) {
 			path = filepath.Join(home, "Library", "Cookies", "Cookies.binarycookies")
 		case Edge:
 			path = filepath.Join(home, "Library", "Application Support", "Microsoft Edge", "Default", "Cookies")
+		case Arc:
+			path = filepath.Join(home, "Library", "Application Support", "Arc", "User Data", "Default", "Cookies")
 		default:
 			return "", fmt.Errorf("browser %s not supported on macOS", cr.browser)
 		}
@@ -99,6 +102,8 @@ func (cr *CookieReader) getCookiePath() (string, error) {
 			path = filepath.Join(profilePath, "cookies.sqlite")
 		case Edge:
 			path = filepath.Join(home, ".config", "microsoft-edge", "Default", "Cookies")
+		case Arc:
+			path = filepath.Join(home, ".config", "arc", "Default", "Cookies")
 		default:
 			return "", fmt.Errorf("browser %s not supported on Linux", cr.browser)
 		}
@@ -116,6 +121,8 @@ func (cr *CookieReader) getCookiePath() (string, error) {
 			path = filepath.Join(profilePath, "cookies.sqlite")
 		case Edge:
 			path = filepath.Join(localAppData, "Microsoft", "Edge", "User Data", "Default", "Network", "Cookies")
+		case Arc:
+			path = filepath.Join(localAppData, "Arc", "User Data", "Default", "Network", "Cookies")
 		default:
 			return "", fmt.Errorf("browser %s not supported on Windows", cr.browser)
 		}
@@ -349,7 +356,7 @@ func copyFile(src, dst string) error {
 
 // GetARLFromAnyBrowser tries to get the ARL cookie from any available browser
 func GetARLFromAnyBrowser() (string, error) {
-	browsers := []BrowserType{Chrome, Firefox, Edge}
+	browsers := []BrowserType{Chrome, Firefox, Edge, Arc}
 	if runtime.GOOS == "darwin" {
 		browsers = append(browsers, Safari)
 	}

@@ -56,7 +56,7 @@ To use GoFi with Deezer, you need a Deezer ARL token. This token is used to auth
 ```
 
 This command will automatically:
-- Search for the ARL cookie in your installed browsers (Chrome, Firefox, Edge, Safari)
+- Search for the ARL cookie in your installed browsers (Chrome, Firefox, Edge, Arc, Safari)
 - Extract and validate the token
 - Save it to your `.env` file
 

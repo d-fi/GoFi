@@ -8,7 +8,7 @@ import (
 var authCmd = &cobra.Command{
 	Use:   "auth",
 	Short: "Authenticate with music services",
-	Long:  `Authenticate with supported music services like Spotify.`,
+	Long:  `Authenticate with supported music services like Spotify and Deezer.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		cmd.Help()
 	},

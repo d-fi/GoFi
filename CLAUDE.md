@@ -52,6 +52,9 @@ go test -v ./path/to/package -run TestName
 
 2. **Authentication**:
    - Deezer: Uses ARL token stored in configuration or from environment variable
+     - Automatic browser cookie detection: `internal/auth/browser_cookies.go`
+     - ARL helper functions: `internal/auth/arl_helper.go`
+     - CLI command: `cmd/gofi/cmd/auth_deezer.go`
    - Spotify: OAuth2 flow in `internal/services/spotify/auth.go`
 
 3. **Download Engine**: `download/download.go` handles the actual download of music files

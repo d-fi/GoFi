@@ -49,6 +49,19 @@ This will create a binary named `gofi` in the project root directory.
 
 To use GoFi with Deezer, you need a Deezer ARL token. This token is used to authenticate with Deezer's API.
 
+**Option 1: Automatic Browser Cookie Detection (Recommended)**
+
+```bash
+./gofi auth deezer
+```
+
+This command will automatically:
+- Search for the ARL cookie in your installed browsers (Chrome, Firefox, Edge, Safari)
+- Extract and validate the token
+- Save it to your `.env` file
+
+**Option 2: Manual Token Retrieval**
+
 1. Log in to [Deezer](https://www.deezer.com) in your web browser
 2. Open developer tools (F12 or right-click and select "Inspect")
 3. Go to the "Application" tab (in Chrome) or "Storage" tab (in Firefox)
@@ -86,7 +99,9 @@ export SPOTIFY_CLIENT_SECRET=your_spotify_client_secret_here
 export DEEZER_ARL=your_deezer_arl_here
 ```
 
-### Authenticating with Spotify
+### Authenticating with Services
+
+#### Spotify Authentication
 
 Before using Spotify features, you need to authenticate:
 
@@ -95,6 +110,16 @@ Before using Spotify features, you need to authenticate:
 ```
 
 This will start the OAuth flow and open a browser window for you to authorize the application.
+
+#### Deezer Authentication
+
+To set up Deezer authentication automatically:
+
+```bash
+./gofi auth deezer
+```
+
+This will find and save your ARL token from your browser cookies.
 
 ### Basic Commands
 

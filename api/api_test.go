@@ -15,16 +15,27 @@ const (
 	ALB_ID = "302127"  // Discovery by Daft Punk
 )
 
+var testingEnabled bool
+
 func init() {
 	// Initialize the Deezer API for all tests
 	arl := os.Getenv("DEEZER_ARL")
+	if arl == "" {
+		// Skip tests if no ARL is provided
+		testingEnabled = false
+		return
+	}
 	_, err := request.InitDeezerAPI(arl)
 	if err != nil {
 		panic("Failed to initialize Deezer API: " + err.Error())
 	}
+	testingEnabled = true
 }
 
 func TestGetUser(t *testing.T) {
+	if !testingEnabled {
+		t.Skip("Skipping test: DEEZER_ARL not provided")
+	}
 	response, err := GetUser()
 	assert.NoError(t, err)
 	assert.NotEmpty(t, response.BlogName)
@@ -34,6 +45,9 @@ func TestGetUser(t *testing.T) {
 }
 
 func TestGetTrackInfo(t *testing.T) {
+	if !testingEnabled {
+		t.Skip("Skipping test: DEEZER_ARL not provided")
+	}
 	response, err := GetTrackInfo(SNG_ID)
 	assert.NoError(t, err)
 	assert.Equal(t, SNG_ID, response.SNG_ID)
@@ -43,6 +57,9 @@ func TestGetTrackInfo(t *testing.T) {
 }
 
 func TestGetTrackInfoPublicApi(t *testing.T) {
+	if !testingEnabled {
+		t.Skip("Skipping test: DEEZER_ARL not provided")
+	}
 	response, err := GetTrackInfoPublicApi(SNG_ID)
 	assert.NoError(t, err)
 	assert.Equal(t, SNG_ID, strconv.Itoa(response.ID))
@@ -51,6 +68,9 @@ func TestGetTrackInfoPublicApi(t *testing.T) {
 }
 
 func TestGetLyrics(t *testing.T) {
+	if !testingEnabled {
+		t.Skip("Skipping test: DEEZER_ARL not provided")
+	}
 	response, err := GetLyrics(SNG_ID)
 	assert.NoError(t, err)
 	assert.NotNil(t, response.LYRICS_ID)
@@ -59,6 +79,9 @@ func TestGetLyrics(t *testing.T) {
 }
 
 func TestGetAlbumInfo(t *testing.T) {
+	if !testingEnabled {
+		t.Skip("Skipping test: DEEZER_ARL not provided")
+	}
 	response, err := GetAlbumInfo(ALB_ID)
 	assert.NoError(t, err)
 	assert.Equal(t, ALB_ID, response.ALB_ID)
@@ -67,6 +90,9 @@ func TestGetAlbumInfo(t *testing.T) {
 }
 
 func TestGetAlbumInfoPublicApi(t *testing.T) {
+	if !testingEnabled {
+		t.Skip("Skipping test: DEEZER_ARL not provided")
+	}
 	response, err := GetAlbumInfoPublicApi(ALB_ID)
 	assert.NoError(t, err)
 	assert.Equal(t, ALB_ID, strconv.Itoa(response.ID))
@@ -75,6 +101,9 @@ func TestGetAlbumInfoPublicApi(t *testing.T) {
 }
 
 func TestGetAlbumTracks(t *testing.T) {
+	if !testingEnabled {
+		t.Skip("Skipping test: DEEZER_ARL not provided")
+	}
 	response, err := GetAlbumTracks(ALB_ID)
 	assert.NoError(t, err)
 	assert.Equal(t, 14, response.Count)
@@ -82,6 +111,9 @@ func TestGetAlbumTracks(t *testing.T) {
 }
 
 func TestGetPlaylistInfo(t *testing.T) {
+	if !testingEnabled {
+		t.Skip("Skipping test: DEEZER_ARL not provided")
+	}
 	PLAYLIST_ID := "4523119944"
 	response, err := GetPlaylistInfo(PLAYLIST_ID)
 	assert.NoError(t, err)
@@ -91,6 +123,9 @@ func TestGetPlaylistInfo(t *testing.T) {
 }
 
 func TestGetPlaylistTracks(t *testing.T) {
+	if !testingEnabled {
+		t.Skip("Skipping test: DEEZER_ARL not provided")
+	}
 	PLAYLIST_ID := "4523119944"
 	response, err := GetPlaylistTracks(PLAYLIST_ID)
 	assert.NoError(t, err)
@@ -99,6 +134,9 @@ func TestGetPlaylistTracks(t *testing.T) {
 }
 
 func TestGetArtistInfo(t *testing.T) {
+	if !testingEnabled {
+		t.Skip("Skipping test: DEEZER_ARL not provided")
+	}
 	ART_ID := "13"
 	response, err := GetArtistInfo(ART_ID)
 	assert.NoError(t, err)
@@ -107,6 +145,9 @@ func TestGetArtistInfo(t *testing.T) {
 }
 
 func TestGetDiscography(t *testing.T) {
+	if !testingEnabled {
+		t.Skip("Skipping test: DEEZER_ARL not provided")
+	}
 	ART_ID := "13"
 	response, err := GetDiscography(ART_ID, 10)
 	assert.NoError(t, err)
@@ -115,6 +156,9 @@ func TestGetDiscography(t *testing.T) {
 }
 
 func TestGetProfile(t *testing.T) {
+	if !testingEnabled {
+		t.Skip("Skipping test: DEEZER_ARL not provided")
+	}
 	USER_ID := "2064440442"
 	response, err := GetProfile(USER_ID)
 	assert.NoError(t, err)
@@ -123,6 +167,9 @@ func TestGetProfile(t *testing.T) {
 }
 
 func TestSearchAlternative(t *testing.T) {
+	if !testingEnabled {
+		t.Skip("Skipping test: DEEZER_ARL not provided")
+	}
 	ARTIST := "Eminem"
 	TRACK := "The Real Slim Shady"
 	response, err := SearchAlternative(ARTIST, TRACK, 10)
@@ -132,6 +179,9 @@ func TestSearchAlternative(t *testing.T) {
 }
 
 func TestSearchMusic(t *testing.T) {
+	if !testingEnabled {
+		t.Skip("Skipping test: DEEZER_ARL not provided")
+	}
 	QUERY := "Eminem"
 	response, err := SearchMusic(QUERY, 1, "TRACK", "ALBUM", "ARTIST")
 	assert.NoError(t, err)
@@ -142,6 +192,9 @@ func TestSearchMusic(t *testing.T) {
 }
 
 func TestGetChannelList(t *testing.T) {
+	if !testingEnabled {
+		t.Skip("Skipping test: DEEZER_ARL not provided")
+	}
 	response, err := GetChannelList()
 	assert.NoError(t, err)
 	assert.Greater(t, response.Count, 0)
@@ -149,6 +202,9 @@ func TestGetChannelList(t *testing.T) {
 }
 
 func TestGetShowInfo(t *testing.T) {
+	if !testingEnabled {
+		t.Skip("Skipping test: DEEZER_ARL not provided")
+	}
 	response, err := GetShowInfo("338532", 10, 0)
 	assert.NoError(t, err)
 	assert.Equal(t, "201952", response.Data.LabelID)

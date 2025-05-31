@@ -10,6 +10,9 @@ const SNG_ID = "3135556"
 
 func TestInitDeezerAPI(t *testing.T) {
 	arl := os.Getenv("DEEZER_ARL")
+	if arl == "" {
+		t.Skip("Skipping test: DEEZER_ARL not provided")
+	}
 
 	session, err := InitDeezerAPI(arl)
 	if err != nil {

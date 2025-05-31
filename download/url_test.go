@@ -14,16 +14,27 @@ const (
 	SNG_ID = "3135556" // Harder, Better, Faster, Stronger by Daft Punk
 )
 
+var testingEnabled bool
+
 func init() {
 	// Initialize the Deezer API for all tests
 	arl := os.Getenv("DEEZER_ARL")
+	if arl == "" {
+		// Skip tests if no ARL is provided
+		testingEnabled = false
+		return
+	}
 	_, err := request.InitDeezerAPI(arl)
 	if err != nil {
 		panic("Failed to initialize Deezer API: " + err.Error())
 	}
+	testingEnabled = true
 }
 
 func TestDzAuthenticate(t *testing.T) {
+	if !testingEnabled {
+		t.Skip("Skipping test: DEEZER_ARL not provided")
+	}
 	user, err := DzAuthenticate()
 	assert.NoError(t, err)
 	assert.NotNil(t, user)
@@ -33,12 +44,18 @@ func TestDzAuthenticate(t *testing.T) {
 }
 
 func TestGetTrackUrlFromServer(t *testing.T) {
+	if !testingEnabled {
+		t.Skip("Skipping test: DEEZER_ARL not provided")
+	}
 	trackToken := "example_track_token"
 	_, err := GetTrackUrlFromServer(trackToken, "MP3_320")
 	assert.Error(t, err, "Expected error due to incorrect token or unavailable track")
 }
 
 func TestGetTrackDownloadUrl(t *testing.T) {
+	if !testingEnabled {
+		t.Skip("Skipping test: DEEZER_ARL not provided")
+	}
 	track, err := api.GetTrackInfo(SNG_ID)
 	assert.NoError(t, err, "Failed to fetch track information")
 	assert.NotEmpty(t, track.MD5_ORIGIN, "MD5 origin should not be empty")
@@ -63,6 +80,9 @@ func TestGetTrackDownloadUrl(t *testing.T) {
 }
 
 func TestGetTrackDownloadUrlWithInvalidQuality(t *testing.T) {
+	if !testingEnabled {
+		t.Skip("Skipping test: DEEZER_ARL not provided")
+	}
 	track, err := api.GetTrackInfo(SNG_ID)
 	assert.NoError(t, err, "Failed to fetch track information")
 	assert.NotEmpty(t, track.TRACK_TOKEN, "Track token should not be empty")

@@ -1,0 +1,244 @@
+<context>
+# Overview
+GoFi is a high-performance music download tool that provides unified access to multiple music streaming platforms through a simple command-line interface. It solves the problem of fragmented music libraries by allowing users to download their favorite tracks, albums, and playlists from services like Deezer and Spotify in various quality formats including lossless FLAC. The tool is designed for music enthusiasts who want to maintain local copies of their music in high quality, with proper metadata and organization.
+
+# Core Features
+## Multi-Platform Support
+- Downloads music from Deezer (direct) and Spotify (via Deezer matching)
+- Automatic URL detection for both platforms
+- OAuth2 authentication for Spotify integration
+- ARL token-based authentication for Deezer
+
+## High-Quality Downloads
+- Multiple quality options: MP3 128kbps, MP3 320kbps, and lossless FLAC
+- Automatic metadata tagging (ID3 for MP3, Vorbis comments for FLAC)
+- Album artwork embedding with appropriate resolution per quality
+- Batch downloading for albums and playlists
+
+## Smart File Management
+- Automatic file existence checking to avoid re-downloads
+- Customizable output directory structure
+- Sanitized filenames for cross-platform compatibility
+- Artist - Track naming convention
+
+## Beautiful CLI Experience
+- Modern terminal UI with colored output
+- Real-time progress bars for downloads
+- Clear status indicators and error messages
+- Support for both legacy flag-based and modern Cobra-based CLI
+
+# User Experience
+## User Personas
+- **Music Collectors**: Users who want to maintain high-quality local music libraries
+- **DJ/Producers**: Professionals needing offline access to tracks in specific formats
+- **Audiophiles**: Users demanding lossless quality for their listening experience
+- **Playlist Curators**: Users who want to backup their carefully crafted playlists
+
+## Key User Flows
+1. **First-time Setup**: User authenticates with Spotify (if needed) → Sets preferred quality → Ready to download
+2. **Single Track Download**: User provides track URL → Tool fetches metadata → Downloads with progress → File saved with metadata
+3. **Playlist/Album Download**: User provides playlist URL → Tool fetches all tracks → Concurrent downloads with progress → Organized file structure created
+4. **Cross-Platform Download**: User provides Spotify URL → Tool finds Deezer match → Downloads from Deezer → Maintains Spotify metadata
+
+## UI/UX Considerations
+- Clear, color-coded output for different message types (info, success, error)
+- Non-intrusive progress indicators that don't clutter the terminal
+- Intuitive command structure matching user expectations
+- Helpful error messages with actionable solutions
+</context>
+<PRD>
+# Technical Architecture
+## System Components
+### API Clients
+- **Deezer Client**: Direct API access for content fetching and downloading
+- **Spotify Client**: OAuth2-based client for metadata and content discovery
+- **Matching Service**: Intelligent service to match Spotify content with Deezer equivalents
+
+### Download Engine
+- **URL Parser**: Identifies content type and platform from URLs
+- **Download Manager**: Handles concurrent downloads with retry logic
+- **Progress Tracker**: Real-time download progress monitoring
+- **Quality Selector**: Determines optimal download quality based on user preferences and account capabilities
+
+### Metadata System
+- **Tag Writer**: Applies ID3v2.4 tags to MP3 files
+- **FLAC Metadata**: Writes Vorbis comments to FLAC files
+- **Cover Art Manager**: Downloads and embeds album artwork at appropriate resolutions
+
+### User Interface
+- **Display Manager**: Coordinates terminal output with proper formatting
+- **Progress Bar System**: Custom implementation for smooth progress updates
+- **Color Manager**: Consistent color coding for different message types
+
+## Data Models
+### Track
+- ID, Title, Artist, Album, Duration
+- ISRC, Track Number, Disc Number
+- Quality Options, File Size
+- Download URL, Cover Art URL
+
+### Album
+- ID, Title, Artist, Release Date
+- Track List, Total Duration
+- Cover Art URLs (multiple resolutions)
+- Label, UPC
+
+### Playlist
+- ID, Title, Owner
+- Track List, Total Duration
+- Public/Private status
+- Last Modified
+
+## APIs and Integrations
+### Deezer API
+- Private API for high-quality streams
+- Public API for metadata
+- Authentication via ARL token
+- Track URL generation with CDN support
+
+### Spotify Web API
+- OAuth2 authentication flow
+- Track/Album/Playlist metadata
+- Search functionality
+- User library access
+
+### Content Delivery
+- Direct HTTPS downloads from Deezer CDN
+- Chunked transfer support
+- Resume capability for interrupted downloads
+
+## Infrastructure Requirements
+- Go 1.19+ runtime
+- Network access to music service APIs
+- Local storage for downloads and configuration
+- OAuth2 callback handling (localhost:8080)
+
+# Development Roadmap
+## MVP Requirements
+### Core Download Functionality
+- Deezer track download with MP3 320kbps quality
+- Basic metadata tagging (title, artist, album)
+- Simple CLI with URL input
+- File existence checking
+
+### Authentication System
+- Deezer ARL token support
+- Configuration file management
+- Environment variable support
+
+### Error Handling
+- Network error recovery
+- Invalid URL detection
+- Authentication failure handling
+
+## Phase 2: Enhanced Features
+### Multi-Format Support
+- FLAC download capability
+- Multiple quality options
+- Format-specific metadata handling
+
+### Batch Operations
+- Album download support
+- Playlist download support
+- Concurrent download system
+
+### Improved UI
+- Progress bars implementation
+- Colored output system
+- Status indicators
+
+## Phase 3: Platform Expansion
+### Spotify Integration
+- OAuth2 authentication flow
+- Spotify-to-Deezer content matching
+- Metadata preservation from Spotify
+
+### Advanced Features
+- Download queue management
+- Partial download resume
+- Bandwidth throttling options
+
+## Phase 4: Polish and Optimization
+### Performance Improvements
+- Connection pooling
+- Optimized concurrent downloads
+- Memory usage optimization
+
+### User Experience
+- Configuration profiles
+- Download history
+- Advanced search capabilities
+
+# Logical Dependency Chain
+## Foundation (Must be built first)
+1. **Request Client**: HTTP client with proper headers and session management
+2. **Configuration System**: Load/save settings and credentials
+3. **Basic CLI Structure**: Command parsing and execution framework
+
+## Core Features (Build on foundation)
+1. **Deezer API Client**: Depends on Request Client
+2. **URL Parser**: Standalone utility
+3. **Download Engine**: Depends on API Client and URL Parser
+4. **Metadata System**: Depends on successful downloads
+
+## Enhanced Features (Require core features)
+1. **Progress Tracking**: Depends on Download Engine
+2. **Batch Downloads**: Depends on single track downloads working
+3. **Quality Selection**: Depends on API Client capabilities
+
+## Platform Features (Can be built independently after core)
+1. **Spotify Auth**: Independent OAuth2 implementation
+2. **Content Matching**: Depends on both API clients
+3. **Cross-platform Downloads**: Depends on matching service
+
+# Risks and Mitigations
+## Technical Challenges
+### API Stability
+- **Risk**: Music service APIs may change without notice
+- **Mitigation**: Abstract API calls, implement versioning, maintain fallback options
+
+### Rate Limiting
+- **Risk**: Services may throttle or block excessive requests
+- **Mitigation**: Implement request queuing, respect rate limits, add delays
+
+### Content Matching Accuracy
+- **Risk**: Spotify to Deezer matching may not always find correct tracks
+- **Mitigation**: Implement fuzzy matching, provide manual search option, show match confidence
+
+## Legal Considerations
+### Terms of Service Compliance
+- **Risk**: Tool usage may violate service terms
+- **Mitigation**: Require user authentication, respect service limitations, educational use disclaimer
+
+### Content Rights
+- **Risk**: Downloaded content distribution concerns
+- **Mitigation**: Personal use only disclaimer, no sharing features, respect DRM
+
+## Resource Constraints
+### Network Bandwidth
+- **Risk**: Large downloads may consume significant bandwidth
+- **Mitigation**: Implement pause/resume, bandwidth limiting, off-peak scheduling
+
+### Storage Space
+- **Risk**: Music collections can be very large
+- **Mitigation**: Pre-download space checking, compression options, selective downloading
+
+# Appendix
+## Research Findings
+### Music Service Landscape
+- Deezer provides higher quality streams than many competitors
+- Spotify has the largest catalog but limited download API
+- Content availability varies by region
+
+### User Behavior Patterns
+- Users typically download entire albums or playlists
+- Quality preferences vary: audiophiles want FLAC, casual users prefer MP3
+- Metadata accuracy is crucial for library management
+
+### Technical Specifications
+- MP3 128kbps: ~1MB per minute
+- MP3 320kbps: ~2.5MB per minute  
+- FLAC: ~30MB per 4-minute track
+- Optimal concurrent downloads: 3-5 threads
+- Recommended progress update interval: 100ms
+</PRD>

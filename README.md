@@ -18,11 +18,39 @@ GoFi is a Go implementation of a music download tool. It allows you to download 
 
 ## Installation
 
-### Prerequisites
+### Download Pre-built Binaries
 
-- Go 1.23 or later
+Download the latest release for your platform from the [releases page](https://github.com/d-fi/GoFi/releases).
+
+#### macOS
+```bash
+# Intel Macs
+curl -L https://github.com/d-fi/GoFi/releases/latest/download/gofi-darwin-amd64.tar.gz | tar -xz
+sudo mv gofi-darwin-amd64 /usr/local/bin/gofi
+
+# Apple Silicon Macs (M1/M2/M3)
+curl -L https://github.com/d-fi/GoFi/releases/latest/download/gofi-darwin-arm64.tar.gz | tar -xz
+sudo mv gofi-darwin-arm64 /usr/local/bin/gofi
+```
+
+#### Linux
+```bash
+# AMD64
+curl -L https://github.com/d-fi/GoFi/releases/latest/download/gofi-linux-amd64.tar.gz | tar -xz
+sudo mv gofi-linux-amd64 /usr/local/bin/gofi
+
+# ARM64
+curl -L https://github.com/d-fi/GoFi/releases/latest/download/gofi-linux-arm64.tar.gz | tar -xz
+sudo mv gofi-linux-arm64 /usr/local/bin/gofi
+```
+
+#### Windows
+Download `gofi-windows-amd64.zip` from the [releases page](https://github.com/d-fi/GoFi/releases) and extract it to a directory in your PATH.
 
 ### Building from Source
+
+Prerequisites:
+- Go 1.23 or later
 
 1. Clone the repository:
 ```bash

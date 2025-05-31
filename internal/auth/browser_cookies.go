@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -51,7 +52,14 @@ func (cr *CookieReader) GetDeezerARL() (string, error) {
 
 	switch cr.browser {
 	case Chrome, Edge, Arc:
-		return cr.getChromiumCookie(cookiePath, "arl", ".deezer.com")
+		// Try different domain variations
+		for _, domain := range []string{".deezer.com", "deezer.com", "www.deezer.com"} {
+			arl, err := cr.getChromiumCookie(cookiePath, "arl", domain)
+			if err == nil && arl != "" {
+				return arl, nil
+			}
+		}
+		return "", fmt.Errorf("ARL cookie not found in %s", cr.browser)
 	case Firefox:
 		return cr.getFirefoxCookie(cookiePath, "arl", ".deezer.com")
 	case Safari:
@@ -182,8 +190,11 @@ func (cr *CookieReader) getChromiumCookie(dbPath, name, domain string) (string, 
 	defer db.Close()
 
 	var encryptedValue []byte
-	query := `SELECT encrypted_value FROM cookies WHERE host_key = ? AND name = ?`
-	err = db.QueryRow(query, domain, name).Scan(&encryptedValue)
+	var value string
+	
+	// Try to get both encrypted_value and value columns
+	query := `SELECT encrypted_value, value FROM cookies WHERE host_key = ? AND name = ?`
+	err = db.QueryRow(query, domain, name).Scan(&encryptedValue, &value)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return "", fmt.Errorf("cookie '%s' not found for domain '%s'", name, domain)
@@ -191,7 +202,36 @@ func (cr *CookieReader) getChromiumCookie(dbPath, name, domain string) (string, 
 		return "", fmt.Errorf("failed to query cookie: %w", err)
 	}
 
-	// Decrypt the cookie value
+	// If we have a plain text value, return it
+	if value != "" {
+		return value, nil
+	}
+
+	// Otherwise, decrypt the encrypted value
+	if len(encryptedValue) == 0 {
+		return "", fmt.Errorf("cookie has no value")
+	}
+	
+	// Debug: check if it's already decrypted (doesn't start with v10/v11)
+	if len(encryptedValue) > 3 {
+		prefix := string(encryptedValue[:3])
+		if prefix != "v10" && prefix != "v11" {
+			// Try to return as string if it looks like text
+			possibleValue := string(encryptedValue)
+			// Check if it's printable
+			isPrintable := true
+			for _, r := range possibleValue {
+				if r < 32 || r > 126 {
+					isPrintable = false
+					break
+				}
+			}
+			if isPrintable && len(possibleValue) > 50 {
+				return possibleValue, nil
+			}
+		}
+	}
+	
 	decrypted, err := cr.decryptChromiumCookie(encryptedValue)
 	if err != nil {
 		return "", fmt.Errorf("failed to decrypt cookie: %w", err)
@@ -244,9 +284,32 @@ func (cr *CookieReader) decryptChromiumCookieMac(encrypted []byte) (string, erro
 
 // getChromePassword retrieves Chrome's Safe Storage password from macOS Keychain
 func (cr *CookieReader) getChromePassword() (string, error) {
-	// This is a simplified version - in production, you'd use the keychain API
-	// For now, we'll use the hardcoded Chrome Safe Storage password
-	return "Chrome Safe Storage", nil
+	// Different browsers use different keychain entries
+	var service, account string
+	
+	switch cr.browser {
+	case Chrome:
+		service = "Chrome Safe Storage"
+		account = "Chrome"
+	case Arc:
+		service = "Arc Safe Storage"
+		account = "Arc"
+	case Edge:
+		service = "Microsoft Edge Safe Storage"
+		account = "Microsoft Edge"
+	default:
+		service = "Chrome Safe Storage"
+		account = "Chrome"
+	}
+	
+	// Use the security command to get the password from keychain
+	cmd := exec.Command("security", "find-generic-password", "-w", "-s", service, "-a", account)
+	output, err := cmd.Output()
+	if err != nil {
+		// Fallback to default password if keychain access fails
+		return "Chrome Safe Storage", nil
+	}
+	return strings.TrimSpace(string(output)), nil
 }
 
 // decryptChromiumCookieWindows decrypts Chrome cookies on Windows
@@ -308,7 +371,22 @@ func (cr *CookieReader) decryptAES128CBC(key, encrypted []byte) (string, error) 
 		decrypted = decrypted[:len(decrypted)-padding]
 	}
 
-	return string(decrypted), nil
+	// Clean the result - remove any non-printable characters at the beginning
+	result := string(decrypted)
+	// Find the first printable character
+	startIdx := 0
+	for i := 0; i < len(result); i++ {
+		if result[i] >= 32 && result[i] <= 126 {
+			startIdx = i
+			break
+		}
+	}
+	
+	if startIdx > 0 {
+		result = result[startIdx:]
+	}
+	
+	return strings.TrimSpace(result), nil
 }
 
 // getFirefoxCookie reads a cookie from Firefox cookie database

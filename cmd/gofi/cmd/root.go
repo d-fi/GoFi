@@ -15,6 +15,7 @@ var (
 	downloadPath string
 	quality      int
 	logLevel     string
+	version      = "dev" // Set by build flags
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -26,6 +27,7 @@ and download music from Deezer. It now supports Spotify integration for finding
 tracks on Deezer using Spotify URLs.
 
 You can download tracks, albums, and playlists in different qualities.`,
+	Version: version,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		// Set up logging
 		level, err := zerolog.ParseLevel(logLevel)

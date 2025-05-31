@@ -18,7 +18,39 @@ GoFi is a Go implementation of a music download tool. It allows you to download 
 
 ## Installation
 
-### Download Pre-built Binaries
+### Quick Install (Recommended)
+
+**One-liner install:**
+```bash
+# macOS/Linux
+curl -fsSL https://raw.githubusercontent.com/d-fi/GoFi/main/scripts/install.sh | bash
+
+# Windows (PowerShell as Administrator)
+iwr -useb https://raw.githubusercontent.com/d-fi/GoFi/main/scripts/install.ps1 | iex
+```
+
+#### macOS/Linux
+```bash
+# Download and run the install script
+curl -fsSL https://raw.githubusercontent.com/d-fi/GoFi/main/scripts/install.sh | bash
+
+# Or download the script first to review it
+curl -fsSL https://raw.githubusercontent.com/d-fi/GoFi/main/scripts/install.sh -o install.sh
+chmod +x install.sh
+./install.sh
+```
+
+#### Windows (PowerShell)
+```powershell
+# Run the install script
+iwr -useb https://raw.githubusercontent.com/d-fi/GoFi/main/scripts/install.ps1 | iex
+
+# Or download and run manually
+Invoke-WebRequest -Uri https://raw.githubusercontent.com/d-fi/GoFi/main/scripts/install.ps1 -OutFile install.ps1
+./install.ps1
+```
+
+### Manual Installation
 
 Download the latest release for your platform from the [releases page](https://github.com/d-fi/GoFi/releases).
 
@@ -51,6 +83,7 @@ Download `gofi-windows-amd64.zip` from the [releases page](https://github.com/d-
 
 Prerequisites:
 - Go 1.23 or later
+- Make (optional, for easier building)
 
 1. Clone the repository:
 ```bash
@@ -58,16 +91,29 @@ git clone https://github.com/d-fi/GoFi.git
 cd GoFi
 ```
 
-2. Build the application:
+2. Build and install:
 ```bash
-# Build the new CLI with URL auto-detection
-go build -o gofi ./cmd/gofi
+# Build and install to /usr/local/bin (may require sudo)
+make install
 
-# Or use the Makefile for the legacy CLI
-make build
+# Or install to a custom directory
+make install PREFIX=$HOME/.local
+
+# For development: create a symlink instead of copying
+make install-dev
+
+# Build only (without installing)
+make build-cli
+# This creates a 'gofi' binary in the current directory
+
+# Build using go directly
+go build -o gofi ./cmd/gofi
 ```
 
-This will create a binary named `gofi` in the project root directory.
+3. Uninstall (if installed via make):
+```bash
+make uninstall
+```
 
 ## Usage
 

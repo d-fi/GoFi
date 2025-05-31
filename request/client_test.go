@@ -1,17 +1,19 @@
 package request
 
 import (
-	"os"
 	"testing"
+
+	"github.com/d-fi/GoFi/internal/auth"
 )
 
 // Harder, Better, Faster, Stronger by Daft Punk
 const SNG_ID = "3135556"
 
 func TestInitDeezerAPI(t *testing.T) {
-	arl := os.Getenv("DEEZER_ARL")
-	if arl == "" {
-		t.Skip("Skipping test: DEEZER_ARL not provided")
+	// Try to get ARL from various sources (env, browser cookies, etc.)
+	arl, err := auth.GetARLToken()
+	if err != nil {
+		t.Skip("Skipping test: No valid ARL token available")
 	}
 
 	session, err := InitDeezerAPI(arl)

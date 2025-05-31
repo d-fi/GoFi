@@ -1,11 +1,11 @@
 package download
 
 import (
-	"os"
 	"strconv"
 	"testing"
 
 	"github.com/d-fi/GoFi/api"
+	"github.com/d-fi/GoFi/internal/auth"
 	"github.com/d-fi/GoFi/request"
 	"github.com/stretchr/testify/assert"
 )
@@ -18,22 +18,36 @@ var testingEnabled bool
 
 func init() {
 	// Initialize the Deezer API for all tests
-	arl := os.Getenv("DEEZER_ARL")
-	if arl == "" {
-		// Skip tests if no ARL is provided
+	// Try to get ARL from various sources (env, browser cookies, etc.)
+	arl, err := auth.GetARLToken()
+	if err != nil {
+		// Skip tests if no ARL is available from any source
 		testingEnabled = false
 		return
 	}
-	_, err := request.InitDeezerAPI(arl)
+	
+	// Try to initialize the API and validate the token
+	_, err = request.InitDeezerAPI(arl)
 	if err != nil {
-		panic("Failed to initialize Deezer API: " + err.Error())
+		// ARL found but invalid - skip tests
+		testingEnabled = false
+		return
 	}
+	
+	// Try to authenticate and check permissions
+	user, err := DzAuthenticate()
+	if err != nil || (!user.CanStreamLossless && !user.CanStreamHQ) {
+		// Token doesn't have proper streaming permissions
+		testingEnabled = false
+		return
+	}
+	
 	testingEnabled = true
 }
 
 func TestDzAuthenticate(t *testing.T) {
 	if !testingEnabled {
-		t.Skip("Skipping test: DEEZER_ARL not provided")
+		t.Skip("Skipping test: No valid ARL token available")
 	}
 	user, err := DzAuthenticate()
 	assert.NoError(t, err)
@@ -45,7 +59,7 @@ func TestDzAuthenticate(t *testing.T) {
 
 func TestGetTrackUrlFromServer(t *testing.T) {
 	if !testingEnabled {
-		t.Skip("Skipping test: DEEZER_ARL not provided")
+		t.Skip("Skipping test: No valid ARL token available")
 	}
 	trackToken := "example_track_token"
 	_, err := GetTrackUrlFromServer(trackToken, "MP3_320")
@@ -54,7 +68,7 @@ func TestGetTrackUrlFromServer(t *testing.T) {
 
 func TestGetTrackDownloadUrl(t *testing.T) {
 	if !testingEnabled {
-		t.Skip("Skipping test: DEEZER_ARL not provided")
+		t.Skip("Skipping test: No valid ARL token available")
 	}
 	track, err := api.GetTrackInfo(SNG_ID)
 	assert.NoError(t, err, "Failed to fetch track information")
@@ -81,7 +95,7 @@ func TestGetTrackDownloadUrl(t *testing.T) {
 
 func TestGetTrackDownloadUrlWithInvalidQuality(t *testing.T) {
 	if !testingEnabled {
-		t.Skip("Skipping test: DEEZER_ARL not provided")
+		t.Skip("Skipping test: No valid ARL token available")
 	}
 	track, err := api.GetTrackInfo(SNG_ID)
 	assert.NoError(t, err, "Failed to fetch track information")

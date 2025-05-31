@@ -11,17 +11,29 @@ import (
 func GetARLToken() (string, error) {
 	// First, check environment variable
 	if arl := os.Getenv("DEEZER_ARL"); arl != "" {
-		return arl, nil
+		return cleanARLToken(arl), nil
 	}
 
 	// Try to get from browser cookies
 	arl, err := GetARLFromAnyBrowser()
 	if err == nil && arl != "" {
-		return arl, nil
+		return cleanARLToken(arl), nil
 	}
 
 	// Return error if no ARL found
 	return "", fmt.Errorf("ARL token not found in environment or browser cookies: %w", err)
+}
+
+// cleanARLToken removes any control characters from the ARL token
+func cleanARLToken(arl string) string {
+	// Clean the ARL token - remove any control characters
+	cleanARL := ""
+	for _, r := range arl {
+		if r >= 32 && r <= 126 {
+			cleanARL += string(r)
+		}
+	}
+	return strings.TrimSpace(cleanARL)
 }
 
 // ValidateARLToken performs basic validation on an ARL token

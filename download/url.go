@@ -59,14 +59,47 @@ func DzAuthenticate() (*UserData, error) {
 		return nil, err
 	}
 
-	results := data["results"].(map[string]interface{})
-	options := results["USER"].(map[string]interface{})["OPTIONS"].(map[string]interface{})
-	country := results["COUNTRY"].(string)
+	// Check if there's an error in the response
+	if errData, ok := data["error"].(map[string]interface{}); ok {
+		errMsg := "unknown error"
+		if msg, ok := errData["message"].(string); ok {
+			errMsg = msg
+		}
+		return nil, fmt.Errorf("Deezer API error: %s", errMsg)
+	}
 
+	results, ok := data["results"].(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("invalid response structure: missing results")
+	}
+	
+	userInfo, ok := results["USER"].(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("invalid response structure: missing USER")
+	}
+	
+	options, ok := userInfo["OPTIONS"].(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("invalid response structure: missing OPTIONS")
+	}
+	
+	country, ok := results["COUNTRY"].(string)
+	if !ok {
+		country = "unknown"
+	}
+
+	// Safe extraction of options with defaults
+	licenseToken, _ := options["license_token"].(string)
+	webLossless, _ := options["web_lossless"].(bool)
+	mobileLossless, _ := options["mobile_lossless"].(bool)
+	mobileLosslessAlt, _ := options["mobile_loseless"].(bool) // Handle typo in API
+	webHQ, _ := options["web_hq"].(bool)
+	mobileHQ, _ := options["mobile_hq"].(bool)
+	
 	userData = &UserData{
-		LicenseToken:      options["license_token"].(string),
-		CanStreamLossless: options["web_lossless"].(bool) || options["mobile_loseless"].(bool),
-		CanStreamHQ:       options["web_hq"].(bool) || options["mobile_hq"].(bool),
+		LicenseToken:      licenseToken,
+		CanStreamLossless: webLossless || mobileLossless || mobileLosslessAlt,
+		CanStreamHQ:       webHQ || mobileHQ,
 		Country:           country,
 	}
 	logger.Debug("Deezer authentication successful. User country: %s", userData.Country)

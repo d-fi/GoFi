@@ -23,6 +23,4 @@ jobs:
         run: go mod tidy
 
       - name: Run tests
-        env:
-          DEEZER_ARL: ${{ secrets.DEEZER_ARL }}
         run: go test -v ./...

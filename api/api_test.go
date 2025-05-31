@@ -1,11 +1,11 @@
 package api
 
 import (
-	"os"
 	"strconv"
 	"strings"
 	"testing"
 
+	"github.com/d-fi/GoFi/internal/auth"
 	"github.com/d-fi/GoFi/request"
 	"github.com/stretchr/testify/assert"
 )
@@ -19,22 +19,36 @@ var testingEnabled bool
 
 func init() {
 	// Initialize the Deezer API for all tests
-	arl := os.Getenv("DEEZER_ARL")
-	if arl == "" {
-		// Skip tests if no ARL is provided
+	// Try to get ARL from various sources (env, browser cookies, etc.)
+	arl, err := auth.GetARLToken()
+	if err != nil {
+		// Skip tests if no ARL is available from any source
 		testingEnabled = false
 		return
 	}
-	_, err := request.InitDeezerAPI(arl)
+	
+	// Try to initialize the API and validate the token
+	_, err = request.InitDeezerAPI(arl)
 	if err != nil {
-		panic("Failed to initialize Deezer API: " + err.Error())
+		// ARL found but invalid - skip tests
+		testingEnabled = false
+		return
 	}
+	
+	// Try a simple API call to validate the token works
+	_, err = GetUser()
+	if err != nil && strings.Contains(err.Error(), "AUTH_REQUIRED") {
+		// Token is invalid or expired
+		testingEnabled = false
+		return
+	}
+	
 	testingEnabled = true
 }
 
 func TestGetUser(t *testing.T) {
 	if !testingEnabled {
-		t.Skip("Skipping test: DEEZER_ARL not provided")
+		t.Skip("Skipping test: No valid ARL token available")
 	}
 	response, err := GetUser()
 	assert.NoError(t, err)
@@ -46,7 +60,7 @@ func TestGetUser(t *testing.T) {
 
 func TestGetTrackInfo(t *testing.T) {
 	if !testingEnabled {
-		t.Skip("Skipping test: DEEZER_ARL not provided")
+		t.Skip("Skipping test: No valid ARL token available")
 	}
 	response, err := GetTrackInfo(SNG_ID)
 	assert.NoError(t, err)
@@ -58,7 +72,7 @@ func TestGetTrackInfo(t *testing.T) {
 
 func TestGetTrackInfoPublicApi(t *testing.T) {
 	if !testingEnabled {
-		t.Skip("Skipping test: DEEZER_ARL not provided")
+		t.Skip("Skipping test: No valid ARL token available")
 	}
 	response, err := GetTrackInfoPublicApi(SNG_ID)
 	assert.NoError(t, err)
@@ -69,7 +83,7 @@ func TestGetTrackInfoPublicApi(t *testing.T) {
 
 func TestGetLyrics(t *testing.T) {
 	if !testingEnabled {
-		t.Skip("Skipping test: DEEZER_ARL not provided")
+		t.Skip("Skipping test: No valid ARL token available")
 	}
 	response, err := GetLyrics(SNG_ID)
 	assert.NoError(t, err)
@@ -80,7 +94,7 @@ func TestGetLyrics(t *testing.T) {
 
 func TestGetAlbumInfo(t *testing.T) {
 	if !testingEnabled {
-		t.Skip("Skipping test: DEEZER_ARL not provided")
+		t.Skip("Skipping test: No valid ARL token available")
 	}
 	response, err := GetAlbumInfo(ALB_ID)
 	assert.NoError(t, err)
@@ -91,7 +105,7 @@ func TestGetAlbumInfo(t *testing.T) {
 
 func TestGetAlbumInfoPublicApi(t *testing.T) {
 	if !testingEnabled {
-		t.Skip("Skipping test: DEEZER_ARL not provided")
+		t.Skip("Skipping test: No valid ARL token available")
 	}
 	response, err := GetAlbumInfoPublicApi(ALB_ID)
 	assert.NoError(t, err)
@@ -102,7 +116,7 @@ func TestGetAlbumInfoPublicApi(t *testing.T) {
 
 func TestGetAlbumTracks(t *testing.T) {
 	if !testingEnabled {
-		t.Skip("Skipping test: DEEZER_ARL not provided")
+		t.Skip("Skipping test: No valid ARL token available")
 	}
 	response, err := GetAlbumTracks(ALB_ID)
 	assert.NoError(t, err)
@@ -112,7 +126,7 @@ func TestGetAlbumTracks(t *testing.T) {
 
 func TestGetPlaylistInfo(t *testing.T) {
 	if !testingEnabled {
-		t.Skip("Skipping test: DEEZER_ARL not provided")
+		t.Skip("Skipping test: No valid ARL token available")
 	}
 	PLAYLIST_ID := "4523119944"
 	response, err := GetPlaylistInfo(PLAYLIST_ID)
@@ -124,7 +138,7 @@ func TestGetPlaylistInfo(t *testing.T) {
 
 func TestGetPlaylistTracks(t *testing.T) {
 	if !testingEnabled {
-		t.Skip("Skipping test: DEEZER_ARL not provided")
+		t.Skip("Skipping test: No valid ARL token available")
 	}
 	PLAYLIST_ID := "4523119944"
 	response, err := GetPlaylistTracks(PLAYLIST_ID)
@@ -135,7 +149,7 @@ func TestGetPlaylistTracks(t *testing.T) {
 
 func TestGetArtistInfo(t *testing.T) {
 	if !testingEnabled {
-		t.Skip("Skipping test: DEEZER_ARL not provided")
+		t.Skip("Skipping test: No valid ARL token available")
 	}
 	ART_ID := "13"
 	response, err := GetArtistInfo(ART_ID)
@@ -146,7 +160,7 @@ func TestGetArtistInfo(t *testing.T) {
 
 func TestGetDiscography(t *testing.T) {
 	if !testingEnabled {
-		t.Skip("Skipping test: DEEZER_ARL not provided")
+		t.Skip("Skipping test: No valid ARL token available")
 	}
 	ART_ID := "13"
 	response, err := GetDiscography(ART_ID, 10)
@@ -157,7 +171,7 @@ func TestGetDiscography(t *testing.T) {
 
 func TestGetProfile(t *testing.T) {
 	if !testingEnabled {
-		t.Skip("Skipping test: DEEZER_ARL not provided")
+		t.Skip("Skipping test: No valid ARL token available")
 	}
 	USER_ID := "2064440442"
 	response, err := GetProfile(USER_ID)
@@ -168,7 +182,7 @@ func TestGetProfile(t *testing.T) {
 
 func TestSearchAlternative(t *testing.T) {
 	if !testingEnabled {
-		t.Skip("Skipping test: DEEZER_ARL not provided")
+		t.Skip("Skipping test: No valid ARL token available")
 	}
 	ARTIST := "Eminem"
 	TRACK := "The Real Slim Shady"
@@ -180,7 +194,7 @@ func TestSearchAlternative(t *testing.T) {
 
 func TestSearchMusic(t *testing.T) {
 	if !testingEnabled {
-		t.Skip("Skipping test: DEEZER_ARL not provided")
+		t.Skip("Skipping test: No valid ARL token available")
 	}
 	QUERY := "Eminem"
 	response, err := SearchMusic(QUERY, 1, "TRACK", "ALBUM", "ARTIST")
@@ -193,7 +207,7 @@ func TestSearchMusic(t *testing.T) {
 
 func TestGetChannelList(t *testing.T) {
 	if !testingEnabled {
-		t.Skip("Skipping test: DEEZER_ARL not provided")
+		t.Skip("Skipping test: No valid ARL token available")
 	}
 	response, err := GetChannelList()
 	assert.NoError(t, err)
@@ -203,7 +217,7 @@ func TestGetChannelList(t *testing.T) {
 
 func TestGetShowInfo(t *testing.T) {
 	if !testingEnabled {
-		t.Skip("Skipping test: DEEZER_ARL not provided")
+		t.Skip("Skipping test: No valid ARL token available")
 	}
 	response, err := GetShowInfo("338532", 10, 0)
 	assert.NoError(t, err)

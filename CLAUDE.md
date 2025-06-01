@@ -149,9 +149,16 @@ The application accepts configuration through:
 3. JSON configuration file
 
 Main environment variables:
+
+Authentication:
 - `SPOTIFY_CLIENT_ID`: Spotify API client ID
 - `SPOTIFY_CLIENT_SECRET`: Spotify API client secret
 - `DEEZER_ARL`: Deezer authentication token (optional - can be auto-detected)
+
+Configuration (Priority: CLI flags > Environment variables > Default values):
+- `GOFI_OUTPUT_DIR`: Default download directory (default: "./downloads")
+- `GOFI_QUALITY`: Default audio quality - 1, 3, or 9 (default: 3)
+- `GOFI_LOG_LEVEL`: Default log level - debug, info, warn, error (default: "info")
 
 ## Important File Paths
 

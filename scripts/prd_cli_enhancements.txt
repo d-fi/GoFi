@@ -1,0 +1,103 @@
+<context>
+# Overview  
+GoFi is a command-line music download tool that currently provides a functional but basic interface for downloading music from Deezer and Spotify. The tool needs enhancements to improve user experience through interactive prompts, better visual feedback, and configuration management via environment variables.
+
+# Core Features  
+## Interactive CLI with Color Output
+- Interactive prompts when command-line flags are not provided
+- Colored output for different message types (success in green, errors in red, warnings in yellow, info in blue)
+- Progress indicators and spinners for long-running operations
+- Visual hierarchy with proper spacing and formatting
+- Interactive selection menus for quality levels and other options
+- Confirmation prompts before downloads and destructive operations
+
+## Environment Variable Support
+- Automatic detection of GOFI_* environment variables
+- Support for GOFI_OUTPUT_DIR to set default download directory
+- Support for GOFI_QUALITY to set default audio quality (1, 3, or 9)
+- Support for GOFI_LOG_LEVEL to set default logging verbosity
+- Environment variables should be overridable by command-line flags
+
+# User Experience  
+Users should have a delightful experience when using GoFi:
+- New users can run `gofi download` without any flags and be guided through the process
+- Power users can set environment variables to avoid repetitive flag entry
+- Clear visual feedback throughout the download process
+- Consistent color scheme across all output types
+- Professional appearance similar to modern CLI tools
+</context>
+<PRD>
+# Technical Architecture  
+## Interactive CLI Implementation
+- Use existing Cobra framework with additional interactive libraries
+- Integrate a prompt library like github.com/AlecAivazis/survey/v2 for interactive inputs
+- Enhance existing color output using github.com/fatih/color
+- Add spinner/progress libraries like github.com/briandowns/spinner
+- Maintain backward compatibility with existing flag-based usage
+
+## Environment Variable System
+- Implement in the root command's initialization phase
+- Check for GOFI_* variables before applying default values
+- Priority order: CLI flags > Environment variables > Default values
+- Add validation for environment variable values
+- Document all supported environment variables
+
+# Development Roadmap  
+## Phase 1: Environment Variable Support
+- Add environment variable detection in cmd/gofi/cmd/root.go
+- Implement GOFI_OUTPUT_DIR support
+- Implement GOFI_QUALITY support with validation (1, 3, or 9)
+- Implement GOFI_LOG_LEVEL support
+- Update help text to document environment variables
+- Add tests for environment variable functionality
+
+## Phase 2: Interactive CLI Enhancements
+- Add interactive prompts when required flags are missing
+- Implement colored output for all message types
+- Add progress spinners for API calls and downloads
+- Create interactive menu for quality selection
+- Add confirmation prompts for batch operations
+- Enhance error messages with helpful suggestions
+
+## Phase 3: Polish and Documentation
+- Ensure consistent visual design across all prompts
+- Add ASCII art banner on startup
+- Update README with environment variable documentation
+- Add examples of interactive usage
+- Create demo GIF/video for README
+
+# Logical Dependency Chain
+1. Environment variable support must be implemented first as it affects initialization
+2. Basic colored output can be added incrementally to existing messages
+3. Interactive prompts should be added after environment variables to ensure proper defaults
+4. Progress indicators can be integrated with existing download logic
+5. Final polish and documentation after core features are working
+
+# Risks and Mitigations  
+## Technical Challenges
+- Risk: Interactive prompts might break automation scripts
+- Mitigation: Ensure all interactive features are skipped when flags are provided or when not in TTY
+
+## Compatibility Concerns
+- Risk: New dependencies might increase binary size
+- Mitigation: Choose lightweight libraries and ensure they're necessary
+
+## User Experience
+- Risk: Too many prompts might annoy power users
+- Mitigation: Provide --non-interactive flag and respect environment variables
+
+# Appendix  
+## Reference Implementation
+The claude-task-master CLI (https://raw.githubusercontent.com/eyaltoledano/claude-task-master/refs/heads/main/index.js) provides excellent examples of:
+- Clear visual hierarchy with box drawing
+- Consistent color usage
+- Interactive menus with arrow key navigation
+- Progress indicators for long operations
+- Professional terminal UI design
+
+## Environment Variable Naming Convention
+Following Go conventions:
+- GOFI_OUTPUT_DIR (maps to -o, --output flag)
+- GOFI_QUALITY (maps to -q, --quality flag)
+- GOFI_LOG_LEVEL (maps to -l, --log-level flag)
+</PRD>

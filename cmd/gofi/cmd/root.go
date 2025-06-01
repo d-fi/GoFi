@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/d-fi/GoFi/logger"
@@ -69,10 +70,21 @@ func init() {
 	// Load environment variables from .env file if it exists
 	loadEnvFile()
 	
+	// Check for GOFI_* environment variables and set defaults
+	defaultOutput := getEnvOrDefault("GOFI_OUTPUT_DIR", "./downloads")
+	defaultQuality := getEnvIntOrDefault("GOFI_QUALITY", 3)
+	defaultLogLevel := getEnvOrDefault("GOFI_LOG_LEVEL", "info")
+	
+	// Validate quality value from environment
+	if defaultQuality != 1 && defaultQuality != 3 && defaultQuality != 9 {
+		fmt.Printf("Warning: Invalid GOFI_QUALITY value '%d'. Must be 1, 3, or 9. Using default: 3\n", defaultQuality)
+		defaultQuality = 3
+	}
+	
 	// Persistent flags that are global across all commands
-	rootCmd.PersistentFlags().StringVarP(&downloadPath, "output", "o", "./downloads", "Directory to save downloaded files")
-	rootCmd.PersistentFlags().IntVarP(&quality, "quality", "q", 3, "Audio quality (1=128kbps MP3, 3=320kbps MP3, 9=FLAC)")
-	rootCmd.PersistentFlags().StringVarP(&logLevel, "log-level", "l", "info", "Log level (debug, info, warn, error)")
+	rootCmd.PersistentFlags().StringVarP(&downloadPath, "output", "o", defaultOutput, "Directory to save downloaded files (env: GOFI_OUTPUT_DIR)")
+	rootCmd.PersistentFlags().IntVarP(&quality, "quality", "q", defaultQuality, "Audio quality - 1=128kbps MP3, 3=320kbps MP3, 9=FLAC (env: GOFI_QUALITY)")
+	rootCmd.PersistentFlags().StringVarP(&logLevel, "log-level", "l", defaultLogLevel, "Log level - debug, info, warn, error (env: GOFI_LOG_LEVEL)")
 	
 	// Add subcommands
 	rootCmd.AddCommand(authCmd)
@@ -119,4 +131,23 @@ func loadEnvFile() {
 		os.Setenv(key, value)
 		logger.Debug("Set environment variable: %s", key)
 	}
+}
+
+// getEnvOrDefault returns the value of an environment variable or a default value if not set
+func getEnvOrDefault(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
+}
+
+// getEnvIntOrDefault returns the integer value of an environment variable or a default value if not set or invalid
+func getEnvIntOrDefault(key string, defaultValue int) int {
+	if value := os.Getenv(key); value != "" {
+		if intValue, err := strconv.Atoi(value); err == nil {
+			return intValue
+		}
+		fmt.Printf("Warning: Invalid integer value '%s' for %s\n", value, key)
+	}
+	return defaultValue
 }

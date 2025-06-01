@@ -154,6 +154,8 @@ To use GoFi with Spotify, you need to register an application with Spotify:
 
 ### Environment Configuration
 
+#### Authentication Variables
+
 Create a `.env` file in the project root with the following content:
 
 ```
@@ -164,6 +166,31 @@ SPOTIFY_CLIENT_SECRET=your_spotify_client_secret_here
 # Deezer authentication
 DEEZER_ARL=your_deezer_arl_here
 ```
+
+#### GoFi Configuration Variables
+
+GoFi supports the following environment variables to set default values:
+
+```bash
+# Set default output directory
+export GOFI_OUTPUT_DIR="$HOME/Music/Downloads"
+
+# Set default quality (1=128kbps MP3, 3=320kbps MP3, 9=FLAC)
+export GOFI_QUALITY=9
+
+# Set default log level (debug, info, warn, error)
+export GOFI_LOG_LEVEL=info
+```
+
+These can also be added to your `.env` file:
+
+```
+GOFI_OUTPUT_DIR=/path/to/music
+GOFI_QUALITY=9
+GOFI_LOG_LEVEL=info
+```
+
+**Note**: Command-line flags always take precedence over environment variables.
 
 Alternatively, you can set these as environment variables:
 

@@ -50,8 +50,8 @@ func TestConvertToQueryParams(t *testing.T) {
 				"function": func() {},
 			},
 			expected: map[string]string{
-				"slice":    "[1 2 3]",
-				"map":      "map[a:1]",
+				"slice":    "[1,2,3]",
+				"map":      "{\"a\":1}",
 				"function": "<nil>",
 			},
 		},

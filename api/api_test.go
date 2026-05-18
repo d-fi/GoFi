@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/d-fi/GoFi/request"
+	"github.com/d-fi/GoFi/types"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -159,4 +160,13 @@ func TestGetShowInfo(t *testing.T) {
 	assert.Equal(t, "201952", response.Data.LabelID)
 	assert.Equal(t, 10, response.Episodes.Count)
 	assert.True(t, len(response.Episodes.Data) > 0)
+}
+
+func TestGetPlaylistChannel(t *testing.T) {
+	response, err := GetPlaylistChannel("channels/dance")
+	assert.NoError(t, err)
+	assert.NotEmpty(t, response.Title)
+	assert.NotEmpty(t, response.Sections)
+	assert.NotEmpty(t, response.Sections[0].Items)
+	assert.IsType(t, &types.PlaylistChannelPlaylistData{}, response.Sections[0].Items[0].Data)
 }

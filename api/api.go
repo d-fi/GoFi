@@ -330,3 +330,58 @@ func GetShowInfo(showID string, nb, start int) (types.ShowType, error) {
 	}
 	return result, err
 }
+
+// GetPlaylistChannel fetches Deezer playlist channel page information.
+func GetPlaylistChannel(page string) (types.PlaylistChannelType, error) {
+	var result types.PlaylistChannelType
+	logger.Debug("Fetching playlist channel page: %s", page)
+
+	gatewayInput := map[string]interface{}{
+		"page":    page,
+		"version": "2.3",
+		"support": map[string]interface{}{
+			"long-card-horizontal-grid": []string{"album", "playlist", "radio", "show"},
+			"ads":                       []string{},
+			"message":                   []string{},
+			"highlight":                 []string{"generic", "album", "artist", "playlist", "radio", "app"},
+			"deeplink-list":             []string{"generic", "deeplink"},
+			"grid": []string{
+				"generic", "album", "artist", "playlist", "radio", "channel", "show", "page",
+				"smarttracklist", "flow", "video-link",
+			},
+			"slideshow":             []string{"album", "artist", "playlist", "radio", "show", "channel", "video-link", "external-link"},
+			"large-card":            []string{"generic", "album", "artist", "playlist", "radio", "show", "external-link", "video-link"},
+			"item-highlight":        []string{"radio", "app"},
+			"small-horizontal-grid": []string{"album", "artist", "playlist", "radio", "channel", "show"},
+			"grid-preview-two": []string{
+				"generic", "album", "artist", "playlist", "radio", "channel", "show", "page",
+				"smarttracklist", "flow", "video-link",
+			},
+			"list": []string{"generic", "album", "artist", "playlist", "radio", "show", "video-link", "channel", "episode"},
+			"grid-preview-one": []string{
+				"generic", "album", "artist", "playlist", "radio", "channel", "show", "page",
+				"smarttracklist", "flow", "video-link",
+			},
+			"horizontal-grid": []string{
+				"generic", "album", "artist", "playlist", "radio", "channel", "show", "video-link",
+				"smarttracklist", "flow",
+			},
+		},
+		"lang":            "en",
+		"timezone_offset": "6",
+	}
+
+	data, err := request.RequestGet("app_page_get", map[string]interface{}{
+		"gateway_input": gatewayInput,
+	}, page)
+	if err != nil {
+		logger.Error("Failed to fetch playlist channel: %v", err)
+		return result, err
+	}
+
+	err = json.Unmarshal(data, &result)
+	if err != nil {
+		logger.Error("Failed to unmarshal playlist channel: %v", err)
+	}
+	return result, err
+}

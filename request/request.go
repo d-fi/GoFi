@@ -72,8 +72,12 @@ func Request(body map[string]interface{}, method string) ([]byte, error) {
 	return results, nil
 }
 
-func RequestGet(method string, params map[string]interface{}) ([]byte, error) {
-	cacheKey := method + ":get_request"
+func RequestGet(method string, params map[string]interface{}, key ...string) ([]byte, error) {
+	cacheKeyPart := "get_request"
+	if len(key) > 0 && key[0] != "" {
+		cacheKeyPart = key[0]
+	}
+	cacheKey := method + ":" + cacheKeyPart
 	if cachedData, ok := cache.Get(cacheKey); ok && len(cachedData) > 0 {
 		logger.Debug("Cache hit for GET request with method: %s", method)
 		return cachedData, nil

@@ -45,6 +45,16 @@ func TestGetURLParts(t *testing.T) {
 			url:      "https://youtu.be/qFLhGq0060w",
 			expected: URLParts{ID: "qFLhGq0060w", Type: "youtube-track"},
 		},
+		{
+			name:     "tidal track",
+			url:      "https://tidal.com/browse/track/56681096",
+			expected: URLParts{ID: "56681096", Type: "tidal-track"},
+		},
+		{
+			name:     "tidal playlist",
+			url:      "https://tidal.com/browse/playlist/ed004d2b-b494-42be-8506-b1d23cd3bb80",
+			expected: URLParts{ID: "ed004d2b-b494-42be-8506-b1d23cd3bb80", Type: "tidal-playlist"},
+		},
 	}
 
 	for _, test := range tests {
@@ -106,4 +116,26 @@ func TestYouTubeTrackToDeezer(t *testing.T) {
 	assert.Equal(t, "136889434", track.SNG_ID)
 	assert.Equal(t, "I Feel It Coming", track.SNG_TITLE)
 	assert.Equal(t, "USUG11601012", track.ISRC)
+}
+
+func TestTidalTrackToDeezer(t *testing.T) {
+	if os.Getenv("DEEZER_ARL") == "" {
+		t.Skip("DEEZER_ARL is required for Deezer integration tests")
+	}
+
+	track, err := TidalTrackToDeezer("56681096")
+	require.NoError(t, err)
+	assert.Equal(t, "118190298", track.SNG_ID)
+	assert.Equal(t, "QM5FT1600116", track.ISRC)
+}
+
+func TestTidalAlbumToDeezer(t *testing.T) {
+	if os.Getenv("DEEZER_ARL") == "" {
+		t.Skip("DEEZER_ARL is required for Deezer integration tests")
+	}
+
+	album, tracks, err := TidalAlbumToDeezer("56681092")
+	require.NoError(t, err)
+	assert.Equal(t, "12279688", album.ALB_ID)
+	assert.Len(t, tracks, 16)
 }

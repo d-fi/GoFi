@@ -52,6 +52,11 @@ func YouTubeTrackToDeezer(id string) (types.TrackType, error) {
 }
 
 func fetchYouTubeMetadata(id string) (title, artist string, err error) {
+	title, artist = fetchYouTubeOEmbed(id)
+	if title != "" || artist != "" {
+		return title, artist, nil
+	}
+
 	client := &http.Client{Timeout: 15 * time.Second}
 	req, err := http.NewRequest(http.MethodGet, "https://www.youtube.com/watch?v="+id+"&hl=en", nil)
 	if err != nil {
@@ -104,6 +109,28 @@ func fetchYouTubeMetadata(id string) (title, artist string, err error) {
 		return "", "", fmt.Errorf("no track found for youtube video %s", id)
 	}
 	return title, artist, nil
+}
+
+func fetchYouTubeOEmbed(id string) (title, artist string) {
+	oembedURL := "https://www.youtube.com/oembed?format=json&url=https://www.youtube.com/watch?v=" + id
+	client := &http.Client{Timeout: 15 * time.Second}
+	resp, err := client.Get(oembedURL)
+	if err != nil {
+		return "", ""
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return "", ""
+	}
+
+	var data struct {
+		Title      string `json:"title"`
+		AuthorName string `json:"author_name"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
+		return "", ""
+	}
+	return html.UnescapeString(data.Title), html.UnescapeString(data.AuthorName)
 }
 
 func extractJSONAssignment(body, name string) (string, bool) {

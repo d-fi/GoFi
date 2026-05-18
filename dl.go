@@ -20,4 +20,5 @@ func main() {
 	}
 
 	// The track data is now available in the trackData variable
+	log.Printf("Downloaded %d bytes", len(trackData))
 }

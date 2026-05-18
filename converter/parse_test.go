@@ -2,6 +2,7 @@ package converter
 
 import (
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/d-fi/GoFi/request"
@@ -55,6 +56,21 @@ func TestGetURLParts(t *testing.T) {
 			url:      "https://tidal.com/browse/playlist/ed004d2b-b494-42be-8506-b1d23cd3bb80",
 			expected: URLParts{ID: "ed004d2b-b494-42be-8506-b1d23cd3bb80", Type: "tidal-playlist"},
 		},
+		{
+			name:     "spotify track",
+			url:      "https://open.spotify.com/track/7FIWs0pqAYbP91WWM0vlTQ?si=abc",
+			expected: URLParts{ID: "7FIWs0pqAYbP91WWM0vlTQ", Type: "spotify-track"},
+		},
+		{
+			name:     "spotify intl album",
+			url:      "https://open.spotify.com/intl-fr/album/6t7956yu5zYf5A829XRiHC",
+			expected: URLParts{ID: "6t7956yu5zYf5A829XRiHC", Type: "spotify-album"},
+		},
+		{
+			name:     "spotify uri playlist",
+			url:      "spotify:playlist:37i9dQZF1DXcBWIGoYBM5M",
+			expected: URLParts{ID: "37i9dQZF1DXcBWIGoYBM5M", Type: "spotify-playlist"},
+		},
 	}
 
 	for _, test := range tests {
@@ -64,12 +80,6 @@ func TestGetURLParts(t *testing.T) {
 			assert.Equal(t, test.expected, actual)
 		})
 	}
-}
-
-func TestGetURLPartsUnsupported(t *testing.T) {
-	_, err := GetURLParts("https://open.spotify.com/track/3UmaczJpikHgJFyBTAJVoz")
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "spotify URLs are not supported")
 }
 
 func TestISRCToDeezer(t *testing.T) {
@@ -138,4 +148,18 @@ func TestTidalAlbumToDeezer(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "12279688", album.ALB_ID)
 	assert.Len(t, tracks, 16)
+}
+
+func TestSpotifyTrackToDeezer(t *testing.T) {
+	if os.Getenv("DEEZER_ARL") == "" {
+		t.Skip("DEEZER_ARL is required for Deezer integration tests")
+	}
+
+	track, err := SpotifyTrackToDeezer("7FIWs0pqAYbP91WWM0vlTQ")
+	if err != nil && strings.Contains(err.Error(), "spotify API rate limited") {
+		t.Skip(err.Error())
+	}
+	require.NoError(t, err)
+	assert.Equal(t, "854914322", track.SNG_ID)
+	assert.Equal(t, "USUM72000788", track.ISRC)
 }

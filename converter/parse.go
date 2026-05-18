@@ -23,10 +23,10 @@ type ParseResult struct {
 	Tracks   []types.TrackType `json:"tracks"`
 }
 
-// GetURLParts parses supported Deezer, Tidal, and YouTube URLs into an id/type pair.
+// GetURLParts parses supported Deezer, Spotify, Tidal, and YouTube URLs into an id/type pair.
 func GetURLParts(rawURL string) (URLParts, error) {
-	if strings.Contains(rawURL, "spotify") || strings.HasPrefix(rawURL, "spotify:") {
-		return URLParts{}, fmt.Errorf("spotify URLs are not supported: %s", rawURL)
+	if strings.HasPrefix(rawURL, "spotify:") {
+		return parseSpotifyURL(rawURL)
 	}
 
 	parsed, err := url.Parse(rawURL)
@@ -44,6 +44,8 @@ func GetURLParts(rawURL string) (URLParts, error) {
 			}
 		}
 		return parseDeezerURL(rawURL)
+	case strings.Contains(host, "spotify"):
+		return parseSpotifyURL(rawURL)
 	case strings.Contains(host, "tidal"):
 		return parseTidalURL(rawURL)
 	case strings.Contains(host, "youtube.com"):
@@ -63,7 +65,7 @@ func GetURLParts(rawURL string) (URLParts, error) {
 	}
 }
 
-// ParseInfo resolves a supported Deezer, Tidal, or YouTube URL into Deezer tracks.
+// ParseInfo resolves a supported Deezer, Spotify, Tidal, or YouTube URL into Deezer tracks.
 func ParseInfo(rawURL string) (ParseResult, error) {
 	info, err := GetURLParts(rawURL)
 	if err != nil {
@@ -142,6 +144,35 @@ func ParseInfo(rawURL string) (ParseResult, error) {
 			return result, err
 		}
 		result.Tracks = append(result.Tracks, track)
+	case "spotify-track":
+		track, err := SpotifyTrackToDeezer(info.ID)
+		if err != nil {
+			return result, err
+		}
+		result.Tracks = append(result.Tracks, track)
+	case "spotify-album":
+		album, tracks, err := SpotifyAlbumToDeezer(info.ID)
+		if err != nil {
+			return result, err
+		}
+		result.LinkType = "album"
+		result.LinkInfo = album
+		result.Tracks = tracks
+	case "spotify-playlist":
+		playlist, tracks, err := SpotifyPlaylistToDeezer(info.ID)
+		if err != nil {
+			return result, err
+		}
+		result.LinkType = "playlist"
+		result.LinkInfo = playlist
+		result.Tracks = tracks
+	case "spotify-artist":
+		tracks, err := SpotifyArtistToDeezer(info.ID)
+		if err != nil {
+			return result, err
+		}
+		result.LinkType = "artist"
+		result.Tracks = tracks
 	case "tidal-track":
 		track, err := TidalTrackToDeezer(info.ID)
 		if err != nil {
@@ -183,6 +214,42 @@ func ParseInfo(rawURL string) (ParseResult, error) {
 	}
 
 	return result, nil
+}
+
+func parseSpotifyURL(rawURL string) (URLParts, error) {
+	if strings.HasPrefix(rawURL, "spotify:") {
+		parts := strings.Split(rawURL, ":")
+		for i := 0; i < len(parts)-1; i++ {
+			switch parts[i] {
+			case "track", "album", "artist", "playlist":
+				if parts[i+1] != "" {
+					return URLParts{Type: "spotify-" + parts[i], ID: parts[i+1]}, nil
+				}
+			}
+		}
+		return URLParts{}, fmt.Errorf("unable to parse URL: %s", rawURL)
+	}
+
+	parsed, err := url.Parse(rawURL)
+	if err != nil {
+		return URLParts{}, err
+	}
+	parts := strings.Split(strings.Trim(parsed.Path, "/"), "/")
+	for i := 0; i < len(parts)-1; i++ {
+		switch parts[i] {
+		case "track", "album", "artist", "playlist":
+			if parts[i+1] != "" {
+				return URLParts{Type: "spotify-" + parts[i], ID: parts[i+1]}, nil
+			}
+		}
+	}
+
+	re := regexp.MustCompile(`/(track|album|artist|playlist)/([A-Za-z0-9]+)`)
+	matches := re.FindStringSubmatch(rawURL)
+	if len(matches) == 3 {
+		return URLParts{Type: "spotify-" + matches[1], ID: matches[2]}, nil
+	}
+	return URLParts{}, fmt.Errorf("unable to parse URL: %s", rawURL)
 }
 
 func parseDeezerURL(rawURL string) (URLParts, error) {

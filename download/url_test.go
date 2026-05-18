@@ -14,13 +14,18 @@ const (
 	SNG_ID = "3135556" // Harder, Better, Faster, Stronger by Daft Punk
 )
 
-func init() {
-	// Initialize the Deezer API for all tests
+func TestMain(m *testing.M) {
 	arl := os.Getenv("DEEZER_ARL")
+	if arl == "" {
+		os.Exit(0)
+	}
+
 	_, err := request.InitDeezerAPI(arl)
 	if err != nil {
 		panic("Failed to initialize Deezer API: " + err.Error())
 	}
+
+	os.Exit(m.Run())
 }
 
 func TestDzAuthenticate(t *testing.T) {

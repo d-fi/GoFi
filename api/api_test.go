@@ -15,13 +15,18 @@ const (
 	ALB_ID = "302127"  // Discovery by Daft Punk
 )
 
-func init() {
-	// Initialize the Deezer API for all tests
+func TestMain(m *testing.M) {
 	arl := os.Getenv("DEEZER_ARL")
+	if arl == "" {
+		os.Exit(0)
+	}
+
 	_, err := request.InitDeezerAPI(arl)
 	if err != nil {
 		panic("Failed to initialize Deezer API: " + err.Error())
 	}
+
+	os.Exit(m.Run())
 }
 
 func TestGetUser(t *testing.T) {

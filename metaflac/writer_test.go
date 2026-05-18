@@ -80,8 +80,12 @@ func TestTagOperations(t *testing.T) {
 	}
 
 	// Test RemoveFirstTag
-	m.SetTag("GENRE=Rock")
-	m.SetTag("GENRE=Pop")
+	if err := m.SetTag("GENRE=Rock"); err != nil {
+		t.Errorf("Failed to set tag: %v", err)
+	}
+	if err := m.SetTag("GENRE=Pop"); err != nil {
+		t.Errorf("Failed to set tag: %v", err)
+	}
 	m.RemoveFirstTag("GENRE")
 	genreTags := m.GetTag("GENRE")
 	if len(genreTags) != 1 || genreTags[0] != "GENRE=Pop" {

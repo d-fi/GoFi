@@ -93,7 +93,6 @@ func DecryptChunk(chunk []byte, blowfishKey string) []byte {
 
 // DecryptDownload decrypts the downloaded track using the blowfish key.
 func DecryptDownload(source []byte, trackID string) []byte {
-	chunkSize := 2048
 	blowfishKey := GetBlowfishKey(trackID)
 	logger.Debug("Decrypting download with track ID: %s", trackID)
 
@@ -107,7 +106,7 @@ func DecryptDownload(source []byte, trackID string) []byte {
 
 	for position < len(source) {
 		size := len(source) - position
-		chunkSize = 2048
+		chunkSize := 2048
 		if size < 2048 {
 			chunkSize = size
 		}

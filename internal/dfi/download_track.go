@@ -194,14 +194,14 @@ func downloadToTemp(ctx context.Context, trackData *download.TrackDownloadUrl, t
 			}
 			transferred += int64(written)
 			now := time.Now()
-			completed := transferred >= total
+			completed := total > 0 && transferred >= total
 			if (transferred-lastPrinted > 50000 && now.Sub(lastProgressUpdate) >= 500*time.Millisecond) || completed {
 				lastPrinted = transferred
 				lastProgressUpdate = now
 				progress := info(fmt.Sprintf("Downloading %s %s  %s | %.2fMiB", track.SNG_TITLE, message, bar(transferred), humanSizeTotal))
 				if terminalStatus.interactive {
 					terminalStatus.Update(progress)
-				} else if transferred-lastLogged > 5*1024*1024 || transferred >= total {
+				} else if transferred-lastLogged > 5*1024*1024 || completed {
 					lastLogged = transferred
 					terminalStatus.Println(progress)
 				}

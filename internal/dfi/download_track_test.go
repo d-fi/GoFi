@@ -137,3 +137,23 @@ func TestDedupePlaylistTracks(t *testing.T) {
 		}
 	}
 }
+
+func TestAppendTrackVersionsToTitles(t *testing.T) {
+	live := "(Live)"
+	tracks := []types.TrackType{
+		{SongType: types.SongType{SNG_TITLE: "Song", VERSION: &live}},
+		{SongType: types.SongType{SNG_TITLE: "Song (Live)", VERSION: &live}},
+		{SongType: types.SongType{SNG_TITLE: "Plain"}},
+	}
+
+	got := AppendTrackVersionsToTitles(tracks)
+	if got[0].SNG_TITLE != "Song (Live)" {
+		t.Fatalf("title = %q, want Song (Live)", got[0].SNG_TITLE)
+	}
+	if got[1].SNG_TITLE != "Song (Live)" {
+		t.Fatalf("title = %q, want unchanged Song (Live)", got[1].SNG_TITLE)
+	}
+	if got[2].SNG_TITLE != "Plain" {
+		t.Fatalf("title = %q, want Plain", got[2].SNG_TITLE)
+	}
+}

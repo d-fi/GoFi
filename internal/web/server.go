@@ -27,6 +27,8 @@ type Options struct {
 	ConfigPath string
 }
 
+const searchOptionLimit = 50
+
 type Server struct {
 	cfgPath string
 	mux     *http.ServeMux
@@ -543,6 +545,7 @@ func (s *Server) resolveInput(query string) (resolvedInput, error) {
 			return resolvedInput{}, err
 		}
 		tracks := append([]types.TrackType(nil), search.TRACK.Data...)
+		tracks = dfi.AppendTrackVersionsToTitles(tracks)
 		return resolvedInput{linkType: "track", tracks: tracks}, nil
 	}
 }
@@ -680,7 +683,7 @@ func searchOptions(searchType, query string) ([]searchOption, error) {
 	}
 	switch searchType {
 	case "artist":
-		search, err := api.SearchMusic(query, 15, "ARTIST")
+		search, err := api.SearchMusic(query, searchOptionLimit, "ARTIST")
 		if err != nil {
 			return nil, err
 		}
@@ -694,7 +697,7 @@ func searchOptions(searchType, query string) ([]searchOption, error) {
 		}
 		return options, nil
 	case "album":
-		search, err := api.SearchMusic(query, 15, "ALBUM")
+		search, err := api.SearchMusic(query, searchOptionLimit, "ALBUM")
 		if err != nil {
 			return nil, err
 		}
@@ -708,7 +711,7 @@ func searchOptions(searchType, query string) ([]searchOption, error) {
 		}
 		return options, nil
 	case "playlist":
-		search, err := api.SearchMusic(query, 15, "PLAYLIST")
+		search, err := api.SearchMusic(query, searchOptionLimit, "PLAYLIST")
 		if err != nil {
 			return nil, err
 		}

@@ -324,12 +324,7 @@ func resolveSearch(query string, reader *bufio.Reader) (searchResult, error) {
 			return searchResult{}, err
 		}
 		tracks := append([]types.TrackType(nil), search.TRACK.Data...)
-		for i := range tracks {
-			version := tracks[i].VERSION
-			if version != nil && *version != "" && !strings.Contains(tracks[i].SNG_TITLE, *version) {
-				tracks[i].SNG_TITLE += " " + *version
-			}
-		}
+		tracks = AppendTrackVersionsToTitles(tracks)
 		return searchResult{
 			info:     converter.URLParts{Type: "track", ID: query},
 			linkType: "track",
@@ -431,6 +426,16 @@ func dedupePlaylistTracks(tracks []types.TrackType) []types.TrackType {
 func DedupePlaylistTracks(tracks []types.TrackType) []types.TrackType {
 	filtered, _ := dedupePlaylistTrackList(tracks)
 	return filtered
+}
+
+func AppendTrackVersionsToTitles(tracks []types.TrackType) []types.TrackType {
+	for i := range tracks {
+		version := tracks[i].VERSION
+		if version != nil && *version != "" && !strings.Contains(tracks[i].SNG_TITLE, *version) {
+			tracks[i].SNG_TITLE += " " + *version
+		}
+	}
+	return tracks
 }
 
 func dedupePlaylistTrackList(tracks []types.TrackType) ([]types.TrackType, int) {

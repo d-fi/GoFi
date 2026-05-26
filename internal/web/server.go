@@ -166,7 +166,6 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /api/jobs", s.handleJobs)
 	s.mux.HandleFunc("DELETE /api/jobs", s.handleClearJobs)
 	s.mux.HandleFunc("POST /api/jobs/{id}/cancel", s.handleCancelJob)
-	s.mux.HandleFunc("DELETE /api/jobs/{id}", s.handleDeleteJob)
 }
 
 func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
@@ -378,21 +377,6 @@ func (s *Server) handleCancelJob(w http.ResponseWriter, r *http.Request) {
 	}
 	s.mu.Unlock()
 	writeJSON(w, http.StatusOK, jobResponse{Job: s.snapshotJob(id)})
-}
-
-func (s *Server) handleDeleteJob(w http.ResponseWriter, r *http.Request) {
-	id, err := parseID(r.PathValue("id"))
-	if err != nil {
-		writeError(w, http.StatusBadRequest, err)
-		return
-	}
-	s.mu.Lock()
-	if job := s.jobs[id]; job != nil && job.cancel != nil {
-		job.cancel()
-	}
-	delete(s.jobs, id)
-	s.mu.Unlock()
-	w.WriteHeader(http.StatusNoContent)
 }
 
 func (s *Server) runDownloadJob(ctx context.Context, jobID int64, linkType string, info any, tracks []types.TrackType, pathTemplate, quality string, cfg dfi.Config, concurrency int) {

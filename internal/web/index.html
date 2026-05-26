@@ -1078,9 +1078,7 @@
                 ')">Cancel</button>'
               : job.status === "canceling"
                 ? '<button class="secondary" disabled>Canceling</button>'
-                : '<button class="danger" onclick="deleteJob(' +
-                  job.id +
-                  ')">Remove</button>';
+                : "";
             return (
               '<div class="job">' +
               '<div class="job-head"><strong>#' +
@@ -1153,12 +1151,6 @@
           method: "POST",
           body: "{}",
         }).catch((err) => showToast(err.message, "error"));
-        await loadJobs();
-      }
-      async function deleteJob(id) {
-        await api("/api/jobs/" + id, { method: "DELETE" }).catch((err) =>
-          showToast(err.message, "error"),
-        );
         await loadJobs();
       }
       async function clearHistory() {

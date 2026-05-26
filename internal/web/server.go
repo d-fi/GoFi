@@ -16,7 +16,6 @@ import (
 	"time"
 
 	"github.com/d-fi/GoFi/api"
-	"github.com/d-fi/GoFi/converter"
 	"github.com/d-fi/GoFi/internal/dfi"
 	"github.com/d-fi/GoFi/request"
 	"github.com/d-fi/GoFi/types"
@@ -26,8 +25,6 @@ type Options struct {
 	Addr       string
 	ConfigPath string
 }
-
-const searchOptionLimit = 50
 
 type Server struct {
 	cfgPath string
@@ -80,14 +77,8 @@ type searchOptionsRequest struct {
 }
 
 type searchOptionsResponse struct {
-	Type    string         `json:"type"`
-	Options []searchOption `json:"options"`
-}
-
-type searchOption struct {
-	Title       string `json:"title"`
-	Description string `json:"description"`
-	URL         string `json:"url"`
+	Type    string             `json:"type"`
+	Options []dfi.SearchOption `json:"options"`
 }
 
 type previewResponse struct {
@@ -243,8 +234,8 @@ func (s *Server) handlePreview(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, previewResponse{
-		LinkType: res.linkType,
-		Tracks:   previewTracks(res.tracks),
+		LinkType: res.LinkType,
+		Tracks:   previewTracks(res.Tracks),
 	})
 }
 
@@ -258,7 +249,7 @@ func (s *Server) handleSearchOptions(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, err)
 		return
 	}
-	options, err := searchOptions(strings.TrimSpace(req.Type), strings.TrimSpace(req.Query))
+	options, err := dfi.SearchOptions(strings.TrimSpace(req.Type), strings.TrimSpace(req.Query), dfi.SearchOptionLimit)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err)
 		return
@@ -312,12 +303,12 @@ func (s *Server) handleStartDownload(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, err)
 		return
 	}
-	tracks := selectTracks(res.tracks, req.Tracks)
+	tracks := dfi.SelectTracksByIndexes(res.Tracks, req.Tracks)
 	if len(tracks) == 0 {
 		writeError(w, http.StatusBadRequest, fmt.Errorf("no tracks selected"))
 		return
 	}
-	pathTemplate := cfg.Layout(res.linkType)
+	pathTemplate := cfg.Layout(res.LinkType)
 	if req.SaveToDir != "" {
 		pathTemplate = filepath.Join(req.SaveToDir, "{SNG_TITLE}")
 	}
@@ -339,7 +330,7 @@ func (s *Server) handleStartDownload(w http.ResponseWriter, r *http.Request) {
 	s.jobs[job.ID] = job
 	s.mu.Unlock()
 
-	go s.runDownloadJob(ctx, job.ID, res.linkType, res.linkInfo, tracks, pathTemplate, label, cfg, concurrency)
+	go s.runDownloadJob(ctx, job.ID, res.LinkType, res.LinkInfo, tracks, pathTemplate, label, cfg, concurrency)
 	writeJSON(w, http.StatusAccepted, jobResponse{Job: s.snapshotJob(job.ID)})
 }
 
@@ -489,64 +480,48 @@ func (s *Server) runDownloadJob(ctx context.Context, jobID int64, linkType strin
 	})
 }
 
-type resolvedInput struct {
-	linkType string
-	linkInfo any
-	tracks   []types.TrackType
-}
-
-func (s *Server) resolveInput(query string) (resolvedInput, error) {
+func (s *Server) resolveInput(query string) (dfi.ResolvedInput, error) {
 	if query == "" {
-		return resolvedInput{}, fmt.Errorf("missing URL or search")
+		return dfi.ResolvedInput{}, fmt.Errorf("missing URL or search")
 	}
 	if dfi.LooksLikeURL(query) {
-		data, err := converter.ParseInfo(query)
+		data, err := dfi.ParseResolvedURL(query)
 		if err != nil {
-			return resolvedInput{}, err
+			return dfi.ResolvedInput{}, err
 		}
 		tracks := data.Tracks
 		if data.LinkType == "playlist" {
 			tracks = dfi.DedupePlaylistTracks(tracks)
 		}
-		return resolvedInput{linkType: data.LinkType, linkInfo: data.LinkInfo, tracks: tracks}, nil
+		data.Tracks = tracks
+		return data, nil
 	}
 
 	switch {
 	case strings.HasPrefix(query, "artist:"):
-		search, err := api.SearchMusic(strings.TrimPrefix(query, "artist:"), 1, "ARTIST")
+		url, err := dfi.FirstSearchResultURL("artist", strings.TrimPrefix(query, "artist:"))
 		if err != nil {
-			return resolvedInput{}, err
+			return dfi.ResolvedInput{}, err
 		}
-		if len(search.ARTIST.Data) == 0 {
-			return resolvedInput{}, fmt.Errorf("no artist found")
-		}
-		return s.resolveInput("https://deezer.com/us/artist/" + search.ARTIST.Data[0].ART_ID)
+		return s.resolveInput(url)
 	case strings.HasPrefix(query, "album:"):
-		search, err := api.SearchMusic(strings.TrimPrefix(query, "album:"), 1, "ALBUM")
+		url, err := dfi.FirstSearchResultURL("album", strings.TrimPrefix(query, "album:"))
 		if err != nil {
-			return resolvedInput{}, err
+			return dfi.ResolvedInput{}, err
 		}
-		if len(search.ALBUM.Data) == 0 {
-			return resolvedInput{}, fmt.Errorf("no album found")
-		}
-		return s.resolveInput("https://deezer.com/us/album/" + search.ALBUM.Data[0].ALB_ID)
+		return s.resolveInput(url)
 	case strings.HasPrefix(query, "playlist:"):
-		search, err := api.SearchMusic(strings.TrimPrefix(query, "playlist:"), 1, "PLAYLIST")
+		url, err := dfi.FirstSearchResultURL("playlist", strings.TrimPrefix(query, "playlist:"))
 		if err != nil {
-			return resolvedInput{}, err
+			return dfi.ResolvedInput{}, err
 		}
-		if len(search.PLAYLIST.Data) == 0 {
-			return resolvedInput{}, fmt.Errorf("no playlist found")
-		}
-		return s.resolveInput("https://deezer.com/us/playlist/" + search.PLAYLIST.Data[0].PlaylistID)
+		return s.resolveInput(url)
 	default:
-		search, err := api.SearchMusic(query, 15, "TRACK")
+		data, err := dfi.ResolveTrackSearch(query)
 		if err != nil {
-			return resolvedInput{}, err
+			return dfi.ResolvedInput{}, err
 		}
-		tracks := append([]types.TrackType(nil), search.TRACK.Data...)
-		tracks = dfi.AppendTrackVersionsToTitles(tracks)
-		return resolvedInput{linkType: "track", tracks: tracks}, nil
+		return data, nil
 	}
 }
 
@@ -677,83 +652,12 @@ func previewTracks(tracks []types.TrackType) []trackPreview {
 	return out
 }
 
-func searchOptions(searchType, query string) ([]searchOption, error) {
-	if query == "" {
-		return nil, fmt.Errorf("missing search text")
-	}
-	switch searchType {
-	case "artist":
-		search, err := api.SearchMusic(query, searchOptionLimit, "ARTIST")
-		if err != nil {
-			return nil, err
-		}
-		options := make([]searchOption, 0, len(search.ARTIST.Data))
-		for _, item := range search.ARTIST.Data {
-			options = append(options, searchOption{
-				Title:       item.ART_NAME,
-				Description: fmt.Sprintf("%d fans", item.NB_FAN),
-				URL:         "https://deezer.com/us/artist/" + item.ART_ID,
-			})
-		}
-		return options, nil
-	case "album":
-		search, err := api.SearchMusic(query, searchOptionLimit, "ALBUM")
-		if err != nil {
-			return nil, err
-		}
-		options := make([]searchOption, 0, len(search.ALBUM.Data))
-		for _, item := range search.ALBUM.Data {
-			options = append(options, searchOption{
-				Title:       item.ALB_TITLE,
-				Description: fmt.Sprintf("by %s, %s tracks", item.ART_NAME, item.NUMBER_TRACK),
-				URL:         "https://deezer.com/us/album/" + item.ALB_ID,
-			})
-		}
-		return options, nil
-	case "playlist":
-		search, err := api.SearchMusic(query, searchOptionLimit, "PLAYLIST")
-		if err != nil {
-			return nil, err
-		}
-		options := make([]searchOption, 0, len(search.PLAYLIST.Data))
-		for _, item := range search.PLAYLIST.Data {
-			options = append(options, searchOption{
-				Title:       item.Title,
-				Description: fmt.Sprintf("by %s, %d tracks", item.ParentUsername, item.NbSong),
-				URL:         "https://deezer.com/us/playlist/" + item.PlaylistID,
-			})
-		}
-		return options, nil
-	default:
-		return nil, fmt.Errorf("unsupported search type: %s", searchType)
-	}
-}
-
-func selectTracks(tracks []types.TrackType, indexes []int) []types.TrackType {
-	if len(indexes) == 0 {
-		return tracks
-	}
-	out := make([]types.TrackType, 0, len(indexes))
-	seen := map[int]bool{}
-	for _, index := range indexes {
-		if index < 0 || index >= len(tracks) || seen[index] {
-			continue
-		}
-		seen[index] = true
-		out = append(out, tracks[index])
-	}
-	return out
-}
-
 func parseQuality(value string) (int, string, error) {
-	value = strings.ToLower(strings.TrimSpace(value))
-	switch value {
-	case "", "320", "3", "mp3_320", "320kbps", "128", "1", "mp3_128", "128kbps", "flac", "9":
-		quality, _, label := dfi.ParseQuality(value)
-		return quality, label, nil
-	default:
-		return 0, "", fmt.Errorf("invalid quality: %s", value)
+	quality, _, label, err := dfi.ParseQualityStrict(value)
+	if err != nil {
+		return 0, "", err
 	}
+	return quality, label, nil
 }
 
 func parseID(value string) (int64, error) {

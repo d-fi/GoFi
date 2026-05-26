@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/d-fi/GoFi/internal/dfi"
 	"github.com/d-fi/GoFi/types"
 )
 
@@ -41,7 +42,7 @@ func TestSelectTracks(t *testing.T) {
 		{SongType: types.SongType{SNG_ID: "2"}},
 		{SongType: types.SongType{SNG_ID: "3"}},
 	}
-	selected := selectTracks(tracks, []int{2, 0, 2, 9})
+	selected := dfi.SelectTracksByIndexes(tracks, []int{2, 0, 2, 9})
 	if len(selected) != 2 {
 		t.Fatalf("len(selected) = %d, want 2", len(selected))
 	}

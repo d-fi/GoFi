@@ -269,7 +269,7 @@ func resolveInput(rawURL string, headless bool, reader *bufio.Reader) (searchRes
 	if strings.Contains(rawURL, "playlist") || strings.Contains(rawURL, "artist") {
 		fmt.Println(info("Fetching data. Please hold on."))
 	}
-	data, err := converter.ParseInfo(rawURL)
+	data, err := ParseResolvedURL(rawURL)
 	if err != nil {
 		return searchResult{}, err
 	}
@@ -279,7 +279,7 @@ func resolveInput(rawURL string, headless bool, reader *bufio.Reader) (searchRes
 func resolveSearch(query string, reader *bufio.Reader) (searchResult, error) {
 	switch {
 	case strings.HasPrefix(query, "artist:"):
-		search, err := api.SearchMusic(strings.TrimPrefix(query, "artist:"), 50, "ARTIST")
+		search, err := api.SearchMusic(strings.TrimPrefix(query, "artist:"), SearchOptionLimit, "ARTIST")
 		if err != nil {
 			return searchResult{}, err
 		}
@@ -293,7 +293,7 @@ func resolveSearch(query string, reader *bufio.Reader) (searchResult, error) {
 		fmt.Println(info("Fetching data. Please hold on."))
 		return resolveInput("https://deezer.com/us/artist/"+search.ARTIST.Data[index].ART_ID, false, reader)
 	case strings.HasPrefix(query, "album:"):
-		search, err := api.SearchMusic(strings.TrimPrefix(query, "album:"), 50, "ALBUM")
+		search, err := api.SearchMusic(strings.TrimPrefix(query, "album:"), SearchOptionLimit, "ALBUM")
 		if err != nil {
 			return searchResult{}, err
 		}
@@ -306,7 +306,7 @@ func resolveSearch(query string, reader *bufio.Reader) (searchResult, error) {
 		}
 		return resolveInput("https://deezer.com/us/album/"+search.ALBUM.Data[index].ALB_ID, false, reader)
 	case strings.HasPrefix(query, "playlist:"):
-		search, err := api.SearchMusic(strings.TrimPrefix(query, "playlist:"), 50, "PLAYLIST")
+		search, err := api.SearchMusic(strings.TrimPrefix(query, "playlist:"), SearchOptionLimit, "PLAYLIST")
 		if err != nil {
 			return searchResult{}, err
 		}
@@ -319,17 +319,15 @@ func resolveSearch(query string, reader *bufio.Reader) (searchResult, error) {
 		}
 		return resolveInput("https://deezer.com/us/playlist/"+search.PLAYLIST.Data[index].PlaylistID, false, reader)
 	default:
-		search, err := api.SearchMusic(query, 15, "TRACK")
+		data, err := ResolveTrackSearch(query)
 		if err != nil {
 			return searchResult{}, err
 		}
-		tracks := append([]types.TrackType(nil), search.TRACK.Data...)
-		tracks = AppendTrackVersionsToTitles(tracks)
 		return searchResult{
-			info:     converter.URLParts{Type: "track", ID: query},
-			linkType: "track",
-			linkInfo: map[string]any{},
-			tracks:   tracks,
+			info:     data.Info,
+			linkType: data.LinkType,
+			linkInfo: data.LinkInfo,
+			tracks:   data.Tracks,
 		}, nil
 	}
 }

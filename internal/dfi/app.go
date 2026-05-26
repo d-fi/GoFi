@@ -1,0 +1,569 @@
+package dfi
+
+import (
+	"bufio"
+	"context"
+	"errors"
+	"flag"
+	"fmt"
+	"io"
+	"os"
+	"path/filepath"
+	"sort"
+	"strconv"
+	"strings"
+	"sync"
+
+	"github.com/d-fi/GoFi/api"
+	"github.com/d-fi/GoFi/converter"
+	"github.com/d-fi/GoFi/request"
+	"github.com/d-fi/GoFi/types"
+	"github.com/d-fi/GoFi/utils"
+)
+
+const version = "2.2.0-go"
+
+type options struct {
+	quality         string
+	output          string
+	url             string
+	inputFile       string
+	concurrency     int
+	setARL          string
+	headless        bool
+	configFile      string
+	resolveFullPath bool
+	createPlaylist  bool
+	update          bool
+}
+
+type searchResult struct {
+	info     converter.URLParts
+	linkType string
+	linkInfo any
+	tracks   []types.TrackType
+}
+
+// Run starts the d-fi compatible CLI.
+func Run(ctx context.Context, args []string) error {
+	opts, err := parseOptions(args)
+	if err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			return nil
+		}
+		return err
+	}
+
+	printBanner()
+
+	if opts.update {
+		fmt.Println(info("Binary self-update is not available for the Go build yet."))
+		return nil
+	}
+
+	if opts.headless && opts.quality == "" {
+		return fmt.Errorf("missing parameters --quality\n%s", note("Quality must be provided with headless mode"))
+	}
+	if opts.headless && opts.url == "" && opts.inputFile == "" {
+		return fmt.Errorf("missing parameters --url\n%s", note("URL must be provided with headless mode"))
+	}
+
+	cfg := LoadConfig(opts.configFile)
+	if cfg.UserConfigLocation != "" {
+		fmt.Println(info("Config loaded --> " + cfg.UserConfigLocation))
+	}
+
+	if opts.setARL != "" {
+		if err := cfg.Set("cookies.arl", opts.setARL); err != nil {
+			return err
+		}
+		fmt.Println(info("cookies.arl set to --> " + opts.setARL))
+		fmt.Println(note(opts.configFile))
+		return nil
+	}
+
+	fmt.Println(pending("Initializing session..."))
+	arl := resolveARL(cfg)
+	if arl == "" {
+		return fmt.Errorf("missing Deezer ARL. Set DEEZER_ARL or run d-fi --set-arl <arl>")
+	}
+	fmt.Println(pending("Verifying session..."))
+	if _, err := request.InitDeezerAPI(arl); err != nil {
+		return err
+	}
+	user, err := api.GetUser()
+	if err != nil {
+		return err
+	}
+	fmt.Println(success("Logged in as " + user.BlogName))
+
+	if opts.inputFile != "" {
+		data, err := os.ReadFile(opts.inputFile)
+		if err != nil {
+			return err
+		}
+		for line := range strings.SplitSeq(string(data), "\n") {
+			line = strings.TrimSpace(line)
+			if line == "" || !looksLikeURL(line) {
+				continue
+			}
+			fmt.Println(info("Starting download: " + line))
+			if err := startDownload(ctx, cfg, opts, line, true); err != nil {
+				fmt.Fprintln(os.Stderr, failure(err.Error()))
+			}
+		}
+		return nil
+	}
+
+	return startDownload(ctx, cfg, opts, opts.url, false)
+}
+
+func resolveARL(cfg Config) string {
+	arl := strings.TrimSpace(os.Getenv("DEEZER_ARL"))
+	if arl != "" {
+		return arl
+	}
+	return strings.TrimSpace(cfg.Cookies.ARL)
+}
+
+func parseOptions(args []string) (options, error) {
+	var opts options
+	fs := flag.NewFlagSet("d-fi", flag.ContinueOnError)
+	fs.Usage = func() {
+		printUsage(fs.Output())
+	}
+	fs.StringVar(&opts.quality, "quality", "", "The quality of the files to download: 128/320/flac")
+	fs.StringVar(&opts.quality, "q", "", "The quality of the files to download: 128/320/flac")
+	fs.StringVar(&opts.output, "output", "", "Output filename template")
+	fs.StringVar(&opts.output, "o", "", "Output filename template")
+	fs.StringVar(&opts.url, "url", "", "Deezer album/artist/playlist/track url")
+	fs.StringVar(&opts.url, "u", "", "Deezer album/artist/playlist/track url")
+	fs.StringVar(&opts.inputFile, "input-file", "", "Downloads all urls listed in text file")
+	fs.StringVar(&opts.inputFile, "i", "", "Downloads all urls listed in text file")
+	fs.IntVar(&opts.concurrency, "concurrency", 0, "Download concurrency for album, artists and playlist")
+	fs.IntVar(&opts.concurrency, "c", 0, "Download concurrency for album, artists and playlist")
+	fs.StringVar(&opts.setARL, "set-arl", "", "Set arl cookie")
+	fs.StringVar(&opts.setARL, "a", "", "Set arl cookie")
+	fs.BoolVar(&opts.headless, "headless", false, "Run in headless mode for scripting automation")
+	fs.BoolVar(&opts.headless, "d", false, "Run in headless mode for scripting automation")
+	fs.StringVar(&opts.configFile, "config-file", "d-fi.config.json", "Custom location to your config file")
+	fs.StringVar(&opts.configFile, "conf", "d-fi.config.json", "Custom location to your config file")
+	fs.BoolVar(&opts.resolveFullPath, "resolve-full-path", false, "Use absolute path for playlists")
+	fs.BoolVar(&opts.resolveFullPath, "rfp", false, "Use absolute path for playlists")
+	fs.BoolVar(&opts.createPlaylist, "create-playlist", false, "Force create a playlist file for non playlists")
+	fs.BoolVar(&opts.createPlaylist, "cp", false, "Force create a playlist file for non playlists")
+	fs.BoolVar(&opts.update, "update", false, "Update this program to latest version")
+	fs.BoolVar(&opts.update, "U", false, "Update this program to latest version")
+	if err := fs.Parse(args); err != nil {
+		return opts, err
+	}
+	if opts.url == "" && fs.NArg() > 0 {
+		opts.url = fs.Arg(0)
+	}
+	return opts, nil
+}
+
+func printUsage(w io.Writer) {
+	fmt.Fprintln(w, "Usage of d-fi:")
+	fmt.Fprintln(w, "  -q, --quality <quality>       The quality of the files to download: 128/320/flac")
+	fmt.Fprintln(w, "  -o, --output <template>       Output filename template")
+	fmt.Fprintln(w, "  -u, --url <url>               Deezer album/artist/playlist/track url")
+	fmt.Fprintln(w, "  -i, --input-file <file>       Downloads all urls listed in text file")
+	fmt.Fprintln(w, "  -c, --concurrency <number>    Download concurrency for album, artists and playlist")
+	fmt.Fprintln(w, "  -a, --set-arl <string>        Set arl cookie")
+	fmt.Fprintln(w, "  -d, --headless                Run in headless mode for scripting automation")
+	fmt.Fprintln(w, "  -conf, --config-file <file>   Custom location to your config file")
+	fmt.Fprintln(w, "  -rfp, --resolve-full-path     Use absolute path for playlists")
+	fmt.Fprintln(w, "  -cp, --create-playlist        Force create a playlist file for non playlists")
+	fmt.Fprintln(w, "  -U, --update                  Update this program to latest version")
+	fmt.Fprintln(w, "  -h, --help                    Shows this help")
+}
+
+func printBanner() {
+	fmt.Println("             ♥ d-fi - " + version + " ♥")
+	fmt.Println(" ──────────────────────────────────────────────")
+	fmt.Println(" │ github https://github.com/d-fi             │")
+	fmt.Println(" ──────────────────────────────────────────────")
+}
+
+func startDownload(ctx context.Context, cfg Config, opts options, rawURL string, skipPrompt bool) error {
+	reader := bufio.NewReader(os.Stdin)
+	if opts.quality == "" {
+		quality, err := promptQuality(reader)
+		if err != nil {
+			return err
+		}
+		opts.quality = quality
+	}
+	if rawURL == "" {
+		fmt.Print("Enter URL or search: ")
+		value, err := reader.ReadString('\n')
+		if err != nil {
+			return err
+		}
+		rawURL = strings.TrimSpace(value)
+	}
+
+	data, err := resolveInput(rawURL, opts.headless, reader)
+	if err != nil {
+		return err
+	}
+	if !opts.headless && len(data.tracks) > 1 {
+		data.tracks, err = promptTracks(reader, data.tracks)
+		if err != nil {
+			return err
+		}
+	}
+
+	if len(data.tracks) == 0 {
+		fmt.Println(info("No items to download!"))
+		return nil
+	}
+
+	fmt.Println(info(fmt.Sprintf("Proceeding to download %d tracks. Be patient.", len(data.tracks))))
+	if data.linkType == "playlist" {
+		data.tracks = dedupePlaylistTracks(data.tracks)
+	}
+
+	resolveFullPath := opts.resolveFullPath || cfg.Playlist.ResolveFullPath
+	concurrency := opts.concurrency
+	if concurrency <= 0 {
+		concurrency = cfg.Concurrency
+	}
+	if concurrency <= 0 {
+		concurrency = 1
+	}
+
+	pathTemplate := opts.output
+	if pathTemplate == "" {
+		pathTemplate = cfg.Layout(data.linkType)
+	}
+
+	savedFiles := downloadAll(ctx, data, cfg, opts, pathTemplate, concurrency)
+	if len(savedFiles) > 0 {
+		fmt.Println(info("Saved in " + strings.Join(uniqueDirs(savedFiles), ", ")))
+	}
+
+	if (opts.createPlaylist || data.linkType == "playlist") && os.Getenv("SIMULATE") == "" && len(savedFiles) > 1 {
+		if err := writePlaylist(data, savedFiles, resolveFullPath); err != nil {
+			return err
+		}
+	}
+
+	if !opts.headless && !skipPrompt {
+		return startDownload(ctx, cfg, opts, "", skipPrompt)
+	}
+	return nil
+}
+
+func resolveInput(rawURL string, headless bool, reader *bufio.Reader) (searchResult, error) {
+	if !looksLikeURL(rawURL) {
+		if headless {
+			return searchResult{}, fmt.Errorf("please provide a valid URL. Unknown URL: %s", rawURL)
+		}
+		return resolveSearch(rawURL, reader)
+	}
+	if strings.Contains(rawURL, "playlist") || strings.Contains(rawURL, "artist") {
+		fmt.Println(info("Fetching data. Please hold on."))
+	}
+	data, err := converter.ParseInfo(rawURL)
+	if err != nil {
+		return searchResult{}, err
+	}
+	return searchResult{info: data.Info, linkType: data.LinkType, linkInfo: data.LinkInfo, tracks: data.Tracks}, nil
+}
+
+func resolveSearch(query string, reader *bufio.Reader) (searchResult, error) {
+	switch {
+	case strings.HasPrefix(query, "artist:"):
+		search, err := api.SearchMusic(strings.TrimPrefix(query, "artist:"), 50, "ARTIST")
+		if err != nil {
+			return searchResult{}, err
+		}
+		index, err := promptChoice(reader, fmt.Sprintf("Select one artist. (found %d artists)", len(search.ARTIST.Data)), len(search.ARTIST.Data), func(i int) string {
+			item := search.ARTIST.Data[i]
+			return fmt.Sprintf("%s - %d fans", item.ART_NAME, item.NB_FAN)
+		})
+		if err != nil {
+			return searchResult{}, err
+		}
+		fmt.Println(info("Fetching data. Please hold on."))
+		return resolveInput("https://deezer.com/us/artist/"+search.ARTIST.Data[index].ART_ID, false, reader)
+	case strings.HasPrefix(query, "album:"):
+		search, err := api.SearchMusic(strings.TrimPrefix(query, "album:"), 50, "ALBUM")
+		if err != nil {
+			return searchResult{}, err
+		}
+		index, err := promptChoice(reader, fmt.Sprintf("Select one album. (found %d albums)", len(search.ALBUM.Data)), len(search.ALBUM.Data), func(i int) string {
+			item := search.ALBUM.Data[i]
+			return fmt.Sprintf("%s - by %s, %s tracks", item.ALB_TITLE, item.ART_NAME, item.NUMBER_TRACK)
+		})
+		if err != nil {
+			return searchResult{}, err
+		}
+		return resolveInput("https://deezer.com/us/album/"+search.ALBUM.Data[index].ALB_ID, false, reader)
+	case strings.HasPrefix(query, "playlist:"):
+		search, err := api.SearchMusic(strings.TrimPrefix(query, "playlist:"), 50, "PLAYLIST")
+		if err != nil {
+			return searchResult{}, err
+		}
+		index, err := promptChoice(reader, fmt.Sprintf("Select one playlist. (found %d playlists)", len(search.PLAYLIST.Data)), len(search.PLAYLIST.Data), func(i int) string {
+			item := search.PLAYLIST.Data[i]
+			return fmt.Sprintf("%s - by %s, %d tracks", item.Title, item.ParentUsername, item.NbSong)
+		})
+		if err != nil {
+			return searchResult{}, err
+		}
+		return resolveInput("https://deezer.com/us/playlist/"+search.PLAYLIST.Data[index].PlaylistID, false, reader)
+	default:
+		search, err := api.SearchMusic(query, 15, "TRACK")
+		if err != nil {
+			return searchResult{}, err
+		}
+		tracks := append([]types.TrackType(nil), search.TRACK.Data...)
+		for i := range tracks {
+			version := tracks[i].VERSION
+			if version != nil && *version != "" && !strings.Contains(tracks[i].SNG_TITLE, *version) {
+				tracks[i].SNG_TITLE += " " + *version
+			}
+		}
+		return searchResult{
+			info:     converter.URLParts{Type: "track", ID: query},
+			linkType: "track",
+			linkInfo: map[string]any{},
+			tracks:   tracks,
+		}, nil
+	}
+}
+
+func promptQuality(reader *bufio.Reader) (string, error) {
+	fmt.Println("Select music quality:")
+	fmt.Println("1) MP3  - 128 kbps")
+	fmt.Println("2) MP3  - 320 kbps")
+	fmt.Println("3) FLAC - 1411 kbps")
+	fmt.Print("> ")
+	value, err := reader.ReadString('\n')
+	if err != nil {
+		return "", err
+	}
+	switch strings.TrimSpace(value) {
+	case "1":
+		return "128", nil
+	case "3":
+		return "flac", nil
+	default:
+		return "320", nil
+	}
+}
+
+func promptChoice(reader *bufio.Reader, message string, count int, describe func(int) string) (int, error) {
+	if count == 0 {
+		return 0, fmt.Errorf("no items found")
+	}
+	fmt.Println(message)
+	for i := range count {
+		fmt.Printf("%d) %s\n", i+1, describe(i))
+	}
+	fmt.Print("> ")
+	value, err := reader.ReadString('\n')
+	if err != nil {
+		return 0, err
+	}
+	index, err := strconv.Atoi(strings.TrimSpace(value))
+	if err != nil || index < 1 || index > count {
+		return 0, fmt.Errorf("invalid selection")
+	}
+	return index - 1, nil
+}
+
+func promptTracks(reader *bufio.Reader, tracks []types.TrackType) ([]types.TrackType, error) {
+	fmt.Printf("Select songs to download. Total of %d tracks.\n", len(tracks))
+	for i, track := range tracks {
+		fmt.Printf("%d) %s - Artist: %s, Album: %s, Duration: %s\n", i+1, track.SNG_TITLE, track.ART_NAME, track.ALB_TITLE, formatSecondsReadable(asInt(track.DURATION)))
+	}
+	fmt.Print("Comma separated numbers, ranges, or blank for all: ")
+	value, err := reader.ReadString('\n')
+	if err != nil {
+		return nil, err
+	}
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return tracks, nil
+	}
+	selected := []types.TrackType{}
+	seen := map[int]bool{}
+	for part := range strings.SplitSeq(value, ",") {
+		part = strings.TrimSpace(part)
+		if strings.Contains(part, "-") {
+			edges := strings.SplitN(part, "-", 2)
+			start, _ := strconv.Atoi(strings.TrimSpace(edges[0]))
+			end, _ := strconv.Atoi(strings.TrimSpace(edges[1]))
+			for i := start; i <= end; i++ {
+				addTrackSelection(&selected, seen, tracks, i)
+			}
+			continue
+		}
+		index, _ := strconv.Atoi(part)
+		addTrackSelection(&selected, seen, tracks, index)
+	}
+	return selected, nil
+}
+
+func addTrackSelection(selected *[]types.TrackType, seen map[int]bool, tracks []types.TrackType, index int) {
+	if index < 1 || index > len(tracks) || seen[index] {
+		return
+	}
+	seen[index] = true
+	*selected = append(*selected, tracks[index-1])
+}
+
+func asInt(value any) int {
+	switch v := value.(type) {
+	case int:
+		return v
+	case string:
+		n, _ := strconv.Atoi(v)
+		return n
+	default:
+		n, _ := strconv.Atoi(fmt.Sprintf("%v", value))
+		return n
+	}
+}
+
+func looksLikeURL(value string) bool {
+	return strings.HasPrefix(value, "http://") || strings.HasPrefix(value, "https://") || strings.HasPrefix(value, "spotify:")
+}
+
+func dedupePlaylistTracks(tracks []types.TrackType) []types.TrackType {
+	seen := map[string]bool{}
+	filtered := make([]types.TrackType, 0, len(tracks))
+	duplicates := 0
+	for _, track := range tracks {
+		if seen[track.SNG_ID] {
+			duplicates++
+			continue
+		}
+		seen[track.SNG_ID] = true
+		filtered = append(filtered, track)
+	}
+	if duplicates > 0 {
+		sort.SliceStable(filtered, func(i, j int) bool {
+			return trackPosition(filtered[i]) < trackPosition(filtered[j])
+		})
+		for i := range filtered {
+			position := i + 1
+			filtered[i].TRACK_POSITION = &position
+		}
+		fmt.Println(warn(fmt.Sprintf("Removed %d duplicate %s.", duplicates, plural("track", duplicates))))
+	}
+	return filtered
+}
+
+func trackPosition(track types.TrackType) int {
+	if track.TRACK_POSITION != nil {
+		return *track.TRACK_POSITION
+	}
+	return 0
+}
+
+func plural(word string, count int) string {
+	if count == 1 {
+		return word
+	}
+	return word + "s"
+}
+
+func downloadAll(ctx context.Context, data searchResult, cfg Config, opts options, pathTemplate string, concurrency int) []string {
+	type job struct {
+		index int
+		track types.TrackType
+	}
+
+	jobs := make(chan job)
+	var wg sync.WaitGroup
+	var mu sync.Mutex
+	savedFiles := []string{}
+	workerCount := min(len(data.tracks), concurrency)
+
+	for range workerCount {
+		wg.Go(func() {
+			for item := range jobs {
+				savedPath, err := downloadTrack(ctx, DownloadTrackOptions{
+					Track:           item.track,
+					Quality:         opts.quality,
+					Info:            data.linkInfo,
+					CoverSizes:      cfg.CoverSize,
+					Path:            pathTemplate,
+					TotalTracks:     len(data.tracks),
+					TrackNumber:     cfg.TrackNumber,
+					FallbackTrack:   cfg.FallbackTrack,
+					FallbackQuality: cfg.FallbackQuality,
+					Message:         fmt.Sprintf("(%d/%d)", item.index, len(data.tracks)),
+				})
+				if err != nil {
+					fmt.Fprintln(os.Stderr, failure(item.track.SNG_TITLE))
+					fmt.Fprintln(os.Stderr, note(err.Error()))
+					continue
+				}
+				if savedPath == "" {
+					continue
+				}
+				mu.Lock()
+				savedFiles = append(savedFiles, savedPath)
+				mu.Unlock()
+			}
+		})
+	}
+
+	for index, track := range data.tracks {
+		jobs <- job{index: index, track: track}
+	}
+	close(jobs)
+	wg.Wait()
+	return savedFiles
+}
+
+func writePlaylist(data searchResult, savedFiles []string, resolveFullPath bool) error {
+	playlistDir := commonPath(uniqueDirs(savedFiles))
+	if playlistDir == "" {
+		playlistDir = "."
+	}
+	name := playlistName(data.linkInfo)
+	if name == "" {
+		name = "playlist"
+	}
+
+	entries := append([]string(nil), savedFiles...)
+	if resolveFullPath {
+		for i, file := range entries {
+			if abs, err := filepath.Abs(file); err == nil {
+				entries[i] = abs
+			}
+		}
+	} else {
+		resolvedDir, _ := filepath.Abs(playlistDir)
+		for i, file := range entries {
+			abs, err := filepath.Abs(file)
+			if err != nil {
+				continue
+			}
+			rel, err := filepath.Rel(resolvedDir, abs)
+			if err == nil {
+				entries[i] = rel
+			}
+		}
+	}
+	sort.Strings(entries)
+	content := "#EXTM3U\n" + strings.Join(entries, "\n")
+	return os.WriteFile(filepath.Join(playlistDir, utils.SanitizeFileName(name)+".m3u8"), []byte(content), 0644)
+}
+
+func playlistName(info any) string {
+	data := structMap(info)
+	for _, key := range []string{"TITLE", "ALB_TITLE"} {
+		if value, ok := data[key]; ok {
+			return fmt.Sprintf("%v", value)
+		}
+	}
+	return ""
+}

@@ -6,6 +6,12 @@ searching, converting supported links, and downloading tracks.
 
 ## Install
 
+Download prebuilt CLI binaries from:
+
+https://github.com/d-fi/releases/releases
+
+Or install from source with Go:
+
 ```sh
 go install github.com/d-fi/GoFi/cmd/d-fi@latest
 ```
@@ -219,7 +225,7 @@ UPC helpers.
 Download a tagged track to a file:
 
 ```go
-path, err := download.DownloadTrack(download.DownloadTrackOptions{
+path, err := download.DownloadTrack(context.Background(), download.DownloadTrackOptions{
 	SngID:     "3135556",
 	Quality:   3, // 1 = MP3 128, 3 = MP3 320, 9 = FLAC
 	CoverSize: 500,

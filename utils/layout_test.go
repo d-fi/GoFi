@@ -15,11 +15,11 @@ func TestSaveLayout(t *testing.T) {
 		{
 			name: "Basic_placeholders",
 			props: SaveLayoutProps{
-				Track: map[string]interface{}{
+				Track: map[string]any{
 					"TRACK_NUMBER": 1,
 					"TITLE":        "Song Title",
 				},
-				Album: map[string]interface{}{
+				Album: map[string]any{
 					"ARTIST":    "Artist Name",
 					"ALB_TITLE": "Album Name",
 				},
@@ -32,10 +32,10 @@ func TestSaveLayout(t *testing.T) {
 		{
 			name: "Missing_keys",
 			props: SaveLayoutProps{
-				Track: map[string]interface{}{
+				Track: map[string]any{
 					"TITLE": "Song Title",
 				},
-				Album: map[string]interface{}{
+				Album: map[string]any{
 					"ARTIST": "Artist Name",
 				},
 				Path:                 "{ARTIST}/{ALB_TITLE}/{TRACK_NUMBER} - {TITLE}.mp3",
@@ -47,11 +47,11 @@ func TestSaveLayout(t *testing.T) {
 		{
 			name: "Special_characters",
 			props: SaveLayoutProps{
-				Track: map[string]interface{}{
+				Track: map[string]any{
 					"TRACK_NUMBER": 1,
 					"TITLE":        "Song:Title*With|Special<>Chars?",
 				},
-				Album: map[string]interface{}{
+				Album: map[string]any{
 					"ARTIST":    "Artist/Name\\With\"Special:Chars",
 					"ALB_TITLE": "Album|Name*With?Special<>Chars",
 				},
@@ -64,11 +64,11 @@ func TestSaveLayout(t *testing.T) {
 		{
 			name: "TrackNumber_flag_true",
 			props: SaveLayoutProps{
-				Track: map[string]interface{}{
+				Track: map[string]any{
 					"TRACK_NUMBER": 5,
 					"TITLE":        "Song Title",
 				},
-				Album: map[string]interface{}{
+				Album: map[string]any{
 					"ARTIST":    "Artist Name",
 					"ALB_TITLE": "Album Name",
 				},
@@ -81,11 +81,11 @@ func TestSaveLayout(t *testing.T) {
 		{
 			name: "Relative_path",
 			props: SaveLayoutProps{
-				Track: map[string]interface{}{
+				Track: map[string]any{
 					"TRACK_NUMBER": 3,
 					"TITLE":        "Song Title",
 				},
-				Album: map[string]interface{}{
+				Album: map[string]any{
 					"ARTIST":    "Artist Name",
 					"ALB_TITLE": "Album Name",
 				},
@@ -109,11 +109,11 @@ func TestSaveLayout(t *testing.T) {
 		{
 			name: "Invalid_track_number",
 			props: SaveLayoutProps{
-				Track: map[string]interface{}{
+				Track: map[string]any{
 					"TRACK_NUMBER": "invalid",
 					"TITLE":        "Song Title",
 				},
-				Album: map[string]interface{}{
+				Album: map[string]any{
 					"ARTIST":    "Artist Name",
 					"ALB_TITLE": "Album Name",
 				},
@@ -126,12 +126,12 @@ func TestSaveLayout(t *testing.T) {
 		{
 			name: "Disc_number_adjustment",
 			props: SaveLayoutProps{
-				Track: map[string]interface{}{
+				Track: map[string]any{
 					"TRACK_NUMBER": 1,
 					"TITLE":        "Song Title",
 					"DISK_NUMBER":  2,
 				},
-				Album: map[string]interface{}{
+				Album: map[string]any{
 					"ARTIST":      "Artist Name",
 					"ALB_TITLE":   "Album Name",
 					"NUMBER_DISK": 3,
@@ -145,13 +145,13 @@ func TestSaveLayout(t *testing.T) {
 		{
 			name: "Nested_key_access",
 			props: SaveLayoutProps{
-				Track: map[string]interface{}{
-					"INFO": map[string]interface{}{
+				Track: map[string]any{
+					"INFO": map[string]any{
 						"TRACK_NUMBER": 4,
 					},
 					"TITLE": "Song Title",
 				},
-				Album: map[string]interface{}{
+				Album: map[string]any{
 					"ARTIST": "Artist Name",
 				},
 				Path:                 "{ARTIST}/{INFO.TRACK_NUMBER} - {TITLE}.mp3",

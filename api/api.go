@@ -45,7 +45,7 @@ func GetAlbumInfoPublicApi(albID string) (types.AlbumTypePublicApi, error) {
 func GetTrackInfo(sngID string) (types.TrackType, error) {
 	var result types.TrackType
 	logger.Debug("Requesting detailed track info for ID: %s", sngID)
-	data, err := request.Request(map[string]interface{}{"sng_id": sngID}, "song.getData")
+	data, err := request.Request(map[string]any{"sng_id": sngID}, "song.getData")
 	if err != nil {
 		logger.Error("Failed to fetch detailed track info: %v", err)
 		return result, err
@@ -61,7 +61,7 @@ func GetTrackInfo(sngID string) (types.TrackType, error) {
 func GetLyrics(sngID string) (types.LyricsType, error) {
 	var result types.LyricsType
 	logger.Debug("Requesting lyrics for track ID: %s", sngID)
-	data, err := request.Request(map[string]interface{}{"sng_id": sngID}, "song.getLyrics")
+	data, err := request.Request(map[string]any{"sng_id": sngID}, "song.getLyrics")
 	if err != nil {
 		logger.Error("Failed to fetch lyrics: %v", err)
 		return result, err
@@ -77,7 +77,7 @@ func GetLyrics(sngID string) (types.LyricsType, error) {
 func GetAlbumInfo(albID string) (types.AlbumType, error) {
 	var result types.AlbumType
 	logger.Debug("Requesting detailed album info for ID: %s", albID)
-	data, err := request.Request(map[string]interface{}{"alb_id": albID}, "album.getData")
+	data, err := request.Request(map[string]any{"alb_id": albID}, "album.getData")
 	if err != nil {
 		logger.Error("Failed to fetch detailed album info: %v", err)
 		return result, err
@@ -93,7 +93,7 @@ func GetAlbumInfo(albID string) (types.AlbumType, error) {
 func GetAlbumTracks(albID string) (types.AlbumTracksType, error) {
 	var result types.AlbumTracksType
 	logger.Debug("Requesting tracks for album ID: %s", albID)
-	data, err := request.Request(map[string]interface{}{
+	data, err := request.Request(map[string]any{
 		"alb_id": albID,
 		"lang":   "us",
 		"nb":     -1,
@@ -113,7 +113,7 @@ func GetAlbumTracks(albID string) (types.AlbumTracksType, error) {
 func GetPlaylistInfo(playlistID string) (types.PlaylistInfo, error) {
 	var result types.PlaylistInfo
 	logger.Debug("Requesting playlist info for ID: %s", playlistID)
-	data, err := request.Request(map[string]interface{}{
+	data, err := request.Request(map[string]any{
 		"playlist_id": playlistID,
 		"lang":        "en",
 	}, "playlist.getData")
@@ -132,7 +132,7 @@ func GetPlaylistInfo(playlistID string) (types.PlaylistInfo, error) {
 func GetPlaylistTracks(playlistID string) (types.PlaylistTracksType, error) {
 	var result types.PlaylistTracksType
 	logger.Debug("Requesting playlist tracks for ID: %s", playlistID)
-	data, err := request.Request(map[string]interface{}{
+	data, err := request.Request(map[string]any{
 		"playlist_id": playlistID,
 		"lang":        "en",
 		"nb":          -1,
@@ -165,7 +165,7 @@ func GetPlaylistTracks(playlistID string) (types.PlaylistTracksType, error) {
 func GetArtistInfo(artID string) (types.ArtistInfoType, error) {
 	var result types.ArtistInfoType
 	logger.Debug("Requesting artist info for ID: %s", artID)
-	data, err := request.Request(map[string]interface{}{
+	data, err := request.Request(map[string]any{
 		"art_id":         artID,
 		"filter_role_id": []int{0},
 		"lang":           "en",
@@ -188,7 +188,7 @@ func GetArtistInfo(artID string) (types.ArtistInfoType, error) {
 func GetDiscography(artID string, nb int) (types.DiscographyType, error) {
 	var result types.DiscographyType
 	logger.Debug("Requesting discography for artist ID: %s", artID)
-	data, err := request.Request(map[string]interface{}{
+	data, err := request.Request(map[string]any{
 		"art_id":         artID,
 		"filter_role_id": []int{0},
 		"lang":           "en",
@@ -211,7 +211,7 @@ func GetDiscography(artID string, nb int) (types.DiscographyType, error) {
 func GetProfile(userID string) (types.ProfileType, error) {
 	var result types.ProfileType
 	logger.Debug("Requesting profile info for user ID: %s", userID)
-	data, err := request.Request(map[string]interface{}{
+	data, err := request.Request(map[string]any{
 		"user_id": userID,
 		"tab":     "loved",
 		"nb":      -1,
@@ -231,7 +231,7 @@ func GetProfile(userID string) (types.ProfileType, error) {
 func SearchAlternative(artist, song string, nb int) (types.SearchType, error) {
 	var result types.SearchType
 	logger.Debug("Searching for alternative tracks by artist: %s and song: %s", artist, song)
-	data, err := request.Request(map[string]interface{}{
+	data, err := request.Request(map[string]any{
 		"query": fmt.Sprintf("artist:'%s' track:'%s'", artist, song),
 		"types": []string{"TRACK"},
 		"nb":    nb,
@@ -256,7 +256,7 @@ func SearchMusic(query string, nb int, searchTypes ...string) (types.SearchType,
 	}
 
 	logger.Debug("Searching music with query: %s", query)
-	data, err := request.Request(map[string]interface{}{
+	data, err := request.Request(map[string]any{
 		"query":          query,
 		"start":          0,
 		"nb":             nb,
@@ -315,7 +315,7 @@ func GetChannelList() (types.ChannelSearchType, error) {
 func GetShowInfo(showID string, nb, start int) (types.ShowType, error) {
 	var result types.ShowType
 	logger.Debug("Fetching show info for ID: %s", showID)
-	data, err := request.Request(map[string]interface{}{
+	data, err := request.Request(map[string]any{
 		"SHOW_ID": showID,
 		"NB":      nb,
 		"START":   start,
@@ -336,10 +336,10 @@ func GetPlaylistChannel(page string) (types.PlaylistChannelType, error) {
 	var result types.PlaylistChannelType
 	logger.Debug("Fetching playlist channel page: %s", page)
 
-	gatewayInput := map[string]interface{}{
+	gatewayInput := map[string]any{
 		"page":    page,
 		"version": "2.3",
-		"support": map[string]interface{}{
+		"support": map[string]any{
 			"long-card-horizontal-grid": []string{"album", "playlist", "radio", "show"},
 			"ads":                       []string{},
 			"message":                   []string{},
@@ -371,7 +371,7 @@ func GetPlaylistChannel(page string) (types.PlaylistChannelType, error) {
 		"timezone_offset": "6",
 	}
 
-	data, err := request.RequestGet("app_page_get", map[string]interface{}{
+	data, err := request.RequestGet("app_page_get", map[string]any{
 		"gateway_input": gatewayInput,
 	}, page)
 	if err != nil {

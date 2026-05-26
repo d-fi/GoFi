@@ -3,6 +3,7 @@ package request
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/d-fi/GoFi/logger"
@@ -29,20 +30,20 @@ func checkResponse(data []byte) (json.RawMessage, error) {
 	case string:
 		logger.Debug("API error: %s", errVal)
 		return nil, fmt.Errorf("API error: %s", errVal)
-	case map[string]interface{}:
-		errorMessage := ""
+	case map[string]any:
+		var errorMessage strings.Builder
 		for key, value := range errVal {
-			errorMessage += fmt.Sprintf("%s: %v, ", key, value)
+			errorMessage.WriteString(fmt.Sprintf("%s: %v, ", key, value))
 		}
-		logger.Debug("API error: %v", errorMessage)
-		return nil, fmt.Errorf("API error: %v", errorMessage)
+		logger.Debug("API error: %v", errorMessage.String())
+		return nil, fmt.Errorf("API error: %v", errorMessage.String())
 	}
 
 	logger.Debug("API response checked successfully")
 	return apiResponse.Results, nil
 }
 
-func Request(body map[string]interface{}, method string) ([]byte, error) {
+func Request(body map[string]any, method string) ([]byte, error) {
 	cacheKey := method + ":" + fmt.Sprintf("%v", body)
 	if cachedData, ok := cache.Get(cacheKey); ok && len(cachedData) > 0 {
 		logger.Debug("Cache hit for request with method: %s", method)
@@ -72,7 +73,7 @@ func Request(body map[string]interface{}, method string) ([]byte, error) {
 	return results, nil
 }
 
-func RequestGet(method string, params map[string]interface{}, key ...string) ([]byte, error) {
+func RequestGet(method string, params map[string]any, key ...string) ([]byte, error) {
 	cacheKeyPart := "get_request"
 	if len(key) > 0 && key[0] != "" {
 		cacheKeyPart = key[0]

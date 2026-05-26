@@ -137,7 +137,7 @@ func (m *Metaflac) parseVorbisComment() error {
 	userCommentListLength := binary.LittleEndian.Uint32(m.vorbisComment[offset : offset+4])
 	offset += 4
 
-	for i := uint32(0); i < userCommentListLength; i++ {
+	for range userCommentListLength {
 		if offset+4 > len(m.vorbisComment) {
 			return errors.New("invalid Vorbis comment block")
 		}

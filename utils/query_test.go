@@ -9,17 +9,17 @@ import (
 func TestConvertToQueryParams(t *testing.T) {
 	tests := []struct {
 		name     string
-		input    map[string]interface{}
+		input    map[string]any
 		expected map[string]string
 	}{
 		{
 			name:     "Empty map",
-			input:    map[string]interface{}{},
+			input:    map[string]any{},
 			expected: map[string]string{},
 		},
 		{
 			name: "Basic types",
-			input: map[string]interface{}{
+			input: map[string]any{
 				"string": "value",
 				"int":    42,
 				"float":  3.14,
@@ -34,7 +34,7 @@ func TestConvertToQueryParams(t *testing.T) {
 		},
 		{
 			name: "Nil values",
-			input: map[string]interface{}{
+			input: map[string]any{
 				"key1": nil,
 				"key2": "value2",
 			},
@@ -44,7 +44,7 @@ func TestConvertToQueryParams(t *testing.T) {
 		},
 		{
 			name: "Complex types",
-			input: map[string]interface{}{
+			input: map[string]any{
 				"slice":    []int{1, 2, 3},
 				"map":      map[string]int{"a": 1},
 				"function": func() {},
@@ -57,7 +57,7 @@ func TestConvertToQueryParams(t *testing.T) {
 		},
 		{
 			name: "Mixed types",
-			input: map[string]interface{}{
+			input: map[string]any{
 				"number": 123,
 				"nil":    nil,
 				"empty":  "",

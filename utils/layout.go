@@ -2,6 +2,7 @@ package utils
 
 import (
 	"fmt"
+	"maps"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -12,8 +13,8 @@ import (
 
 // SaveLayoutProps holds the parameters required for the SaveLayout function.
 type SaveLayoutProps struct {
-	Track                map[string]interface{}
-	Album                map[string]interface{}
+	Track                map[string]any
+	Album                map[string]any
 	Path                 string
 	MinimumIntegerDigits int
 	TrackNumber          bool
@@ -34,17 +35,15 @@ func SaveLayout(props SaveLayoutProps) string {
 
 	// Ensure Track and Album are not nil
 	if props.Track == nil {
-		props.Track = make(map[string]interface{})
+		props.Track = make(map[string]any)
 	}
 	if props.Album == nil {
-		props.Album = make(map[string]interface{})
+		props.Album = make(map[string]any)
 	}
 
 	// Clone album info to avoid modifying the original map
-	albumInfo := make(map[string]interface{})
-	for k, v := range props.Album {
-		albumInfo[k] = v
-	}
+	albumInfo := make(map[string]any)
+	maps.Copy(albumInfo, props.Album)
 
 	// Adjust ALB_TITLE if necessary
 	trackDiskNumber, okTrackDisk := props.Track["DISK_NUMBER"]
@@ -70,7 +69,7 @@ func SaveLayout(props SaveLayoutProps) string {
 		key := match[1]
 		logger.Debug("Processing key: %s", key)
 
-		var value interface{}
+		var value any
 		if val, ok := GetNestedValue(albumInfo, key); ok {
 			value = val
 			logger.Debug("Found value from album: %s = %v", key, value)
@@ -100,7 +99,7 @@ func SaveLayout(props SaveLayoutProps) string {
 	}
 
 	if props.TrackNumber {
-		var position interface{}
+		var position any
 		if pos, exists := props.Track["TRACK_POSITION"]; exists {
 			position = pos
 		} else if num, exists := props.Track["TRACK_NUMBER"]; exists {

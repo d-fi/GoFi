@@ -10,11 +10,11 @@ type NativeAdsType struct {
 		PageIDIphone        string `json:"page_id_iphone"`
 		PageIDWeb           string `json:"page_id_web"`
 	} `json:"advertising_data"`
-	Data   interface{} `json:"data"`
-	ID     string      `json:"id"`
-	ItemID string      `json:"item_id"`
-	Type   string      `json:"type"`
-	Weight int         `json:"weight"`
+	Data   any    `json:"data"`
+	ID     string `json:"id"`
+	ItemID string `json:"item_id"`
+	Type   string `json:"type"`
+	Weight int    `json:"weight"`
 }
 
 type PlaylistChannelItemType string
@@ -114,7 +114,7 @@ type PlaylistChannelItemsType struct {
 	ItemID           string                   `json:"item_id"`
 	ID               string                   `json:"id"`
 	Type             PlaylistChannelItemType  `json:"type"`
-	Data             interface{}              `json:"data"`
+	Data             any                      `json:"data"`
 	Target           string                   `json:"target"`
 	Title            string                   `json:"title"`
 	Subtitle         string                   `json:"subtitle"`
@@ -209,7 +209,7 @@ func (p *PlaylistChannelItemsType) UnmarshalJSON(data []byte) error {
 		}
 		p.Data = &value
 	default:
-		var value map[string]interface{}
+		var value map[string]any
 		if err := json.Unmarshal(aux.Data, &value); err != nil {
 			return err
 		}

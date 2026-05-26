@@ -260,7 +260,7 @@ func spotifyTrackToDeezerTrack(track SpotifyTrack) (types.TrackType, error) {
 	return types.TrackType{}, fmt.Errorf("no track found for spotify track %s", track.ID)
 }
 
-func spotifyGet(path string, target interface{}) error {
+func spotifyGet(path string, target any) error {
 	token, err := getSpotifyAnonymousToken("track", "7FIWs0pqAYbP91WWM0vlTQ")
 	if err != nil {
 		return err

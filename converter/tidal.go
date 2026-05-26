@@ -248,7 +248,7 @@ func TidalPlaylistToDeezer(uuid string) (types.PlaylistInfo, []types.TrackType, 
 	return playlist, tracks, nil
 }
 
-func tidalGet(path string, target interface{}) error {
+func tidalGet(path string, target any) error {
 	resp, err := request.Client.R().
 		SetResult(target).
 		SetHeader("user-agent", "TIDAL/3704 CFNetwork/1220.1 Darwin/20.3.0").

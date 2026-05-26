@@ -91,8 +91,8 @@ func WriteMetadataMp3(buffer []byte, track types.TrackType, album *types.AlbumTy
 func processArtistNames(artists []types.ArtistType) []string {
 	var names []string
 	for _, artist := range artists {
-		splitNames := strings.Split(artist.ART_NAME, "/")
-		for _, name := range splitNames {
+		splitNames := strings.SplitSeq(artist.ART_NAME, "/")
+		for name := range splitNames {
 			trimmedName := strings.TrimSpace(name)
 			if trimmedName != "" {
 				names = append(names, trimmedName)

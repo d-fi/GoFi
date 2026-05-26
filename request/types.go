@@ -3,9 +3,9 @@ package request
 import "encoding/json"
 
 type APIResponse struct {
-	Error   interface{}     `json:"error"`
+	Error   any             `json:"error"`
 	Results json.RawMessage `json:"results"`
-	Payload interface{}     `json:"payload,omitempty"`
+	Payload any             `json:"payload,omitempty"`
 }
 
 type PublicAPIResponseError struct {
@@ -17,7 +17,7 @@ type PublicAPIResponseError struct {
 }
 
 type UserData struct {
-	Error   []interface{} `json:"error"`
+	Error   []any `json:"error"`
 	Results struct {
 		SessionID string `json:"SESSION_ID"`
 		Session   string `json:"SESSION"`

@@ -80,7 +80,7 @@ func fetchYouTubeMetadata(id string) (title, artist string, err error) {
 
 	playerJSON, ok := extractJSONAssignment(body, "ytInitialPlayerResponse")
 	if ok {
-		var player map[string]interface{}
+		var player map[string]any
 		if err := json.Unmarshal([]byte(playerJSON), &player); err == nil {
 			title = stringAt(player, "videoDetails", "title")
 			artist = stringAt(player, "videoDetails", "author")
@@ -92,7 +92,7 @@ func fetchYouTubeMetadata(id string) (title, artist string, err error) {
 
 	initialJSON, ok := extractJSONAssignment(body, "ytInitialData")
 	if ok {
-		var initial interface{}
+		var initial any
 		if err := json.Unmarshal([]byte(initialJSON), &initial); err == nil {
 			if song := findMetadataRow(initial, "Song"); song != "" {
 				title = song
@@ -202,10 +202,10 @@ func extractMetaContent(body, name string) string {
 	return ""
 }
 
-func findMetadataRow(value interface{}, title string) string {
+func findMetadataRow(value any, title string) string {
 	switch typed := value.(type) {
-	case map[string]interface{}:
-		if row, ok := typed["metadataRowRenderer"].(map[string]interface{}); ok {
+	case map[string]any:
+		if row, ok := typed["metadataRowRenderer"].(map[string]any); ok {
 			if stringAt(row, "title", "simpleText") == title {
 				return metadataRowContent(row)
 			}
@@ -215,7 +215,7 @@ func findMetadataRow(value interface{}, title string) string {
 				return found
 			}
 		}
-	case []interface{}:
+	case []any:
 		for _, child := range typed {
 			if found := findMetadataRow(child, title); found != "" {
 				return found
@@ -225,16 +225,16 @@ func findMetadataRow(value interface{}, title string) string {
 	return ""
 }
 
-func metadataRowContent(row map[string]interface{}) string {
-	contents, _ := row["contents"].([]interface{})
+func metadataRowContent(row map[string]any) string {
+	contents, _ := row["contents"].([]any)
 	for _, content := range contents {
-		contentMap, _ := content.(map[string]interface{})
+		contentMap, _ := content.(map[string]any)
 		if text := stringAt(contentMap, "simpleText"); text != "" {
 			return text
 		}
-		runs, _ := contentMap["runs"].([]interface{})
+		runs, _ := contentMap["runs"].([]any)
 		if len(runs) > 0 {
-			run, _ := runs[0].(map[string]interface{})
+			run, _ := runs[0].(map[string]any)
 			if text, _ := run["text"].(string); text != "" {
 				return text
 			}
@@ -243,10 +243,10 @@ func metadataRowContent(row map[string]interface{}) string {
 	return ""
 }
 
-func stringAt(value map[string]interface{}, path ...string) string {
-	var current interface{} = value
+func stringAt(value map[string]any, path ...string) string {
+	var current any = value
 	for _, key := range path {
-		currentMap, ok := current.(map[string]interface{})
+		currentMap, ok := current.(map[string]any)
 		if !ok {
 			return ""
 		}

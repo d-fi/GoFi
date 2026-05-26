@@ -19,7 +19,7 @@ type URLParts struct {
 type ParseResult struct {
 	Info     URLParts          `json:"info"`
 	LinkType string            `json:"linktype"`
-	LinkInfo interface{}       `json:"linkinfo"`
+	LinkInfo any               `json:"linkinfo"`
 	Tracks   []types.TrackType `json:"tracks"`
 }
 
@@ -78,7 +78,7 @@ func ParseInfo(rawURL string) (ParseResult, error) {
 	result := ParseResult{
 		Info:     info,
 		LinkType: "track",
-		LinkInfo: map[string]interface{}{},
+		LinkInfo: map[string]any{},
 		Tracks:   []types.TrackType{},
 	}
 

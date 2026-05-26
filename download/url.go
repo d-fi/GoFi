@@ -53,14 +53,14 @@ func DzAuthenticate() (*UserData, error) {
 		return nil, err
 	}
 
-	var data map[string]interface{}
+	var data map[string]any
 	if err := json.Unmarshal(resp.Body(), &data); err != nil {
 		logger.Debug("Failed to parse Deezer user data response: %v", err)
 		return nil, err
 	}
 
-	results := data["results"].(map[string]interface{})
-	options := results["USER"].(map[string]interface{})["OPTIONS"].(map[string]interface{})
+	results := data["results"].(map[string]any)
+	options := results["USER"].(map[string]any)["OPTIONS"].(map[string]any)
 	country := results["COUNTRY"].(string)
 
 	userData = &UserData{
@@ -90,9 +90,9 @@ func GetTrackUrlFromServer(trackToken, format string) (string, error) {
 	}
 
 	resp, err := request.Client.R().
-		SetBody(map[string]interface{}{
+		SetBody(map[string]any{
 			"license_token": user.LicenseToken,
-			"media": []map[string]interface{}{
+			"media": []map[string]any{
 				{
 					"type":    "FULL",
 					"formats": []map[string]string{{"format": format, "cipher": "BF_CBC_STRIPE"}},
@@ -107,17 +107,17 @@ func GetTrackUrlFromServer(trackToken, format string) (string, error) {
 		return "", err
 	}
 
-	var response map[string]interface{}
+	var response map[string]any
 	if err := json.Unmarshal(resp.Body(), &response); err != nil {
 		logger.Debug("Failed to parse track URL response: %v", err)
 		return "", err
 	}
 
-	data := response["data"].([]interface{})
+	data := response["data"].([]any)
 	if len(data) > 0 {
-		trackData := data[0].(map[string]interface{})
+		trackData := data[0].(map[string]any)
 		if errors, exists := trackData["errors"]; exists {
-			errorCode := errors.([]interface{})[0].(map[string]interface{})["code"].(float64)
+			errorCode := errors.([]any)[0].(map[string]any)["code"].(float64)
 			if errorCode == 2002 {
 				logger.Debug("Track is geo-blocked in user's country: %s", user.Country)
 				return "", &GeoBlocked{Country: user.Country}
@@ -126,9 +126,9 @@ func GetTrackUrlFromServer(trackToken, format string) (string, error) {
 			return "", fmt.Errorf("API error: %v", errors)
 		}
 
-		if media := trackData["media"].([]interface{}); len(media) > 0 {
-			sources := media[0].(map[string]interface{})["sources"].([]interface{})
-			trackURL := sources[0].(map[string]interface{})["url"].(string)
+		if media := trackData["media"].([]any); len(media) > 0 {
+			sources := media[0].(map[string]any)["sources"].([]any)
+			trackURL := sources[0].(map[string]any)["url"].(string)
 			logger.Debug("Track URL fetched successfully: %s", trackURL)
 			return trackURL, nil
 		}

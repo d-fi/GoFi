@@ -28,22 +28,22 @@ func init() {
 	log.Logger = logger
 }
 
-func Debug(msg string, args ...interface{}) {
+func Debug(msg string, args ...any) {
 	log.Debug().Msgf(msg, args...)
 }
 
-func Info(msg string, args ...interface{}) {
+func Info(msg string, args ...any) {
 	log.Info().Msgf(msg, args...)
 }
 
-func Warn(msg string, args ...interface{}) {
+func Warn(msg string, args ...any) {
 	log.Warn().Msgf(msg, args...)
 }
 
-func Error(msg string, args ...interface{}) {
+func Error(msg string, args ...any) {
 	log.Error().Msgf(msg, args...)
 }
 
-func Fatal(msg string, args ...interface{}) {
+func Fatal(msg string, args ...any) {
 	log.Fatal().Msgf(msg, args...)
 }

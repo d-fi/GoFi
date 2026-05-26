@@ -9,7 +9,7 @@ import (
 )
 
 // ConvertToQueryParams converts map[string]interface{} to map[string]string
-func ConvertToQueryParams(params map[string]interface{}) map[string]string {
+func ConvertToQueryParams(params map[string]any) map[string]string {
 	logger.Debug("Converting parameters to query params: %v", params)
 
 	queryParams := make(map[string]string)

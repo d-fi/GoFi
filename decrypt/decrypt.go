@@ -6,6 +6,7 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
+	"strings"
 
 	"github.com/d-fi/GoFi/logger"
 	"golang.org/x/crypto/blowfish"
@@ -68,12 +69,12 @@ func encryptECB(block cipher.Block, src, dst []byte) {
 func GetBlowfishKey(trackID string) string {
 	SECRET := "g4el58wc" + "0zvf9na1"
 	idMd5 := Md5Hash(trackID)
-	bfKey := ""
-	for i := 0; i < 16; i++ {
-		bfKey += string(rune(idMd5[i]) ^ rune(idMd5[i+16]) ^ rune(SECRET[i]))
+	var bfKey strings.Builder
+	for i := range 16 {
+		bfKey.WriteString(string(rune(idMd5[i]) ^ rune(idMd5[i+16]) ^ rune(SECRET[i])))
 	}
-	logger.Debug("Generated blowfish key: %s", bfKey)
-	return bfKey
+	logger.Debug("Generated blowfish key: %s", bfKey.String())
+	return bfKey.String()
 }
 
 // DecryptChunk decrypts a chunk of data using the blowfish key.
@@ -100,16 +101,13 @@ func DecryptDownload(source []byte, trackID string) []byte {
 	position := 0
 	destBuffer := make([]byte, len(source))
 
-	for i := 0; i < len(destBuffer); i++ {
+	for i := range destBuffer {
 		destBuffer[i] = 0
 	}
 
 	for position < len(source) {
 		size := len(source) - position
-		chunkSize := 2048
-		if size < 2048 {
-			chunkSize = size
-		}
+		chunkSize := min(size, 2048)
 
 		chunk := make([]byte, chunkSize)
 		copy(chunk, source[position:position+chunkSize])

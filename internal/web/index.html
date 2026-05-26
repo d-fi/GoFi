@@ -1,0 +1,1127 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>d-fi web</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f4f6f8;
+        --panel: #ffffff;
+        --line: #d8dee6;
+        --text: #17202a;
+        --muted: #647283;
+        --accent: #1d6f8f;
+        --ok: #0f8a5f;
+        --danger: #b42318;
+        --warn: #9a6700;
+        --success-bg: #eefaf4;
+        --success-line: #b9e4ce;
+        --error-bg: #fff4f2;
+        --error-line: #f0b8b2;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font:
+          14px/1.42 system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+        color: var(--text);
+        background: var(--bg);
+      }
+      header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 12px 18px;
+        border-bottom: 1px solid var(--line);
+        background: var(--panel);
+        position: sticky;
+        top: 0;
+        z-index: 2;
+      }
+      h1 {
+        font-size: 18px;
+        margin: 0;
+      }
+      h2 {
+        font-size: 14px;
+        margin: 0 0 10px;
+      }
+      main {
+        display: grid;
+        grid-template-columns: minmax(300px, 340px) minmax(0, 1fr);
+        gap: 14px;
+        padding: 14px;
+        max-width: 1400px;
+        margin: 0 auto;
+      }
+      section,
+      aside {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 14px;
+      }
+      aside {
+        align-self: start;
+        max-height: calc(100vh - 62px);
+        overflow: auto;
+        position: sticky;
+        top: 48px;
+      }
+      label {
+        display: block;
+        margin: 10px 0 5px;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 650;
+        text-transform: uppercase;
+      }
+      input,
+      select,
+      button {
+        font: inherit;
+      }
+      input,
+      select {
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 8px 10px;
+        background: #fff;
+        color: var(--text);
+      }
+      button {
+        border: 1px solid transparent;
+        border-radius: 6px;
+        padding: 8px 11px;
+        background: var(--accent);
+        color: white;
+        cursor: pointer;
+        min-height: 34px;
+      }
+      button.secondary {
+        background: #fff;
+        color: var(--text);
+        border-color: var(--line);
+      }
+      button.danger {
+        background: var(--danger);
+      }
+      button:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+      }
+      .row {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+      .row > * {
+        flex: 1;
+      }
+      .status {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--muted);
+        white-space: nowrap;
+      }
+      .dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 999px;
+        background: var(--warn);
+        display: inline-block;
+      }
+      .dot.ready {
+        background: var(--ok);
+      }
+      .arl-meta {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        margin-top: 7px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .arl-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        background: var(--warn);
+        display: inline-block;
+      }
+      .arl-dot.saved {
+        background: var(--ok);
+      }
+      .muted {
+        color: var(--muted);
+      }
+      .error {
+        color: var(--danger);
+      }
+      .toasts {
+        position: fixed;
+        top: 60px;
+        right: 14px;
+        z-index: 10;
+        display: grid;
+        gap: 8px;
+        width: min(360px, calc(100vw - 28px));
+        pointer-events: none;
+      }
+      .toast {
+        pointer-events: auto;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fff;
+        color: var(--text);
+        padding: 10px 12px;
+        box-shadow: 0 10px 30px rgb(23 32 42 / 12%);
+        overflow-wrap: anywhere;
+      }
+      .toast.error {
+        border-color: var(--error-line);
+        background: var(--error-bg);
+        color: var(--danger);
+      }
+      .toast.success {
+        border-color: var(--success-line);
+        background: var(--success-bg);
+        color: var(--ok);
+      }
+      .stack {
+        display: grid;
+        gap: 14px;
+      }
+      .toolbar {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 10px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+      }
+      th,
+      td {
+        border-bottom: 1px solid var(--line);
+        padding: 8px 8px;
+        text-align: left;
+        vertical-align: middle;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      th {
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 700;
+      }
+      .tracks {
+        max-height: min(240px, 38vh);
+        overflow: auto;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+      }
+      .tracks[hidden],
+      .preview-area[hidden],
+      .preview-actions[hidden],
+      .option-list[hidden] {
+        display: none;
+      }
+      .preview-area {
+        margin-top: 12px;
+      }
+      .option-list {
+        max-height: 300px;
+        overflow: auto;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: #fff;
+      }
+      .option-row {
+        display: block;
+        width: 100%;
+        border: 0;
+        border-bottom: 1px solid var(--line);
+        border-radius: 0;
+        padding: 9px 11px;
+        background: #fff;
+        color: var(--text);
+        text-align: left;
+      }
+      .option-row:last-child {
+        border-bottom: 0;
+      }
+      .option-row:hover {
+        background: #f7fafc;
+      }
+      .option-title {
+        font-weight: 700;
+      }
+      .option-desc {
+        color: var(--muted);
+        font-size: 12px;
+        margin-top: 3px;
+      }
+      .preview-actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        justify-content: space-between;
+        margin-top: 10px;
+      }
+      .download-actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .download-quality {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .download-quality label {
+        margin: 0;
+        line-height: 34px;
+      }
+      .download-quality select {
+        width: auto;
+        min-width: 120px;
+        height: 34px;
+      }
+      .selection-count {
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 34px;
+      }
+      .progress {
+        height: 7px;
+        background: #e8edf2;
+        border-radius: 999px;
+        overflow: hidden;
+      }
+      .bar {
+        height: 100%;
+        width: 0%;
+        background: var(--ok);
+        transition: width 0.2s ease;
+      }
+      .files {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 7px;
+        display: grid;
+        gap: 3px;
+      }
+      .settings {
+        display: grid;
+        gap: 12px;
+        margin-top: 14px;
+      }
+      .download-panel {
+        padding: 12px 14px;
+      }
+      .download-panel h2 {
+        margin-bottom: 8px;
+      }
+      .download-panel label {
+        margin-top: 8px;
+      }
+      .download-panel input,
+      .download-panel select {
+        padding: 8px 10px;
+      }
+      .download-panel .toolbar {
+        margin-top: 10px;
+      }
+      .download-panel #mainMessage {
+        margin: 8px 0 0;
+      }
+      .settings-title {
+        color: var(--text);
+        font-size: 13px;
+        font-weight: 700;
+        margin-bottom: 8px;
+      }
+      .check {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 7px 0;
+        color: var(--text);
+        font-size: 13px;
+        font-weight: 500;
+        text-transform: none;
+      }
+      .check input {
+        width: auto;
+      }
+      .job {
+        border-top: 1px solid var(--line);
+        padding: 11px 0;
+      }
+      .job:first-child {
+        border-top: 0;
+        padding-top: 0;
+      }
+      .job-head,
+      .job-actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .job-head {
+        justify-content: space-between;
+      }
+      .job-source,
+      .job-current {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .job-source {
+        margin-top: 5px;
+      }
+      .job .progress {
+        margin-top: 7px;
+      }
+      .job-actions {
+        margin-top: 7px;
+      }
+      .job-actions span {
+        flex: 1;
+      }
+      .job-actions button {
+        min-height: 30px;
+        padding: 6px 9px;
+      }
+      @media (max-width: 900px) {
+        main {
+          grid-template-columns: 1fr;
+          padding: 10px;
+        }
+        header {
+          padding: 12px;
+          align-items: flex-start;
+        }
+        .toasts {
+          top: 58px;
+          right: 10px;
+          width: calc(100vw - 20px);
+        }
+        aside {
+          max-height: none;
+          overflow: visible;
+          position: static;
+        }
+        .row {
+          display: grid;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>d-fi web</h1>
+      <div class="status">
+        <span id="sessionDot" class="dot"></span
+        ><span id="sessionText">Loading</span>
+      </div>
+    </header>
+    <div id="toasts" class="toasts" aria-live="polite"></div>
+    <main>
+      <aside>
+        <h2>Session</h2>
+        <label for="arl">Deezer ARL</label>
+        <input
+          id="arl"
+          type="text"
+          autocomplete="off"
+          placeholder="Paste ARL or leave blank to keep saved/env value"
+        />
+        <div class="arl-meta">
+          <span id="arlDot" class="arl-dot"></span>
+          <span id="arlText">Checking ARL</span>
+        </div>
+        <div class="toolbar">
+          <button id="saveArlBtn" class="secondary" disabled>Save ARL</button>
+        </div>
+        <div class="settings">
+          <div>
+            <div class="settings-title">Downloads</div>
+            <label for="cfgConcurrency">Concurrency</label>
+            <input id="cfgConcurrency" type="number" min="1" />
+            <label class="check"
+              ><input id="cfgTrackNumber" type="checkbox" /> Add track
+              number</label
+            >
+            <label class="check"
+              ><input id="cfgFallbackTrack" type="checkbox" /> Use fallback
+              track</label
+            >
+            <label class="check"
+              ><input id="cfgFallbackQuality" type="checkbox" /> Use fallback
+              quality</label
+            >
+          </div>
+          <div>
+            <div class="settings-title">Save Layout</div>
+            <label for="cfgLayoutTrack">Track</label>
+            <input id="cfgLayoutTrack" />
+            <label for="cfgLayoutAlbum">Album</label>
+            <input id="cfgLayoutAlbum" />
+            <label for="cfgLayoutArtist">Artist</label>
+            <input id="cfgLayoutArtist" />
+            <label for="cfgLayoutPlaylist">Playlist</label>
+            <input id="cfgLayoutPlaylist" />
+          </div>
+          <div>
+            <div class="settings-title">Playlist</div>
+            <label class="check"
+              ><input id="cfgResolveFullPath" type="checkbox" /> Use absolute
+              paths in playlists</label
+            >
+          </div>
+          <div>
+            <div class="settings-title">Cover Size</div>
+            <div class="row">
+              <div>
+                <label for="cfgCover128">128</label>
+                <input id="cfgCover128" type="number" min="1" />
+              </div>
+              <div>
+                <label for="cfgCover320">320</label>
+                <input id="cfgCover320" type="number" min="1" />
+              </div>
+              <div>
+                <label for="cfgCoverFlac">FLAC</label>
+                <input id="cfgCoverFlac" type="number" min="1" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </aside>
+      <div class="stack">
+        <section class="download-panel">
+          <h2>New Download</h2>
+          <label for="queryType">Source</label>
+          <select id="queryType">
+            <option value="auto">URL or track search</option>
+            <option value="artist">Artist search</option>
+            <option value="album">Album search</option>
+            <option value="playlist">Playlist search</option>
+          </select>
+          <label for="query">Query</label>
+          <input
+            id="query"
+            placeholder="Paste a music URL or enter search text"
+          />
+          <div class="toolbar">
+            <button id="previewBtn">Preview</button>
+          </div>
+          <p id="mainMessage" class="muted"></p>
+          <div id="previewArea" class="preview-area" hidden>
+            <div id="optionsBox" class="option-list" hidden></div>
+            <div id="tracksBox" class="tracks" hidden>
+              <table>
+                <thead>
+                  <tr>
+                    <th style="width: 42px">
+                      <input
+                        id="selectAllTracks"
+                        type="checkbox"
+                        aria-label="Select all tracks"
+                        disabled
+                      />
+                    </th>
+                    <th>Title</th>
+                    <th>Artist</th>
+                    <th>Album</th>
+                    <th style="width: 72px">Time</th>
+                  </tr>
+                </thead>
+                <tbody id="tracksBody"></tbody>
+              </table>
+            </div>
+            <div id="previewActions" class="preview-actions" hidden>
+              <span id="selectionCount" class="selection-count"
+                >0 selected</span
+              >
+              <div class="download-actions">
+                <div class="download-quality">
+                  <label for="quality">Quality</label>
+                  <select id="quality">
+                    <option value="320">MP3 320</option>
+                    <option value="128">MP3 128</option>
+                    <option value="flac">FLAC</option>
+                  </select>
+                </div>
+                <button id="downloadSelectedBtn">Download Selected</button>
+              </div>
+            </div>
+          </div>
+        </section>
+        <section>
+          <h2>Downloads</h2>
+          <div id="jobs"></div>
+        </section>
+      </div>
+    </main>
+    <script>
+      const state = {
+        tracks: [],
+        options: [],
+        previewQuery: "",
+        config: null,
+        jobsLoading: false,
+        jobsTimer: null,
+        saveTimer: null,
+      };
+      const $ = (id) => document.getElementById(id);
+      const api = async (path, opts = {}) => {
+        const res = await fetch(path, {
+          headers: { "content-type": "application/json" },
+          ...opts,
+        });
+        if (!res.ok) {
+          const data = await res
+            .json()
+            .catch(() => ({ error: res.statusText }));
+          const err = new Error(data.error || res.statusText);
+          err.status = res.status;
+          throw err;
+        }
+        if (res.status === 204) return null;
+        return res.json();
+      };
+      const setMainMessage = (text) => {
+        $("mainMessage").textContent = text || "";
+      };
+      function showToast(text, kind = "success") {
+        if (!text) return;
+        const toast = document.createElement("div");
+        toast.className = "toast " + kind;
+        toast.textContent = text;
+        $("toasts").appendChild(toast);
+        window.setTimeout(() => toast.remove(), kind === "error" ? 9000 : 3500);
+      }
+      const duration = (seconds) => {
+        seconds = Number(seconds || 0);
+        const min = Math.floor(seconds / 60);
+        const sec = String(seconds % 60).padStart(2, "0");
+        return min + ":" + sec;
+      };
+      async function loadConfig() {
+        try {
+          const data = await api("/api/config");
+          const cfg = data.config;
+          state.config = cfg;
+          fillConfig(cfg);
+          updateSession(data.session, data.hasArl);
+          updateARLStatus(data.hasArl);
+          if (data.session && data.session.error) {
+            showToast(data.session.error, "error");
+          }
+        } catch (err) {
+          showToast(err.message, "error");
+        }
+      }
+      function fillConfig(cfg) {
+        $("cfgConcurrency").value = cfg.concurrency || 4;
+        $("cfgTrackNumber").checked = !!cfg.trackNumber;
+        $("cfgFallbackTrack").checked = !!cfg.fallbackTrack;
+        $("cfgFallbackQuality").checked = !!cfg.fallbackQuality;
+        $("cfgLayoutTrack").value = cfg.saveLayout?.track || "";
+        $("cfgLayoutAlbum").value = cfg.saveLayout?.album || "";
+        $("cfgLayoutArtist").value = cfg.saveLayout?.artist || "";
+        $("cfgLayoutPlaylist").value = cfg.saveLayout?.playlist || "";
+        $("cfgResolveFullPath").checked = !!cfg.playlist?.resolveFullPath;
+        $("cfgCover128").value = cfg.coverSize?.["128"] || 500;
+        $("cfgCover320").value = cfg.coverSize?.["320"] || 500;
+        $("cfgCoverFlac").value = cfg.coverSize?.flac || 1000;
+      }
+      function readConfig() {
+        const current = state.config || {};
+        return {
+          ...current,
+          concurrency: Number($("cfgConcurrency").value || 1),
+          saveLayout: {
+            track: $("cfgLayoutTrack").value,
+            album: $("cfgLayoutAlbum").value,
+            artist: $("cfgLayoutArtist").value,
+            playlist: $("cfgLayoutPlaylist").value,
+          },
+          playlist: {
+            resolveFullPath: $("cfgResolveFullPath").checked,
+          },
+          trackNumber: $("cfgTrackNumber").checked,
+          fallbackTrack: $("cfgFallbackTrack").checked,
+          fallbackQuality: $("cfgFallbackQuality").checked,
+          coverSize: {
+            128: Number($("cfgCover128").value || 500),
+            320: Number($("cfgCover320").value || 500),
+            flac: Number($("cfgCoverFlac").value || 1000),
+          },
+          cookies: {
+            ...(current.cookies || {}),
+            arl: "",
+          },
+        };
+      }
+      function readConfigWithARL(arl) {
+        return {
+          ...readConfig(),
+          cookies: {
+            ...((state.config && state.config.cookies) || {}),
+            arl,
+          },
+        };
+      }
+      function updateSession(session, hasArl) {
+        const dot = $("sessionDot");
+        const text = $("sessionText");
+        dot.className = "dot" + (session && session.ready ? " ready" : "");
+        if (session && session.ready)
+          text.textContent = "Connected as " + session.userName;
+        else if (session && session.error)
+          text.textContent = "Connection failed";
+        else if (hasArl) text.textContent = "ARL saved, not connected";
+        else text.textContent = "Not connected";
+      }
+      function updateARLStatus(hasArl) {
+        $("arlDot").className = "arl-dot" + (hasArl ? " saved" : "");
+        $("arlText").textContent = hasArl ? "ARL saved" : "No ARL saved";
+      }
+      function updateSaveARLButton() {
+        $("saveArlBtn").disabled = $("arl").value.trim() === "";
+      }
+      function scheduleConfigSave() {
+        window.clearTimeout(state.saveTimer);
+        state.saveTimer = window.setTimeout(() => saveConfig(), 700);
+      }
+      async function saveConfig() {
+        window.clearTimeout(state.saveTimer);
+        try {
+          const data = await api("/api/config", {
+            method: "PUT",
+            body: JSON.stringify(readConfig()),
+          });
+          state.config = data.config;
+          fillConfig(data.config);
+          updateSession(data.session, data.hasArl);
+          updateARLStatus(data.hasArl);
+          if (data.session && data.session.error) {
+            showToast(data.session.error, "error");
+          }
+        } catch (err) {
+          showToast(err.message, "error");
+        }
+      }
+      async function saveARL() {
+        const arl = $("arl").value.trim();
+        if (!arl) {
+          showToast("Paste ARL first.", "error");
+          return;
+        }
+        $("saveArlBtn").disabled = true;
+        try {
+          const data = await api("/api/config", {
+            method: "PUT",
+            body: JSON.stringify(readConfigWithARL(arl)),
+          });
+          state.config = data.config;
+          $("arl").value = "";
+          updateSaveARLButton();
+          fillConfig(data.config);
+          updateSession(data.session, data.hasArl);
+          updateARLStatus(data.hasArl);
+          if (data.session && data.session.error) {
+            showToast(data.session.error, "error");
+            return;
+          }
+          showToast("ARL saved.");
+        } catch (err) {
+          updateSaveARLButton();
+          showToast(err.message, "error");
+        }
+      }
+      function bindConfigAutosave() {
+        [
+          "cfgConcurrency",
+          "cfgLayoutTrack",
+          "cfgLayoutAlbum",
+          "cfgLayoutArtist",
+          "cfgLayoutPlaylist",
+          "cfgCover128",
+          "cfgCover320",
+          "cfgCoverFlac",
+        ].forEach((id) => $(id).addEventListener("input", scheduleConfigSave));
+        [
+          "cfgTrackNumber",
+          "cfgFallbackTrack",
+          "cfgFallbackQuality",
+          "cfgResolveFullPath",
+        ].forEach((id) => $(id).addEventListener("change", scheduleConfigSave));
+        $("arl").addEventListener("input", updateSaveARLButton);
+        $("arl").addEventListener("keydown", (event) => {
+          if (event.key === "Enter") saveARL();
+        });
+      }
+      async function preview() {
+        setMainMessage("Fetching preview...");
+        try {
+          state.previewQuery = "";
+          state.options = [];
+          state.tracks = [];
+          renderOptions();
+          renderTracks();
+          if (needsOptionSelection()) {
+            const data = await api("/api/search-options", {
+              method: "POST",
+              body: JSON.stringify({
+                type: $("queryType").value,
+                query: $("query").value.trim(),
+              }),
+            });
+            state.options = data.options || [];
+            renderOptions();
+            renderTracks();
+            setMainMessage("");
+            showToast(state.options.length + " results found.");
+            return;
+          }
+          const query = buildQuery();
+          const data = await api("/api/preview", {
+            method: "POST",
+            body: JSON.stringify({ query }),
+          });
+          state.previewQuery = query;
+          state.tracks = data.tracks || [];
+          renderOptions();
+          renderTracks();
+          setMainMessage("");
+          showToast(state.tracks.length + " tracks found.");
+        } catch (err) {
+          showToast(err.message, "error");
+          setMainMessage("");
+        }
+      }
+      function renderTracks() {
+        const body = $("tracksBody");
+        if (!state.tracks.length) {
+          body.innerHTML = "";
+          syncSelectAllTracks();
+          return;
+        }
+        body.innerHTML = state.tracks
+          .map(
+            (track) =>
+              "<tr>" +
+              '<td><input type="checkbox" data-index="' +
+              track.index +
+              '" checked></td>' +
+              '<td title="' +
+              escapeHTML(track.title) +
+              '">' +
+              escapeHTML(track.title) +
+              "</td>" +
+              '<td title="' +
+              escapeHTML(track.artist) +
+              '">' +
+              escapeHTML(track.artist) +
+              "</td>" +
+              '<td title="' +
+              escapeHTML(track.album) +
+              '">' +
+              escapeHTML(track.album) +
+              "</td>" +
+              "<td>" +
+              duration(track.duration) +
+              "</td>" +
+              "</tr>",
+          )
+          .join("");
+        body.querySelectorAll("[data-index]").forEach((checkbox) => {
+          checkbox.addEventListener("change", syncSelectAllTracks);
+        });
+        syncSelectAllTracks();
+      }
+      function syncSelectAllTracks() {
+        const selectAll = $("selectAllTracks");
+        const downloadBtn = $("downloadSelectedBtn");
+        const selectionCount = $("selectionCount");
+        const checkboxes = [...document.querySelectorAll("[data-index]")];
+        const checked = checkboxes.filter((el) => el.checked).length;
+        selectAll.disabled = checkboxes.length === 0;
+        selectAll.checked =
+          checkboxes.length > 0 && checked === checkboxes.length;
+        selectAll.indeterminate = checked > 0 && checked < checkboxes.length;
+        downloadBtn.disabled = checked === 0;
+        selectionCount.textContent =
+          checked + " of " + checkboxes.length + " selected";
+      }
+      function toggleAllTracks() {
+        document
+          .querySelectorAll("[data-index]")
+          .forEach(
+            (checkbox) => (checkbox.checked = $("selectAllTracks").checked),
+          );
+        syncSelectAllTracks();
+      }
+      function renderOptions() {
+        const previewArea = $("previewArea");
+        const box = $("optionsBox");
+        const tracksBox = $("tracksBox");
+        const previewActions = $("previewActions");
+        if (!state.options.length) {
+          box.hidden = true;
+          box.innerHTML = "";
+          tracksBox.hidden = state.tracks.length === 0;
+          previewActions.hidden = state.tracks.length === 0;
+          previewArea.hidden = state.tracks.length === 0;
+          return;
+        }
+        previewArea.hidden = false;
+        box.hidden = false;
+        tracksBox.hidden = true;
+        previewActions.hidden = true;
+        box.innerHTML = state.options
+          .map(
+            (option, index) =>
+              '<button class="option-row" type="button" data-option-index="' +
+              index +
+              '">' +
+              '<div class="option-title">' +
+              escapeHTML(option.title) +
+              "</div>" +
+              '<div class="option-desc">' +
+              escapeHTML(option.description) +
+              "</div>" +
+              "</button>",
+          )
+          .join("");
+        box.querySelectorAll("[data-option-index]").forEach((button) => {
+          button.addEventListener("click", async () => {
+            const option = state.options[Number(button.dataset.optionIndex)];
+            state.previewQuery = option.url;
+            setMainMessage("Fetching tracks...");
+            try {
+              const data = await api("/api/preview", {
+                method: "POST",
+                body: JSON.stringify({ query: option.url }),
+              });
+              state.tracks = data.tracks || [];
+              state.options = [];
+              renderOptions();
+              renderTracks();
+              setMainMessage("");
+              showToast(state.tracks.length + " tracks found.");
+            } catch (err) {
+              showToast(err.message, "error");
+              setMainMessage("");
+            }
+          });
+        });
+      }
+      async function startDownload() {
+        if (!state.tracks.length) {
+          showToast("Preview tracks first.", "error");
+          return;
+        }
+        const selected = [
+          ...document.querySelectorAll("[data-index]:checked"),
+        ].map((el) => Number(el.dataset.index));
+        if (!selected.length) {
+          showToast("Select at least one track.", "error");
+          return;
+        }
+        const body = {
+          query: state.previewQuery,
+          quality: $("quality").value,
+          tracks: selected,
+        };
+        setMainMessage("Starting download...");
+        try {
+          await api("/api/downloads", {
+            method: "POST",
+            body: JSON.stringify(body),
+          });
+          setMainMessage("");
+          showToast("Download queued.");
+          await loadJobs();
+        } catch (err) {
+          showToast(err.message, "error");
+          setMainMessage("");
+        }
+      }
+      async function loadJobs() {
+        if (state.jobsLoading) return;
+        state.jobsLoading = true;
+        try {
+          const data = await api("/api/jobs");
+          const jobs = data.jobs || [];
+          renderJobs(jobs);
+          scheduleJobsPoll(jobs.some(isActiveJob) ? 2000 : 5000);
+        } catch (err) {
+          $("jobs").innerHTML = '<p class="muted">Unable to load downloads</p>';
+          showToast(err.message, "error");
+          scheduleJobsPoll(5000);
+        } finally {
+          state.jobsLoading = false;
+        }
+      }
+      function scheduleJobsPoll(delay) {
+        window.clearTimeout(state.jobsTimer);
+        state.jobsTimer = window.setTimeout(loadJobs, delay);
+      }
+      function isActiveJob(job) {
+        return job.status === "queued" || job.status === "running";
+      }
+      function buildQuery() {
+        const value = $("query").value.trim();
+        const type = $("queryType").value;
+        if (!value || type === "auto" || looksLikeURL(value)) return value;
+        return type + ":" + value;
+      }
+      function needsOptionSelection() {
+        const value = $("query").value.trim();
+        const type = $("queryType").value;
+        return value && type !== "auto" && !looksLikeURL(value);
+      }
+      function looksLikeURL(value) {
+        return (
+          value.startsWith("http://") ||
+          value.startsWith("https://") ||
+          value.startsWith("spotify:")
+        );
+      }
+      function renderJobs(jobs) {
+        const root = $("jobs");
+        if (!jobs.length) {
+          root.innerHTML = '<p class="muted">No downloads yet</p>';
+          return;
+        }
+        root.innerHTML = jobs
+          .slice()
+          .reverse()
+          .map((job) => {
+            const files = (job.files || [])
+              .slice(-4)
+              .map((file) => "<div>" + escapeHTML(file) + "</div>")
+              .join("");
+            const pct = Math.max(0, Math.min(100, Number(job.progress || 0)));
+            const line = jobLine(job);
+            return (
+              '<div class="job">' +
+              '<div class="job-head"><strong>#' +
+              job.id +
+              " " +
+              escapeHTML(jobTitle(job)) +
+              '</strong><span class="muted">' +
+              job.doneTracks +
+              "/" +
+              job.totalTracks +
+              "</span></div>" +
+              '<div class="job-source muted" title="' +
+              escapeHTML(job.source) +
+              '">' +
+              escapeHTML(line) +
+              "</div>" +
+              '<div class="progress"><div class="bar" style="width:' +
+              pct.toFixed(1) +
+              '%"></div></div>' +
+              '<div class="job-actions"><span class="job-current">' +
+              pct.toFixed(1) +
+              "% complete" +
+              '</span><button class="secondary" onclick="cancelJob(' +
+              job.id +
+              ')">Cancel</button><button class="danger" onclick="deleteJob(' +
+              job.id +
+              ')">Remove</button></div>' +
+              (job.error
+                ? '<div class="error">' + escapeHTML(job.error) + "</div>"
+                : "") +
+              (files ? '<div class="files">' + files + "</div>" : "") +
+              "</div>"
+            );
+          })
+          .join("");
+      }
+      function jobTitle(job) {
+        if (job.status === "running") return "Downloading";
+        if (job.status === "done") return "Done";
+        if (job.status === "error") return "Error";
+        if (job.status === "canceled") return "Canceled";
+        if (job.status === "queued") return "Queued";
+        return job.status;
+      }
+      function jobLine(job) {
+        if (job.status === "done") {
+          const dirs = uniqueDirs(job.files || []);
+          return dirs.length ? "Saved in " + dirs.join(", ") : "Done";
+        }
+        if (job.status === "running") {
+          return job.current ? "Downloading " + job.current : "Preparing download";
+        }
+        if (job.status === "queued") return "Waiting to start";
+        if (job.status === "error") return job.error || "Download failed";
+        if (job.status === "canceled") return job.error || "Canceled";
+        return job.source;
+      }
+      function uniqueDirs(paths) {
+        return [...new Set(paths.map(dirName).filter(Boolean))];
+      }
+      function dirName(path) {
+        const normalized = String(path || "").replaceAll("\\", "/");
+        const index = normalized.lastIndexOf("/");
+        return index > 0 ? normalized.slice(0, index) : ".";
+      }
+      async function cancelJob(id) {
+        await api("/api/jobs/" + id + "/cancel", {
+          method: "POST",
+          body: "{}",
+        }).catch((err) => showToast(err.message, "error"));
+        await loadJobs();
+      }
+      async function deleteJob(id) {
+        await api("/api/jobs/" + id, { method: "DELETE" }).catch((err) =>
+          showToast(err.message, "error"),
+        );
+        await loadJobs();
+      }
+      function escapeHTML(value) {
+        return String(value || "").replace(
+          /[&<>"']/g,
+          (ch) =>
+            ({
+              "&": "&amp;",
+              "<": "&lt;",
+              ">": "&gt;",
+              '"': "&quot;",
+              "'": "&#39;",
+            })[ch],
+        );
+      }
+      bindConfigAutosave();
+      $("saveArlBtn").addEventListener("click", saveARL);
+      $("previewBtn").addEventListener("click", preview);
+      $("downloadSelectedBtn").addEventListener("click", startDownload);
+      $("selectAllTracks").addEventListener("change", toggleAllTracks);
+      loadConfig();
+      loadJobs();
+    </script>
+  </body>
+</html>

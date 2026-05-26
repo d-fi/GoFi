@@ -35,7 +35,7 @@ func TestSaveLayout(t *testing.T) {
 	track.ALB_TITLE = "Discovery"
 	track.TRACK_NUMBER = types.StringOrInt(4)
 
-	layout := saveLayout(track, map[string]any{"ALB_TITLE": "Discovery"}, "{ALB_TITLE}/{ART_NAME}/{SNG_TITLE}", true, 14)
+	layout := SaveLayout(track, map[string]any{"ALB_TITLE": "Discovery"}, "{ALB_TITLE}/{ART_NAME}/{SNG_TITLE}", true, 14)
 	if layout != "Discovery/Daft Punk/04 - Harder, Better, Faster, Stronger" {
 		t.Fatalf("layout = %q", layout)
 	}

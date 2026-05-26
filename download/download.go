@@ -35,13 +35,6 @@ func DownloadTrack(options DownloadTrackOptions) (string, error) {
 		ext = "mp3"
 	}
 
-	// Create directory for saving the track if it does not exist
-	if err := os.MkdirAll(options.SaveToDir, 0755); err != nil {
-		logger.Debug("Failed to create directory: %v", err)
-		return "", fmt.Errorf("failed to create directory: %v", err)
-	}
-	logger.Debug("Directory created or already exists: %s", options.SaveToDir)
-
 	trackData, err := GetTrackDownloadUrl(track, options.Quality)
 	if err != nil || trackData == nil {
 		logger.Debug("Failed to retrieve downloadable URL: %v", err)
@@ -49,10 +42,20 @@ func DownloadTrack(options DownloadTrackOptions) (string, error) {
 	}
 	logger.Debug("Download URL retrieved: %s", trackData.TrackUrl)
 
-	// Sanitize the track title to ensure it's safe for file systems
-	safeTitle := utils.SanitizeFileName(track.SNG_TITLE)
-	savedPath := filepath.Join(options.SaveToDir, fmt.Sprintf("%s-%s.%s", safeTitle, track.SNG_ID, ext))
+	savedPath := options.SavePath
+	if savedPath == "" {
+		// Sanitize the track title to ensure it's safe for file systems
+		safeTitle := utils.SanitizeFileName(track.SNG_TITLE)
+		savedPath = filepath.Join(options.SaveToDir, fmt.Sprintf("%s-%s.%s", safeTitle, track.SNG_ID, ext))
+	}
 	logger.Debug("Saving track as: %s", savedPath)
+
+	// Create directory for saving the track if it does not exist
+	if err := os.MkdirAll(filepath.Dir(savedPath), 0755); err != nil {
+		logger.Debug("Failed to create directory: %v", err)
+		return "", fmt.Errorf("failed to create directory: %v", err)
+	}
+	logger.Debug("Directory created or already exists: %s", filepath.Dir(savedPath))
 
 	// If the file exists, update its timestamp and return the path
 	if _, err := os.Stat(savedPath); err == nil {
@@ -78,7 +81,11 @@ func DownloadTrack(options DownloadTrackOptions) (string, error) {
 		}
 	}()
 
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	ctx := options.Context
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	ctx, stop := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
 	// Download the track from the generated URL with progress tracking

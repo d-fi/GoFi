@@ -21,7 +21,7 @@ import (
 	"github.com/d-fi/GoFi/utils"
 )
 
-const version = "2.2.0-go"
+const Version = "2.2.0-go"
 
 type options struct {
 	quality         string
@@ -104,7 +104,7 @@ func Run(ctx context.Context, args []string) error {
 		}
 		for line := range strings.SplitSeq(string(data), "\n") {
 			line = strings.TrimSpace(line)
-			if line == "" || !looksLikeURL(line) {
+			if line == "" || !LooksLikeURL(line) {
 				continue
 			}
 			fmt.Println(info("Starting download: " + line))
@@ -177,10 +177,13 @@ func printUsage(w io.Writer) {
 	fmt.Fprintln(w, "  -cp, --create-playlist        Force create a playlist file for non playlists")
 	fmt.Fprintln(w, "  -U, --update                  Update this program to latest version")
 	fmt.Fprintln(w, "  -h, --help                    Shows this help")
+	fmt.Fprintln(w)
+	fmt.Fprintln(w, "Commands:")
+	fmt.Fprintln(w, "  web                           Start the web UI")
 }
 
 func printBanner() {
-	fmt.Println("             ♥ d-fi - " + version + " ♥")
+	fmt.Println("             ♥ d-fi - " + Version + " ♥")
 	fmt.Println(" ──────────────────────────────────────────────")
 	fmt.Println(" │ github https://github.com/d-fi             │")
 	fmt.Println(" ──────────────────────────────────────────────")
@@ -257,7 +260,7 @@ func startDownload(ctx context.Context, cfg Config, opts options, rawURL string,
 }
 
 func resolveInput(rawURL string, headless bool, reader *bufio.Reader) (searchResult, error) {
-	if !looksLikeURL(rawURL) {
+	if !LooksLikeURL(rawURL) {
 		if headless {
 			return searchResult{}, fmt.Errorf("please provide a valid URL. Unknown URL: %s", rawURL)
 		}
@@ -379,7 +382,7 @@ func promptChoice(reader *bufio.Reader, message string, count int, describe func
 func promptTracks(reader *bufio.Reader, tracks []types.TrackType) ([]types.TrackType, error) {
 	fmt.Printf("Select songs to download. Total of %d tracks.\n", len(tracks))
 	for i, track := range tracks {
-		fmt.Printf("%d) %s - Artist: %s, Album: %s, Duration: %s\n", i+1, track.SNG_TITLE, track.ART_NAME, track.ALB_TITLE, formatSecondsReadable(asInt(track.DURATION)))
+		fmt.Printf("%d) %s - Artist: %s, Album: %s, Duration: %s\n", i+1, track.SNG_TITLE, track.ART_NAME, track.ALB_TITLE, formatSecondsReadable(AsInt(track.DURATION)))
 	}
 	fmt.Print("Comma separated numbers, ranges, or blank for all: ")
 	value, err := reader.ReadString('\n')
@@ -415,23 +418,6 @@ func addTrackSelection(selected *[]types.TrackType, seen map[int]bool, tracks []
 	}
 	seen[index] = true
 	*selected = append(*selected, tracks[index-1])
-}
-
-func asInt(value any) int {
-	switch v := value.(type) {
-	case int:
-		return v
-	case string:
-		n, _ := strconv.Atoi(v)
-		return n
-	default:
-		n, _ := strconv.Atoi(fmt.Sprintf("%v", value))
-		return n
-	}
-}
-
-func looksLikeURL(value string) bool {
-	return strings.HasPrefix(value, "http://") || strings.HasPrefix(value, "https://") || strings.HasPrefix(value, "spotify:")
 }
 
 func dedupePlaylistTracks(tracks []types.TrackType) []types.TrackType {
@@ -559,7 +545,7 @@ func writePlaylist(data searchResult, savedFiles []string, resolveFullPath bool)
 }
 
 func playlistName(info any) string {
-	data := structMap(info)
+	data := StructMap(info)
 	for _, key := range []string{"TITLE", "ALB_TITLE"} {
 		if value, ok := data[key]; ok {
 			return fmt.Sprintf("%v", value)

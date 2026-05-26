@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/d-fi/GoFi/types"
@@ -56,7 +57,7 @@ func progressBar(total int64, width int) func(int64) string {
 	}
 }
 
-func structMap(value any) map[string]any {
+func StructMap(value any) map[string]any {
 	if value == nil {
 		return map[string]any{}
 	}
@@ -74,7 +75,7 @@ func structMap(value any) map[string]any {
 	return out
 }
 
-func saveLayout(track types.TrackType, info any, path string, trackNumber bool, totalTracks int) string {
+func SaveLayout(track types.TrackType, info any, path string, trackNumber bool, totalTracks int) string {
 	minDigits := 2
 	if totalTracks >= 100 {
 		minDigits = 3
@@ -83,15 +84,15 @@ func saveLayout(track types.TrackType, info any, path string, trackNumber bool, 
 		path = "." + string(filepath.Separator) + path
 	}
 	return utils.SaveLayout(utils.SaveLayoutProps{
-		Track:                structMap(track),
-		Album:                structMap(info),
+		Track:                StructMap(track),
+		Album:                StructMap(info),
 		Path:                 path,
 		MinimumIntegerDigits: minDigits,
 		TrackNumber:          trackNumber,
 	})
 }
 
-func parseQuality(value any) (quality int, ext string, label string) {
+func ParseQuality(value any) (quality int, ext string, label string) {
 	switch strings.ToLower(fmt.Sprintf("%v", value)) {
 	case "1", "128", "mp3_128", "128kbps":
 		return 1, ".mp3", "128"
@@ -102,7 +103,7 @@ func parseQuality(value any) (quality int, ext string, label string) {
 	}
 }
 
-func coverSizeForQuality(sizes CoverSizes, label string) int {
+func CoverSizeForQuality(sizes CoverSizes, label string) int {
 	switch label {
 	case "128":
 		return sizes.MP3_128
@@ -111,6 +112,23 @@ func coverSizeForQuality(sizes CoverSizes, label string) int {
 	default:
 		return sizes.MP3_320
 	}
+}
+
+func AsInt(value any) int {
+	switch v := value.(type) {
+	case int:
+		return v
+	case string:
+		n, _ := strconv.Atoi(v)
+		return n
+	default:
+		n, _ := strconv.Atoi(fmt.Sprintf("%v", value))
+		return n
+	}
+}
+
+func LooksLikeURL(value string) bool {
+	return strings.HasPrefix(value, "http://") || strings.HasPrefix(value, "https://") || strings.HasPrefix(value, "spotify:")
 }
 
 func uniqueDirs(paths []string) []string {

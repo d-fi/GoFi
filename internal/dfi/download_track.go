@@ -36,13 +36,13 @@ func downloadTrack(ctx context.Context, options DownloadTrackOptions) (string, e
 	track := options.Track
 	terminalStatus.Println(pending(track.SNG_TITLE + " by " + track.ART_NAME + " from " + track.ALB_TITLE))
 
-	quality, ext, label := parseQuality(options.Quality)
-	coverSize := coverSizeForQuality(options.CoverSizes, label)
+	quality, ext, label := ParseQuality(options.Quality)
+	coverSize := CoverSizeForQuality(options.CoverSizes, label)
 	if os.Getenv("SIMULATE") != "" {
 		coverSize = 56
 	}
 
-	savePath := saveLayout(track, options.Info, options.Path, options.TrackNumber, options.TotalTracks) + ext
+	savePath := SaveLayout(track, options.Info, options.Path, options.TrackNumber, options.TotalTracks) + ext
 	if _, err := os.Stat(savePath); err == nil {
 		terminalStatus.Println(info(fmt.Sprintf("Skipped %q, track already exists.", track.SNG_TITLE)))
 		terminalStatus.Println(note(savePath))

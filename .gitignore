@@ -27,6 +27,7 @@ go.work
 /build/
 /d-fi
 d-fi.config.json
+/.playwright-cli/
 
 # Default download output
 /Music/

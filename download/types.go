@@ -1,5 +1,7 @@
 package download
 
+import "context"
+
 // UserData struct stores user license and streaming capabilities
 type UserData struct {
 	LicenseToken      string
@@ -24,7 +26,9 @@ type DownloadTrackOptions struct {
 	Quality    int                                             // The quality of the track (e.g., 1 for MP3_128, 3 for MP3_320, 9 for FLAC).
 	CoverSize  int                                             // The size of the album cover in pixels.
 	SaveToDir  string                                          // The directory where the track will be saved.
+	SavePath   string                                          // Optional exact path where the track will be saved.
 	OnProgress func(progress float64, downloaded, total int64) // The progress callback function.
+	Context    context.Context                                 // Optional context for canceling the download.
 }
 
 // DownloadTrackToBufferOptions contains all the details needed for downloading a track to a buffer.

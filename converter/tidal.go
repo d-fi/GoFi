@@ -189,15 +189,13 @@ func TidalArtistToDeezer(id string) ([]types.TrackType, error) {
 		return nil, err
 	}
 
-	tracks := make([]types.TrackType, 0, len(items))
-	for _, item := range items {
+	return convertTracksConcurrently(items, func(_ int, item TidalTrack) (types.TrackType, bool) {
 		track, err := ISRCToDeezer(item.Title, item.ISRC)
 		if err != nil {
-			continue
+			return types.TrackType{}, false
 		}
-		tracks = append(tracks, track)
-	}
-	return tracks, nil
+		return track, true
+	}), nil
 }
 
 // TidalPlaylistToDeezer converts a Tidal playlist to Deezer playlist metadata and matching Deezer tracks.
@@ -211,16 +209,15 @@ func TidalPlaylistToDeezer(uuid string) (types.PlaylistInfo, []types.TrackType, 
 		return types.PlaylistInfo{}, nil, err
 	}
 
-	tracks := make([]types.TrackType, 0, len(items))
-	for index, item := range items {
+	tracks := convertTracksConcurrently(items, func(index int, item TidalTrack) (types.TrackType, bool) {
 		track, err := ISRCToDeezer(item.Title, item.ISRC)
 		if err != nil {
-			continue
+			return types.TrackType{}, false
 		}
 		position := index + 1
 		track.TRACK_POSITION = &position
-		tracks = append(tracks, track)
-	}
+		return track, true
+	})
 
 	userID := fmt.Sprintf("%d", body.Creator.ID)
 	playlist := types.PlaylistInfo{

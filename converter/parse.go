@@ -124,20 +124,28 @@ func ParseInfo(rawURL string) (ParseResult, error) {
 		}
 		result.LinkType = "artist"
 		result.LinkInfo = artist
+		artistAlbums := make([]types.AlbumType, 0, len(albums.Data))
 		for _, album := range albums.Data {
 			if !albumContainsArtist(album, info.ID) {
 				continue
 			}
+			artistAlbums = append(artistAlbums, album)
+		}
+
+		tracks := convertTrackListsConcurrently(artistAlbums, func(_ int, album types.AlbumType) []types.TrackType {
 			albumTracks, err := api.GetAlbumTracks(album.ALB_ID)
 			if err != nil {
-				return result, err
+				return nil
 			}
+			tracks := make([]types.TrackType, 0, len(albumTracks.Data))
 			for _, track := range albumTracks.Data {
 				if track.ART_ID == info.ID {
-					result.Tracks = append(result.Tracks, track)
+					tracks = append(tracks, track)
 				}
 			}
-		}
+			return tracks
+		})
+		result.Tracks = append(result.Tracks, tracks...)
 	case "youtube-track":
 		track, err := YouTubeTrackToDeezer(info.ID)
 		if err != nil {

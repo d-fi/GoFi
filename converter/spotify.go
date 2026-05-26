@@ -180,16 +180,15 @@ func SpotifyPlaylistToDeezer(id string) (types.PlaylistInfo, []types.TrackType, 
 		return types.PlaylistInfo{}, nil, err
 	}
 
-	tracks := make([]types.TrackType, 0, len(items))
-	for index, item := range items {
+	tracks := convertTracksConcurrently(items, func(index int, item SpotifyTrack) (types.TrackType, bool) {
 		track, err := spotifyTrackToDeezerTrack(item)
 		if err != nil {
-			continue
+			return types.TrackType{}, false
 		}
 		position := index + 1
 		track.TRACK_POSITION = &position
-		tracks = append(tracks, track)
-	}
+		return track, true
+	})
 
 	playlist := types.PlaylistInfo{
 		PlaylistID:      body.ID,
@@ -228,15 +227,13 @@ func SpotifyArtistToDeezer(id string) ([]types.TrackType, error) {
 		return nil, err
 	}
 
-	tracks := make([]types.TrackType, 0, len(items))
-	for _, item := range items {
+	return convertTracksConcurrently(items, func(_ int, item SpotifyTrack) (types.TrackType, bool) {
 		track, err := spotifyTrackToDeezerTrack(item)
 		if err != nil {
-			continue
+			return types.TrackType{}, false
 		}
-		tracks = append(tracks, track)
-	}
-	return tracks, nil
+		return track, true
+	}), nil
 }
 
 func spotifyTrackToDeezerTrack(track SpotifyTrack) (types.TrackType, error) {

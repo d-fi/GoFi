@@ -1,6 +1,7 @@
 package download
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -77,26 +78,12 @@ func DownloadTrack(options DownloadTrackOptions) (string, error) {
 		}
 	}()
 
-	// Set up signal handling for interrupt (Ctrl+C) to clean up the file
-	interrupt := make(chan os.Signal, 1)
-	signal.Notify(interrupt, syscall.SIGINT, syscall.SIGTERM)
-
-	// Channel to notify when download is complete
-	done := make(chan struct{})
-
-	go func() {
-		select {
-		case <-interrupt:
-			logger.Debug("Interrupt signal received, removing incomplete file: %s", savedPath)
-			_ = os.Remove(savedPath)
-			os.Exit(1)
-		case <-done:
-			// Download completed normally
-		}
-	}()
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
 
 	// Download the track from the generated URL with progress tracking
 	resp, err := request.Client.R().
+		SetContext(ctx).
 		SetDoNotParseResponse(true). // Do not parse the response to handle the stream manually
 		Get(trackData.TrackUrl)
 
@@ -138,14 +125,16 @@ func DownloadTrack(options DownloadTrackOptions) (string, error) {
 		}
 
 		if readErr != nil {
+			if ctx.Err() != nil {
+				logger.Debug("Download interrupted, removing incomplete file: %s", savedPath)
+				_ = os.Remove(savedPath)
+				return "", fmt.Errorf("download interrupted: %w", ctx.Err())
+			}
 			logger.Debug("Failed during download: %v", readErr)
 			_ = os.Remove(savedPath)
 			return "", fmt.Errorf("failed during download: %v", readErr)
 		}
 	}
-
-	// Notify that the download is complete
-	close(done)
 
 	logger.Debug("Track downloaded successfully")
 

@@ -278,7 +278,7 @@ func (s *Server) handleStartDownload(w http.ResponseWriter, r *http.Request) {
 	}
 
 	cfg := s.currentConfig()
-	_, label, err := parseQuality(req.Quality)
+	_, _, label, err := dfi.ParseQualityStrict(req.Quality)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err)
 		return
@@ -650,14 +650,6 @@ func previewTracks(tracks []types.TrackType) []trackPreview {
 		})
 	}
 	return out
-}
-
-func parseQuality(value string) (int, string, error) {
-	quality, _, label, err := dfi.ParseQualityStrict(value)
-	if err != nil {
-		return 0, "", err
-	}
-	return quality, label, nil
 }
 
 func parseID(value string) (int64, error) {

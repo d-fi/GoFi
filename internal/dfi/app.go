@@ -15,7 +15,6 @@ import (
 	"sync"
 
 	"github.com/d-fi/GoFi/api"
-	"github.com/d-fi/GoFi/converter"
 	"github.com/d-fi/GoFi/request"
 	"github.com/d-fi/GoFi/types"
 	"github.com/d-fi/GoFi/utils"
@@ -35,13 +34,6 @@ type options struct {
 	resolveFullPath bool
 	createPlaylist  bool
 	update          bool
-}
-
-type searchResult struct {
-	info     converter.URLParts
-	linkType string
-	linkInfo any
-	tracks   []types.TrackType
 }
 
 // Run starts the d-fi compatible CLI.
@@ -211,21 +203,21 @@ func startDownload(ctx context.Context, cfg Config, opts options, rawURL string,
 	if err != nil {
 		return err
 	}
-	if !opts.headless && len(data.tracks) > 1 {
-		data.tracks, err = promptTracks(reader, data.tracks)
+	if !opts.headless && len(data.Tracks) > 1 {
+		data.Tracks, err = promptTracks(reader, data.Tracks)
 		if err != nil {
 			return err
 		}
 	}
 
-	if len(data.tracks) == 0 {
+	if len(data.Tracks) == 0 {
 		fmt.Println(info("No items to download!"))
 		return nil
 	}
 
-	fmt.Println(info(fmt.Sprintf("Proceeding to download %d tracks. Be patient.", len(data.tracks))))
-	if data.linkType == "playlist" {
-		data.tracks = dedupePlaylistTracks(data.tracks)
+	fmt.Println(info(fmt.Sprintf("Proceeding to download %d tracks. Be patient.", len(data.Tracks))))
+	if data.LinkType == "playlist" {
+		data.Tracks = dedupePlaylistTracks(data.Tracks)
 	}
 
 	resolveFullPath := opts.resolveFullPath || cfg.Playlist.ResolveFullPath
@@ -239,7 +231,7 @@ func startDownload(ctx context.Context, cfg Config, opts options, rawURL string,
 
 	pathTemplate := opts.output
 	if pathTemplate == "" {
-		pathTemplate = cfg.Layout(data.linkType)
+		pathTemplate = cfg.Layout(data.LinkType)
 	}
 
 	savedFiles := downloadAll(ctx, data, cfg, opts, pathTemplate, concurrency)
@@ -247,8 +239,8 @@ func startDownload(ctx context.Context, cfg Config, opts options, rawURL string,
 		fmt.Println(info("Saved in " + strings.Join(uniqueDirs(savedFiles), ", ")))
 	}
 
-	if (opts.createPlaylist || data.linkType == "playlist") && os.Getenv("SIMULATE") == "" && len(savedFiles) > 1 {
-		if err := writePlaylist(data, savedFiles, resolveFullPath); err != nil {
+	if (opts.createPlaylist || data.LinkType == "playlist") && os.Getenv("SIMULATE") == "" && len(savedFiles) > 1 {
+		if _, err := WritePlaylistFile(data.LinkInfo, savedFiles, resolveFullPath); err != nil {
 			return err
 		}
 	}
@@ -259,10 +251,10 @@ func startDownload(ctx context.Context, cfg Config, opts options, rawURL string,
 	return nil
 }
 
-func resolveInput(rawURL string, headless bool, reader *bufio.Reader) (searchResult, error) {
+func resolveInput(rawURL string, headless bool, reader *bufio.Reader) (ResolvedInput, error) {
 	if !LooksLikeURL(rawURL) {
 		if headless {
-			return searchResult{}, fmt.Errorf("please provide a valid URL. Unknown URL: %s", rawURL)
+			return ResolvedInput{}, fmt.Errorf("please provide a valid URL. Unknown URL: %s", rawURL)
 		}
 		return resolveSearch(rawURL, reader)
 	}
@@ -271,64 +263,59 @@ func resolveInput(rawURL string, headless bool, reader *bufio.Reader) (searchRes
 	}
 	data, err := ParseResolvedURL(rawURL)
 	if err != nil {
-		return searchResult{}, err
+		return ResolvedInput{}, err
 	}
-	return searchResult{info: data.Info, linkType: data.LinkType, linkInfo: data.LinkInfo, tracks: data.Tracks}, nil
+	return data, nil
 }
 
-func resolveSearch(query string, reader *bufio.Reader) (searchResult, error) {
+func resolveSearch(query string, reader *bufio.Reader) (ResolvedInput, error) {
 	switch {
 	case strings.HasPrefix(query, "artist:"):
 		search, err := api.SearchMusic(strings.TrimPrefix(query, "artist:"), SearchOptionLimit, "ARTIST")
 		if err != nil {
-			return searchResult{}, err
+			return ResolvedInput{}, err
 		}
 		index, err := promptChoice(reader, fmt.Sprintf("Select one artist. (found %d artists)", len(search.ARTIST.Data)), len(search.ARTIST.Data), func(i int) string {
 			item := search.ARTIST.Data[i]
 			return fmt.Sprintf("%s - %d fans", item.ART_NAME, item.NB_FAN)
 		})
 		if err != nil {
-			return searchResult{}, err
+			return ResolvedInput{}, err
 		}
 		fmt.Println(info("Fetching data. Please hold on."))
 		return resolveInput("https://deezer.com/us/artist/"+search.ARTIST.Data[index].ART_ID, false, reader)
 	case strings.HasPrefix(query, "album:"):
 		search, err := api.SearchMusic(strings.TrimPrefix(query, "album:"), SearchOptionLimit, "ALBUM")
 		if err != nil {
-			return searchResult{}, err
+			return ResolvedInput{}, err
 		}
 		index, err := promptChoice(reader, fmt.Sprintf("Select one album. (found %d albums)", len(search.ALBUM.Data)), len(search.ALBUM.Data), func(i int) string {
 			item := search.ALBUM.Data[i]
 			return fmt.Sprintf("%s - by %s, %s tracks", item.ALB_TITLE, item.ART_NAME, item.NUMBER_TRACK)
 		})
 		if err != nil {
-			return searchResult{}, err
+			return ResolvedInput{}, err
 		}
 		return resolveInput("https://deezer.com/us/album/"+search.ALBUM.Data[index].ALB_ID, false, reader)
 	case strings.HasPrefix(query, "playlist:"):
 		search, err := api.SearchMusic(strings.TrimPrefix(query, "playlist:"), SearchOptionLimit, "PLAYLIST")
 		if err != nil {
-			return searchResult{}, err
+			return ResolvedInput{}, err
 		}
 		index, err := promptChoice(reader, fmt.Sprintf("Select one playlist. (found %d playlists)", len(search.PLAYLIST.Data)), len(search.PLAYLIST.Data), func(i int) string {
 			item := search.PLAYLIST.Data[i]
 			return fmt.Sprintf("%s - by %s, %d tracks", item.Title, item.ParentUsername, item.NbSong)
 		})
 		if err != nil {
-			return searchResult{}, err
+			return ResolvedInput{}, err
 		}
 		return resolveInput("https://deezer.com/us/playlist/"+search.PLAYLIST.Data[index].PlaylistID, false, reader)
 	default:
 		data, err := ResolveTrackSearch(query)
 		if err != nil {
-			return searchResult{}, err
+			return ResolvedInput{}, err
 		}
-		return searchResult{
-			info:     data.Info,
-			linkType: data.LinkType,
-			linkInfo: data.LinkInfo,
-			tracks:   data.Tracks,
-		}, nil
+		return data, nil
 	}
 }
 
@@ -474,7 +461,7 @@ func plural(word string, count int) string {
 	return word + "s"
 }
 
-func downloadAll(ctx context.Context, data searchResult, cfg Config, opts options, pathTemplate string, concurrency int) []string {
+func downloadAll(ctx context.Context, data ResolvedInput, cfg Config, opts options, pathTemplate string, concurrency int) []string {
 	type job struct {
 		index int
 		track types.TrackType
@@ -484,7 +471,7 @@ func downloadAll(ctx context.Context, data searchResult, cfg Config, opts option
 	var wg sync.WaitGroup
 	var mu sync.Mutex
 	savedFiles := []string{}
-	workerCount := min(len(data.tracks), concurrency)
+	workerCount := min(len(data.Tracks), concurrency)
 
 	for range workerCount {
 		wg.Go(func() {
@@ -492,14 +479,14 @@ func downloadAll(ctx context.Context, data searchResult, cfg Config, opts option
 				savedPath, err := downloadTrack(ctx, DownloadTrackOptions{
 					Track:           item.track,
 					Quality:         opts.quality,
-					Info:            data.linkInfo,
+					Info:            data.LinkInfo,
 					CoverSizes:      cfg.CoverSize,
 					Path:            pathTemplate,
-					TotalTracks:     len(data.tracks),
+					TotalTracks:     len(data.Tracks),
 					TrackNumber:     cfg.TrackNumber,
 					FallbackTrack:   cfg.FallbackTrack,
 					FallbackQuality: cfg.FallbackQuality,
-					Message:         fmt.Sprintf("(%d/%d)", item.index, len(data.tracks)),
+					Message:         fmt.Sprintf("(%d/%d)", item.index, len(data.Tracks)),
 				})
 				if err != nil {
 					fmt.Fprintln(os.Stderr, failure(item.track.SNG_TITLE))
@@ -516,17 +503,12 @@ func downloadAll(ctx context.Context, data searchResult, cfg Config, opts option
 		})
 	}
 
-	for index, track := range data.tracks {
+	for index, track := range data.Tracks {
 		jobs <- job{index: index, track: track}
 	}
 	close(jobs)
 	wg.Wait()
 	return savedFiles
-}
-
-func writePlaylist(data searchResult, savedFiles []string, resolveFullPath bool) error {
-	_, err := WritePlaylistFile(data.linkInfo, savedFiles, resolveFullPath)
-	return err
 }
 
 func WritePlaylistFile(info any, savedFiles []string, resolveFullPath bool) (string, error) {

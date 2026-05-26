@@ -145,12 +145,15 @@ Common `saveLayout` placeholders:
 {TITLE}            Playlist title, only available for playlist layout
 ```
 
+Nested values can be accessed with dot notation, including array indexes, like
+`{ARTISTS.0.ART_NAME}` or `{SNG_CONTRIBUTORS.main_artist.0}`.
+
 Example:
 
 ```json
 {
   "saveLayout": {
-    "album": "Music/{ALB_TITLE}/{TRACK_NUMBER} - {SNG_TITLE}",
+    "album": "Music/{ARTISTS.0.ART_NAME}/{ALB_TITLE}/{TRACK_NUMBER} - {SNG_TITLE}",
     "playlist": "Playlist/{TITLE}/{SNG_TITLE}"
   }
 }

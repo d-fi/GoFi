@@ -160,6 +160,27 @@ func TestSaveLayout(t *testing.T) {
 			},
 			expected: "Artist Name/04 - Song Title.mp3",
 		},
+		{
+			name: "Nested_array_key_access",
+			props: SaveLayoutProps{
+				Track: map[string]any{
+					"ARTISTS": []any{
+						map[string]any{"ART_NAME": "Daft Punk"},
+					},
+					"SNG_CONTRIBUTORS": map[string]any{
+						"main_artist": []string{"Daft Punk"},
+					},
+					"TITLE": "Song Title",
+				},
+				Album: map[string]any{
+					"ALB_TITLE": "Album Name",
+				},
+				Path:                 "{ARTISTS.0.ART_NAME}/{SNG_CONTRIBUTORS.main_artist.0}/{TITLE}.mp3",
+				MinimumIntegerDigits: 2,
+				TrackNumber:          false,
+			},
+			expected: "Daft Punk/Daft Punk/Song Title.mp3",
+		},
 	}
 
 	for _, test := range tests {
@@ -168,4 +189,26 @@ func TestSaveLayout(t *testing.T) {
 			assert.Equal(t, test.expected, result, "Test '%s' failed", test.name)
 		})
 	}
+}
+
+func TestGetNestedValue(t *testing.T) {
+	data := map[string]any{
+		"ARTISTS": []any{
+			map[string]any{"ART_NAME": "Daft Punk"},
+		},
+		"SNG_CONTRIBUTORS": map[string]any{
+			"main_artist": []string{"Daft Punk"},
+		},
+	}
+
+	got, ok := GetNestedValue(data, "ARTISTS.0.ART_NAME")
+	assert.True(t, ok)
+	assert.Equal(t, "Daft Punk", got)
+
+	got, ok = GetNestedValue(data, "SNG_CONTRIBUTORS.main_artist.0")
+	assert.True(t, ok)
+	assert.Equal(t, "Daft Punk", got)
+
+	_, ok = GetNestedValue(data, "ARTISTS.1.ART_NAME")
+	assert.False(t, ok)
 }

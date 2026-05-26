@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"path/filepath"
 	"testing"
+	"time"
 )
 
 func TestConfigHandlers(t *testing.T) {
@@ -47,5 +48,27 @@ func TestConfigHandlers(t *testing.T) {
 	}
 	if got := server.currentConfig().Concurrency; got != 2 {
 		t.Fatalf("Concurrency = %d, want 2", got)
+	}
+}
+
+func TestClearJobsKeepsActiveJobs(t *testing.T) {
+	server := NewServer(Options{ConfigPath: filepath.Join(t.TempDir(), "d-fi.config.json")})
+	now := time.Now()
+	server.jobs[1] = &downloadJob{ID: 1, Status: "done", CreatedAt: now, UpdatedAt: now}
+	server.jobs[2] = &downloadJob{ID: 2, Status: "error", CreatedAt: now, UpdatedAt: now}
+	server.jobs[3] = &downloadJob{ID: 3, Status: "queued", CreatedAt: now, UpdatedAt: now}
+	server.jobs[4] = &downloadJob{ID: 4, Status: "running", CreatedAt: now, UpdatedAt: now}
+
+	req := httptest.NewRequest(http.MethodDelete, "/api/jobs", nil)
+	rec := httptest.NewRecorder()
+	server.ServeHTTP(rec, req)
+	if rec.Code != http.StatusNoContent {
+		t.Fatalf("DELETE /api/jobs status = %d", rec.Code)
+	}
+	if server.jobs[1] != nil || server.jobs[2] != nil {
+		t.Fatal("inactive jobs were not cleared")
+	}
+	if server.jobs[3] == nil || server.jobs[4] == nil {
+		t.Fatal("active jobs should be kept")
 	}
 }

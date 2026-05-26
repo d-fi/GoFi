@@ -229,8 +229,21 @@
         font-size: 12px;
         font-weight: 700;
       }
+      th.col-select,
+      td.col-select,
+      th.col-position,
+      td.col-position {
+        padding-left: 6px;
+        padding-right: 6px;
+        text-align: center;
+        text-overflow: clip;
+      }
+      td.col-select input,
+      th.col-select input {
+        width: auto;
+      }
       .tracks {
-        max-height: min(240px, 38vh);
+        max-height: min(460px, 58vh);
         overflow: auto;
         border: 1px solid var(--line);
         border-radius: 6px;
@@ -408,6 +421,20 @@
         min-height: 30px;
         padding: 6px 9px;
       }
+      .section-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 8px;
+      }
+      .section-head h2 {
+        margin: 0;
+      }
+      .section-head button {
+        min-height: 30px;
+        padding: 6px 9px;
+      }
       @media (max-width: 900px) {
         main {
           grid-template-columns: 1fr;
@@ -539,7 +566,7 @@
               <table>
                 <thead>
                   <tr>
-                    <th style="width: 42px">
+                    <th class="col-select" style="width: 42px">
                       <input
                         id="selectAllTracks"
                         type="checkbox"
@@ -547,6 +574,7 @@
                         disabled
                       />
                     </th>
+                    <th class="col-position" style="width: 54px">#</th>
                     <th>Title</th>
                     <th>Artist</th>
                     <th>Album</th>
@@ -575,7 +603,12 @@
           </div>
         </section>
         <section>
-          <h2>Downloads</h2>
+          <div class="section-head">
+            <h2>Downloads</h2>
+            <button id="clearHistoryBtn" class="secondary" disabled>
+              Clear History
+            </button>
+          </div>
           <div id="jobs"></div>
         </section>
       </div>
@@ -830,9 +863,12 @@
           .map(
             (track) =>
               "<tr>" +
-              '<td><input type="checkbox" data-index="' +
+              '<td class="col-select"><input type="checkbox" data-index="' +
               track.index +
               '" checked></td>' +
+              '<td class="col-position">' +
+              (track.position || track.index + 1) +
+              "</td>" +
               '<td title="' +
               escapeHTML(track.title) +
               '">' +
@@ -974,9 +1010,11 @@
           const data = await api("/api/jobs");
           const jobs = data.jobs || [];
           renderJobs(jobs);
+          syncClearHistoryButton(jobs);
           scheduleJobsPoll(jobs.some(isActiveJob) ? 2000 : 5000);
         } catch (err) {
           $("jobs").innerHTML = '<p class="muted">Unable to load downloads</p>';
+          syncClearHistoryButton([]);
           showToast(err.message, "error");
           scheduleJobsPoll(5000);
         } finally {
@@ -989,6 +1027,9 @@
       }
       function isActiveJob(job) {
         return job.status === "queued" || job.status === "running";
+      }
+      function syncClearHistoryButton(jobs) {
+        $("clearHistoryBtn").disabled = !jobs.some((job) => !isActiveJob(job));
       }
       function buildQuery() {
         const value = $("query").value.trim();
@@ -1074,7 +1115,9 @@
           return dirs.length ? "Saved in " + dirs.join(", ") : "Done";
         }
         if (job.status === "running") {
-          return job.current ? "Downloading " + job.current : "Preparing download";
+          return job.current
+            ? "Downloading " + job.current
+            : "Preparing download";
         }
         if (job.status === "queued") return "Waiting to start";
         if (job.status === "error") return job.error || "Download failed";
@@ -1102,6 +1145,13 @@
         );
         await loadJobs();
       }
+      async function clearHistory() {
+        await api("/api/jobs", { method: "DELETE" }).catch((err) =>
+          showToast(err.message, "error"),
+        );
+        showToast("History cleared.");
+        await loadJobs();
+      }
       function escapeHTML(value) {
         return String(value || "").replace(
           /[&<>"']/g,
@@ -1119,6 +1169,7 @@
       $("saveArlBtn").addEventListener("click", saveARL);
       $("previewBtn").addEventListener("click", preview);
       $("downloadSelectedBtn").addEventListener("click", startDownload);
+      $("clearHistoryBtn").addEventListener("click", clearHistory);
       $("selectAllTracks").addEventListener("change", toggleAllTracks);
       loadConfig();
       loadJobs();

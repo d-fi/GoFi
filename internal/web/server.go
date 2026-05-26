@@ -88,6 +88,7 @@ type previewResponse struct {
 
 type trackPreview struct {
 	Index    int    `json:"index"`
+	Position int    `json:"position"`
 	ID       string `json:"id"`
 	Title    string `json:"title"`
 	Artist   string `json:"artist"`
@@ -162,6 +163,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /api/preview", s.handlePreview)
 	s.mux.HandleFunc("POST /api/downloads", s.handleStartDownload)
 	s.mux.HandleFunc("GET /api/jobs", s.handleJobs)
+	s.mux.HandleFunc("DELETE /api/jobs", s.handleClearJobs)
 	s.mux.HandleFunc("POST /api/jobs/{id}/cancel", s.handleCancelJob)
 	s.mux.HandleFunc("DELETE /api/jobs/{id}", s.handleDeleteJob)
 }
@@ -342,6 +344,17 @@ func (s *Server) handleJobs(w http.ResponseWriter, r *http.Request) {
 	}
 	s.mu.Unlock()
 	writeJSON(w, http.StatusOK, map[string]any{"jobs": jobs})
+}
+
+func (s *Server) handleClearJobs(w http.ResponseWriter, r *http.Request) {
+	s.mu.Lock()
+	for id, job := range s.jobs {
+		if !isActiveJob(job) {
+			delete(s.jobs, id)
+		}
+	}
+	s.mu.Unlock()
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (s *Server) handleCancelJob(w http.ResponseWriter, r *http.Request) {
@@ -637,11 +650,16 @@ func jobProgress(job *downloadJob) float64 {
 	return sum / float64(job.TotalTracks)
 }
 
+func isActiveJob(job *downloadJob) bool {
+	return job != nil && (job.Status == "queued" || job.Status == "running")
+}
+
 func previewTracks(tracks []types.TrackType) []trackPreview {
 	out := make([]trackPreview, 0, len(tracks))
 	for i, track := range tracks {
 		out = append(out, trackPreview{
 			Index:    i,
+			Position: i + 1,
 			ID:       track.SNG_ID,
 			Title:    track.SNG_TITLE,
 			Artist:   track.ART_NAME,

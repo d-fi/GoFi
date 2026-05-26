@@ -109,6 +109,10 @@ type jobResponse struct {
 }
 
 func Run(ctx context.Context, opts Options) error {
+	if _, err := dfi.CleanupStaleDownloadTemps(".", time.Hour); err != nil {
+		log.Printf("d-fi web stale resumable cleanup failed: %v", err)
+	}
+
 	srv := NewServer(opts)
 	server := &http.Server{
 		Addr:              opts.Addr,

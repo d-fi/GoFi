@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/d-fi/GoFi/api"
 	"github.com/d-fi/GoFi/request"
@@ -47,6 +48,9 @@ func Run(ctx context.Context, args []string) error {
 	}
 
 	printBanner()
+	if _, err := CleanupStaleDownloadTemps(".", time.Hour); err != nil {
+		fmt.Fprintln(os.Stderr, warn("Unable to clean stale resumable download files: "+err.Error()))
+	}
 
 	if opts.update {
 		fmt.Println(info("Binary self-update is not available for the Go build yet."))

@@ -22,3 +22,12 @@ go.work
 
 # macOS metadata
 .DS_Store
+
+# Local build artifacts
+/build/
+/d-fi
+d-fi.config.json
+
+# Default download output
+/Music/
+/Playlist/

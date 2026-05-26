@@ -2,11 +2,13 @@
 setlocal
 
 set "DFI_EXE=%~dp0d-fi.exe"
+pushd "%~dp0" >nul
 
 if not exist "%DFI_EXE%" (
   echo d-fi.exe was not found beside this launcher.
   echo Put d-fi.bat in the same folder as d-fi.exe.
   pause
+  popd >nul
   exit /b 1
 )
 
@@ -65,4 +67,5 @@ pause
 goto menu
 
 :done
+popd >nul
 endlocal

@@ -10,8 +10,7 @@ Download prebuilt CLI binaries from:
 
 https://github.com/d-fi/releases/releases
 
-On Windows, open `d-fi.bat` from the release zip for a simple menu to start the
-CLI, start the web UI, or save your Deezer ARL.
+On Windows, open `d-fi.bat` from the release zip to start the CLI, start the web UI, or save your Deezer ARL.
 
 Or install from source with Go:
 
@@ -86,7 +85,21 @@ Useful flags:
 
 ## Config
 
-Default config file: `d-fi.config.json`
+The config file is optional. By default, GoFi reads `d-fi.config.json` from the
+directory where you run `d-fi`. You can use another file with:
+
+```sh
+d-fi --config-file custom-config.json
+```
+
+The file is also created automatically when you save an ARL:
+
+```sh
+d-fi --set-arl "your_deezer_arl"
+```
+
+You can omit fields you do not need; GoFi merges your config with the defaults
+below.
 
 ```json
 {
@@ -116,34 +129,31 @@ Default config file: `d-fi.config.json`
 
 Config fields:
 
-- `concurrency`: number of tracks to download at the same time for album,
-  artist, and playlist downloads. Higher values can be faster, but very high
-  values may be less reliable.
-- `saveLayout`: output path templates. The selected template depends on the
-  resolved input type:
-  - `track`: single-track downloads
-  - `album`: album downloads
-  - `artist`: artist downloads
-  - `playlist`: playlist downloads
-- `playlist.resolveFullPath`: when `true`, generated `.m3u8` playlists contain
-  absolute file paths. When `false`, playlist entries are relative to the
-  playlist file location.
-- `trackNumber`: when `true`, GoFi prefixes saved tracks with track position,
-  such as `01 - Title`. When `false`, the number prefix is omitted unless the
-  layout explicitly uses a track-number placeholder.
-- `fallbackTrack`: when `true`, GoFi can download Deezer's fallback track when
-  the requested track was moved or replaced and the fallback is available.
-- `fallbackQuality`: when `true`, GoFi falls back to a lower available quality
-  when the requested quality is unavailable. For example, FLAC may fall back to
-  MP3 320, or MP3 320 may fall back to MP3 128.
-- `coverSize`: album cover size used for metadata tagging:
-  - `128`: cover size for MP3 128 downloads
-  - `320`: cover size for MP3 320 downloads
-  - `flac`: cover size for FLAC downloads
-- `cookies.arl`: saved Deezer ARL cookie. `DEEZER_ARL` takes priority over this
-  value when both are present.
+### `concurrency`
 
-Common `saveLayout` placeholders:
+Number of tracks to download at the same time for album, artist, and playlist
+downloads. Original d-fi documents this as `1` to `50`. Higher values can be
+faster on a good connection, but very high values may be less reliable.
+
+### `saveLayout`
+
+Output path templates. The selected template depends on the resolved input
+type:
+
+```text
+saveLayout.track       Single-track downloads
+saveLayout.album       Album downloads
+saveLayout.artist      Artist downloads
+saveLayout.playlist    Playlist downloads
+```
+
+You can override the layout for one command with `--output`:
+
+```sh
+d-fi --output "{ART_NAME} - {SNG_TITLE}" "https://www.deezer.com/track/3135556"
+```
+
+Common placeholders for track, album, artist, and playlist layouts:
 
 ```text
 {ALB_TITLE}        Album title
@@ -153,6 +163,9 @@ Common `saveLayout` placeholders:
 {NO_TRACK_NUMBER}  Disable automatic track number for this layout
 {TITLE}            Playlist title, only available for playlist layout
 ```
+
+`{TRACK_NUMBER}` forces the track number at that position. `{NO_TRACK_NUMBER}`
+disables the automatic number prefix for that layout.
 
 Nested values can be accessed with dot notation, including array indexes, like
 `{ARTISTS.0.ART_NAME}` or `{SNG_CONTRIBUTORS.main_artist.0}`.
@@ -167,6 +180,51 @@ Example:
   }
 }
 ```
+
+### `playlist.resolveFullPath`
+
+When `true`, generated `.m3u8` playlists contain absolute file paths:
+
+```text
+/home/sayem/Playlist/My Playlist/01 - A song.mp3
+```
+
+When `false`, playlist entries are relative to the playlist file location.
+
+### `trackNumber`
+
+When `true`, GoFi prefixes saved tracks with track position, such as
+`01 - Title` or `02 - Title`. When `false`, the number prefix is omitted unless
+the layout explicitly uses a track-number placeholder.
+
+### `fallbackTrack`
+
+When `true`, GoFi can download Deezer's fallback track when the requested track
+was moved or replaced and the fallback is available. This matches how Deezer
+handles some moved or deleted songs.
+
+### `fallbackQuality`
+
+When `true`, GoFi falls back to a lower available quality when the requested
+quality is unavailable. For example, FLAC may fall back to MP3 320, or MP3 320
+may fall back to MP3 128. Set this to `false` if you want unavailable qualities
+to be skipped instead.
+
+### `coverSize`
+
+Album cover size used for metadata tagging. Original d-fi documents acceptable
+values between `50` and `1800`.
+
+```text
+coverSize.128     Cover size for MP3 128 downloads
+coverSize.320     Cover size for MP3 320 downloads
+coverSize.flac    Cover size for FLAC downloads
+```
+
+### `cookies.arl`
+
+Saved Deezer ARL cookie. GoFi also supports `DEEZER_ARL`; when both are present,
+the environment variable takes priority over `cookies.arl`.
 
 ## Library Usage
 

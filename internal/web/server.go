@@ -8,7 +8,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -47,7 +46,6 @@ type downloadJob struct {
 	ID          int64     `json:"id"`
 	Source      string    `json:"source"`
 	Quality     string    `json:"quality"`
-	SaveToDir   string    `json:"saveToDir"`
 	Status      string    `json:"status"`
 	TotalTracks int       `json:"totalTracks"`
 	DoneTracks  int       `json:"doneTracks"`
@@ -99,7 +97,6 @@ type trackPreview struct {
 type startRequest struct {
 	Query     string `json:"query"`
 	Quality   string `json:"quality"`
-	SaveToDir string `json:"saveToDir"`
 	CoverSize int    `json:"coverSize"`
 	Tracks    []int  `json:"tracks"`
 }
@@ -315,16 +312,12 @@ func (s *Server) handleStartDownload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	pathTemplate := cfg.Layout(res.LinkType)
-	if req.SaveToDir != "" {
-		pathTemplate = filepath.Join(req.SaveToDir, "{SNG_TITLE}")
-	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	job := &downloadJob{
 		ID:          atomic.AddInt64(&s.nextID, 1),
 		Source:      req.Query,
 		Quality:     label,
-		SaveToDir:   pathTemplate,
 		Status:      "queued",
 		TotalTracks: len(tracks),
 		CreatedAt:   time.Now(),

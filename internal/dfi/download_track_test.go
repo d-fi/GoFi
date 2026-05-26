@@ -83,3 +83,32 @@ func TestDownloadToTempAppendsPartialContent(t *testing.T) {
 		t.Fatalf("temp file = %q, want partial-complete", data)
 	}
 }
+
+func TestWritePlaylistFileRelative(t *testing.T) {
+	dir := t.TempDir()
+	albumDir := filepath.Join(dir, "album")
+	if err := os.MkdirAll(albumDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	files := []string{
+		filepath.Join(albumDir, "02 - B.mp3"),
+		filepath.Join(albumDir, "01 - A.mp3"),
+	}
+
+	path, err := WritePlaylistFile(map[string]any{"TITLE": "My Playlist"}, files, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if path != filepath.Join(albumDir, "My Playlist.m3u8") {
+		t.Fatalf("playlist path = %q", path)
+	}
+
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "#EXTM3U\n01 - A.mp3\n02 - B.mp3"
+	if string(data) != want {
+		t.Fatalf("playlist content = %q, want %q", data, want)
+	}
+}

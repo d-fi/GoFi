@@ -337,7 +337,7 @@ func (s *Server) handleStartDownload(w http.ResponseWriter, r *http.Request) {
 	s.jobs[job.ID] = job
 	s.mu.Unlock()
 
-	go s.runDownloadJob(ctx, job.ID, tracks, res.linkInfo, pathTemplate, label, cfg, concurrency)
+	go s.runDownloadJob(ctx, job.ID, res.linkType, res.linkInfo, tracks, pathTemplate, label, cfg, concurrency)
 	writeJSON(w, http.StatusAccepted, jobResponse{Job: s.snapshotJob(job.ID)})
 }
 
@@ -385,7 +385,7 @@ func (s *Server) handleDeleteJob(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (s *Server) runDownloadJob(ctx context.Context, jobID int64, tracks []types.TrackType, info any, pathTemplate, quality string, cfg dfi.Config, concurrency int) {
+func (s *Server) runDownloadJob(ctx context.Context, jobID int64, linkType string, info any, tracks []types.TrackType, pathTemplate, quality string, cfg dfi.Config, concurrency int) {
 	s.updateJob(jobID, func(job *downloadJob) {
 		job.Status = "running"
 	})
@@ -454,6 +454,20 @@ func (s *Server) runDownloadJob(ctx context.Context, jobID int64, tracks []types
 	}
 
 	wg.Wait()
+	playlistPath := ""
+	if ctx.Err() == nil && failed.Load() == 0 && linkType == "playlist" && os.Getenv("SIMULATE") == "" {
+		if job := s.snapshotJob(jobID); job != nil && len(job.Files) > 1 {
+			var err error
+			playlistPath, err = dfi.WritePlaylistFile(info, job.Files, cfg.Playlist.ResolveFullPath)
+			if err != nil {
+				s.updateJob(jobID, func(job *downloadJob) {
+					job.Status = "error"
+					job.Error = err.Error()
+				})
+				return
+			}
+		}
+	}
 	s.updateJob(jobID, func(job *downloadJob) {
 		if ctx.Err() != nil {
 			job.Status = "canceled"
@@ -467,6 +481,9 @@ func (s *Server) runDownloadJob(ctx context.Context, jobID int64, tracks []types
 		job.Status = "done"
 		job.Progress = 100
 		job.Current = ""
+		if playlistPath != "" {
+			job.Files = append(job.Files, playlistPath)
+		}
 	})
 }
 

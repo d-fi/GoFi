@@ -510,11 +510,16 @@ func downloadAll(ctx context.Context, data searchResult, cfg Config, opts option
 }
 
 func writePlaylist(data searchResult, savedFiles []string, resolveFullPath bool) error {
+	_, err := WritePlaylistFile(data.linkInfo, savedFiles, resolveFullPath)
+	return err
+}
+
+func WritePlaylistFile(info any, savedFiles []string, resolveFullPath bool) (string, error) {
 	playlistDir := commonPath(uniqueDirs(savedFiles))
 	if playlistDir == "" {
 		playlistDir = "."
 	}
-	name := playlistName(data.linkInfo)
+	name := playlistName(info)
 	if name == "" {
 		name = "playlist"
 	}
@@ -541,7 +546,11 @@ func writePlaylist(data searchResult, savedFiles []string, resolveFullPath bool)
 	}
 	sort.Strings(entries)
 	content := "#EXTM3U\n" + strings.Join(entries, "\n")
-	return os.WriteFile(filepath.Join(playlistDir, utils.SanitizeFileName(name)+".m3u8"), []byte(content), 0644)
+	path := filepath.Join(playlistDir, utils.SanitizeFileName(name)+".m3u8")
+	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
+		return "", err
+	}
+	return path, nil
 }
 
 func playlistName(info any) string {

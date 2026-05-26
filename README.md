@@ -83,6 +83,47 @@ Useful flags:
 -cp, --create-playlist        Force .m3u8 creation for non-playlist downloads
 ```
 
+## Web UI
+
+Start the local web UI:
+
+```sh
+d-fi web
+```
+
+Then open:
+
+```text
+http://127.0.0.1:8080
+```
+
+Web options:
+
+```sh
+d-fi web --addr 127.0.0.1:8080 --config d-fi.config.json
+```
+
+The web UI uses the same config format as the CLI. It reads `DEEZER_ARL` first,
+then `cookies.arl` from the config file. If an ARL is already available, the web
+server tries to connect automatically on startup. You can also save an ARL from
+the web UI.
+
+The download flow is:
+
+1. Choose a source type: auto, track, album, artist, or playlist.
+2. Enter a Deezer URL, Spotify URL/URI, or search text.
+3. Preview the resolved tracks.
+4. Select the tracks to download.
+5. Choose quality and start the download.
+
+Downloads use the configured `saveLayout`, `trackNumber`, fallback, cover size,
+and playlist settings. Playlist downloads create `.m3u8` files using
+`playlist.resolveFullPath`.
+
+The Downloads panel shows progress for active jobs. Active jobs can be canceled.
+`Clear History` removes finished, failed, and canceled job rows from the web UI;
+it does not delete downloaded files.
+
 ## Config
 
 The config file is optional. By default, GoFi reads `d-fi.config.json` from the

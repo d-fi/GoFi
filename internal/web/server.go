@@ -502,7 +502,11 @@ func (s *Server) resolveInput(query string) (resolvedInput, error) {
 		if err != nil {
 			return resolvedInput{}, err
 		}
-		return resolvedInput{linkType: data.LinkType, linkInfo: data.LinkInfo, tracks: data.Tracks}, nil
+		tracks := data.Tracks
+		if data.LinkType == "playlist" {
+			tracks = dfi.DedupePlaylistTracks(tracks)
+		}
+		return resolvedInput{linkType: data.LinkType, linkInfo: data.LinkInfo, tracks: tracks}, nil
 	}
 
 	switch {

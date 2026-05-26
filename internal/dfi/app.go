@@ -421,6 +421,19 @@ func addTrackSelection(selected *[]types.TrackType, seen map[int]bool, tracks []
 }
 
 func dedupePlaylistTracks(tracks []types.TrackType) []types.TrackType {
+	filtered, duplicates := dedupePlaylistTrackList(tracks)
+	if duplicates > 0 {
+		fmt.Println(warn(fmt.Sprintf("Removed %d duplicate %s.", duplicates, plural("track", duplicates))))
+	}
+	return filtered
+}
+
+func DedupePlaylistTracks(tracks []types.TrackType) []types.TrackType {
+	filtered, _ := dedupePlaylistTrackList(tracks)
+	return filtered
+}
+
+func dedupePlaylistTrackList(tracks []types.TrackType) ([]types.TrackType, int) {
 	seen := map[string]bool{}
 	filtered := make([]types.TrackType, 0, len(tracks))
 	duplicates := 0
@@ -440,9 +453,8 @@ func dedupePlaylistTracks(tracks []types.TrackType) []types.TrackType {
 			position := i + 1
 			filtered[i].TRACK_POSITION = &position
 		}
-		fmt.Println(warn(fmt.Sprintf("Removed %d duplicate %s.", duplicates, plural("track", duplicates))))
 	}
-	return filtered
+	return filtered, duplicates
 }
 
 func trackPosition(track types.TrackType) int {

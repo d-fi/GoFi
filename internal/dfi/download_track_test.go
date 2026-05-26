@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/d-fi/GoFi/download"
+	"github.com/d-fi/GoFi/types"
 )
 
 func TestDownloadToTempRestartsWhenRangeIgnored(t *testing.T) {
@@ -110,5 +111,29 @@ func TestWritePlaylistFileRelative(t *testing.T) {
 	want := "#EXTM3U\n01 - A.mp3\n02 - B.mp3"
 	if string(data) != want {
 		t.Fatalf("playlist content = %q, want %q", data, want)
+	}
+}
+
+func TestDedupePlaylistTracks(t *testing.T) {
+	pos1 := 1
+	pos2 := 2
+	pos3 := 3
+	tracks := []types.TrackType{
+		{SongType: types.SongType{SNG_ID: "b"}, TRACK_POSITION: &pos2},
+		{SongType: types.SongType{SNG_ID: "a"}, TRACK_POSITION: &pos1},
+		{SongType: types.SongType{SNG_ID: "a"}, TRACK_POSITION: &pos3},
+	}
+
+	got := DedupePlaylistTracks(tracks)
+	if len(got) != 2 {
+		t.Fatalf("len = %d, want 2", len(got))
+	}
+	if got[0].SNG_ID != "a" || got[1].SNG_ID != "b" {
+		t.Fatalf("ids = %q, %q; want a, b", got[0].SNG_ID, got[1].SNG_ID)
+	}
+	for i, track := range got {
+		if track.TRACK_POSITION == nil || *track.TRACK_POSITION != i+1 {
+			t.Fatalf("track %d position = %v, want %d", i, track.TRACK_POSITION, i+1)
+		}
 	}
 }

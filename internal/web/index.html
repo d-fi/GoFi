@@ -1065,6 +1065,13 @@
               .join("");
             const pct = Math.max(0, Math.min(100, Number(job.progress || 0)));
             const line = jobLine(job);
+            const action = isActiveJob(job)
+              ? '<button class="secondary" onclick="cancelJob(' +
+                job.id +
+                ')">Cancel</button>'
+              : '<button class="danger" onclick="deleteJob(' +
+                job.id +
+                ')">Remove</button>';
             return (
               '<div class="job">' +
               '<div class="job-head"><strong>#' +
@@ -1087,11 +1094,9 @@
               '<div class="job-actions"><span class="job-current">' +
               pct.toFixed(1) +
               "% complete" +
-              '</span><button class="secondary" onclick="cancelJob(' +
-              job.id +
-              ')">Cancel</button><button class="danger" onclick="deleteJob(' +
-              job.id +
-              ')">Remove</button></div>' +
+              "</span>" +
+              action +
+              "</div>" +
               (job.error
                 ? '<div class="error">' + escapeHTML(job.error) + "</div>"
                 : "") +

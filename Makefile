@@ -19,7 +19,7 @@ pkg: clean-pkg
 	GOOS=windows GOARCH=$(PKG_ARCH) CGO_ENABLED=0 $(GOBUILD) -ldflags "$(LDFLAGS)" -o $(BUILD_DIR)/$(BINARY_NAME)-win.exe $(CLI_PACKAGE)
 	cd $(BUILD_DIR) && cp $(BINARY_NAME)-linux $(BINARY_NAME) && zip -q $(BINARY_NAME)-linux.zip $(BINARY_NAME) && rm $(BINARY_NAME)
 	cd $(BUILD_DIR) && cp $(BINARY_NAME)-macos $(BINARY_NAME) && zip -q $(BINARY_NAME)-macos.zip $(BINARY_NAME) && rm $(BINARY_NAME)
-	cd $(BUILD_DIR) && cp $(BINARY_NAME)-win.exe $(BINARY_NAME).exe && zip -q $(BINARY_NAME)-win.zip $(BINARY_NAME).exe && rm $(BINARY_NAME).exe
+	cd $(BUILD_DIR) && cp $(BINARY_NAME)-win.exe $(BINARY_NAME).exe && cp ../scripts/windows/$(BINARY_NAME).bat $(BINARY_NAME).bat && zip -q $(BINARY_NAME)-win.zip $(BINARY_NAME).exe $(BINARY_NAME).bat && rm $(BINARY_NAME).exe $(BINARY_NAME).bat
 	rm -f $(BUILD_DIR)/$(BINARY_NAME)-linux $(BUILD_DIR)/$(BINARY_NAME)-macos $(BUILD_DIR)/$(BINARY_NAME)-win.exe
 	du -sh $(BUILD_DIR)/*.zip
 

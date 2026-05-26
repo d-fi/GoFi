@@ -10,6 +10,9 @@ Download prebuilt CLI binaries from:
 
 https://github.com/d-fi/releases/releases
 
+On Windows, open `d-fi.bat` from the release zip for a simple menu to start the
+CLI, start the web UI, or save your Deezer ARL.
+
 Or install from source with Go:
 
 ```sh

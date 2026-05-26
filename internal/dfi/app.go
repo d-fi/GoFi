@@ -193,6 +193,12 @@ func startDownload(ctx context.Context, cfg Config, opts options, rawURL string,
 			return err
 		}
 		opts.quality = quality
+	} else {
+		_, _, quality, err := ParseQualityStrict(opts.quality)
+		if err != nil {
+			return err
+		}
+		opts.quality = quality
 	}
 	if rawURL == "" {
 		fmt.Print("Enter URL or search: ")
@@ -324,22 +330,26 @@ func resolveSearch(query string, reader *bufio.Reader) (ResolvedInput, error) {
 }
 
 func promptQuality(reader *bufio.Reader) (string, error) {
-	fmt.Println("Select music quality:")
-	fmt.Println("1) MP3  - 128 kbps")
-	fmt.Println("2) MP3  - 320 kbps")
-	fmt.Println("3) FLAC - 1411 kbps")
-	fmt.Print("> ")
-	value, err := reader.ReadString('\n')
-	if err != nil {
-		return "", err
-	}
-	switch strings.TrimSpace(value) {
-	case "1":
-		return "128", nil
-	case "3":
-		return "flac", nil
-	default:
-		return "320", nil
+	for {
+		fmt.Println("Select music quality:")
+		fmt.Println("1) MP3  - 128 kbps")
+		fmt.Println("2) MP3  - 320 kbps")
+		fmt.Println("3) FLAC - 1411 kbps")
+		fmt.Print("> ")
+		value, err := reader.ReadString('\n')
+		if err != nil {
+			return "", err
+		}
+		switch strings.TrimSpace(value) {
+		case "1":
+			return "128", nil
+		case "2":
+			return "320", nil
+		case "3":
+			return "flac", nil
+		default:
+			fmt.Println("Invalid quality. Choose 1, 2, or 3.")
+		}
 	}
 }
 

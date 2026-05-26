@@ -30,6 +30,12 @@ func TestParseQualityStrict(t *testing.T) {
 	}
 }
 
+func TestParseQualityStrictRejectsInvalidQuality(t *testing.T) {
+	if _, _, _, err := ParseQualityStrict("4"); err == nil {
+		t.Fatal("ParseQualityStrict(\"4\") returned nil error")
+	}
+}
+
 func TestSelectTracksByIndexes(t *testing.T) {
 	tracks := []types.TrackType{
 		{SongType: types.SongType{SNG_ID: "1"}},

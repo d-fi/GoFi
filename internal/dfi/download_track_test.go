@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	"github.com/d-fi/GoFi/download"
-	"github.com/d-fi/GoFi/types"
 )
 
 func TestDownloadToTempRestartsWhenRangeIgnored(t *testing.T) {
@@ -33,7 +32,7 @@ func TestDownloadToTempRestartsWhenRangeIgnored(t *testing.T) {
 		TrackUrl:    server.URL,
 		IsEncrypted: false,
 		FileSize:    int64(len("complete")),
-	}, tmpFile, types.TrackType{}, "")
+	}, tmpFile, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -71,7 +70,7 @@ func TestDownloadToTempAppendsPartialContent(t *testing.T) {
 		TrackUrl:    server.URL,
 		IsEncrypted: false,
 		FileSize:    int64(len("partial-complete")),
-	}, tmpFile, types.TrackType{}, "")
+	}, tmpFile, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

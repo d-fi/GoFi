@@ -30,11 +30,27 @@ type DownloadTrackOptions struct {
 	IsFallback        bool
 	IsQualityFallback bool
 	Message           string
+	Hooks             DownloadTrackHooks
+}
+
+type DownloadTrackHooks struct {
+	Start    func(track types.TrackType)
+	Status   func(message string)
+	Progress func(track types.TrackType, transferred, total int64)
+	Skip     func(track types.TrackType, savedPath, reason string)
+	Done     func(track types.TrackType, savedPath string, isFallback, isQualityFallback bool, label string)
 }
 
 func downloadTrack(ctx context.Context, options DownloadTrackOptions) (string, error) {
+	options.Hooks = terminalDownloadHooks(options.Message)
+	return DownloadTrack(ctx, options)
+}
+
+func DownloadTrack(ctx context.Context, options DownloadTrackOptions) (string, error) {
 	track := options.Track
-	terminalStatus.Println(pending(track.SNG_TITLE + " by " + track.ART_NAME + " from " + track.ALB_TITLE))
+	if options.Hooks.Start != nil {
+		options.Hooks.Start(track)
+	}
 
 	quality, ext, label := ParseQuality(options.Quality)
 	coverSize := CoverSizeForQuality(options.CoverSizes, label)
@@ -44,8 +60,9 @@ func downloadTrack(ctx context.Context, options DownloadTrackOptions) (string, e
 
 	savePath := SaveLayout(track, options.Info, options.Path, options.TrackNumber, options.TotalTracks) + ext
 	if _, err := os.Stat(savePath); err == nil {
-		terminalStatus.Println(info(fmt.Sprintf("Skipped %q, track already exists.", track.SNG_TITLE)))
-		terminalStatus.Println(note(savePath))
+		if options.Hooks.Skip != nil {
+			options.Hooks.Skip(track, savePath, "exists")
+		}
 		return savePath, nil
 	}
 
@@ -66,7 +83,7 @@ func downloadTrack(ctx context.Context, options DownloadTrackOptions) (string, e
 			options.Track = fallback
 			options.FallbackTrack = false
 			options.IsFallback = true
-			return downloadTrack(ctx, options)
+			return DownloadTrack(ctx, options)
 		}
 		if options.FallbackQuality && quality != 1 {
 			if quality == 9 {
@@ -75,9 +92,11 @@ func downloadTrack(ctx context.Context, options DownloadTrackOptions) (string, e
 				options.Quality = 1
 			}
 			options.IsQualityFallback = true
-			return downloadTrack(ctx, options)
+			return DownloadTrack(ctx, options)
 		}
-		terminalStatus.Println(warn(fmt.Sprintf("Skipped %q, track not available.", track.SNG_TITLE)))
+		if options.Hooks.Skip != nil {
+			options.Hooks.Skip(track, "", "not available")
+		}
 		return "", nil
 	}
 
@@ -85,7 +104,11 @@ func downloadTrack(ctx context.Context, options DownloadTrackOptions) (string, e
 	if os.Getenv("SIMULATE") != "" {
 		tmpFile = fmt.Sprintf("d-fi_%d_%s_simulate", quality, track.SNG_ID)
 	}
-	if err := downloadToTemp(ctx, trackData, tmpFile, track, options.Message); err != nil {
+	if err := downloadToTemp(ctx, trackData, tmpFile, func(transferred, total int64) {
+		if options.Hooks.Progress != nil {
+			options.Hooks.Progress(track, transferred, total)
+		}
+	}); err != nil {
 		return "", err
 	}
 	defer os.Remove(tmpFile)
@@ -95,17 +118,23 @@ func downloadTrack(ctx context.Context, options DownloadTrackOptions) (string, e
 		return "", err
 	}
 	if trackData.IsEncrypted {
-		terminalStatus.Update(pending("Decrypting " + track.SNG_TITLE + " by " + track.ART_NAME))
+		if options.Hooks.Status != nil {
+			options.Hooks.Status("Decrypting " + track.SNG_TITLE + " by " + track.ART_NAME)
+		}
 		raw = decrypt.DecryptDownload(raw, track.SNG_ID)
 	}
 
-	terminalStatus.Update(pending("Tagging " + track.SNG_TITLE + " by " + track.ART_NAME))
+	if options.Hooks.Status != nil {
+		options.Hooks.Status("Tagging " + track.SNG_TITLE + " by " + track.ART_NAME)
+	}
 	tagged, err := metadata.AddTrackTags(raw, track, coverSize)
 	if err != nil {
 		return "", err
 	}
 
-	terminalStatus.Update(pending("Saving " + track.SNG_TITLE + " by " + track.ART_NAME))
+	if options.Hooks.Status != nil {
+		options.Hooks.Status("Saving " + track.SNG_TITLE + " by " + track.ART_NAME)
+	}
 	if os.Getenv("SIMULATE") == "" {
 		if err := os.MkdirAll(filepath.Dir(savePath), 0755); err != nil {
 			return "", err
@@ -115,22 +144,58 @@ func downloadTrack(ctx context.Context, options DownloadTrackOptions) (string, e
 		}
 	}
 
-	prefix := ""
-	if options.IsFallback {
-		prefix = "[Fallback] "
-	}
-	terminalStatus.Done(success(prefix + track.SNG_TITLE + " by " + track.ART_NAME))
-	if options.IsQualityFallback {
-		if quality == 3 {
-			terminalStatus.Println(note("Used 320kbps as other formats were unavailable"))
-		} else {
-			terminalStatus.Println(note("Used 128kbps as other formats were unavailable"))
-		}
+	if options.Hooks.Done != nil {
+		options.Hooks.Done(track, savePath, options.IsFallback, options.IsQualityFallback, label)
 	}
 	return savePath, nil
 }
 
-func downloadToTemp(ctx context.Context, trackData *download.TrackDownloadUrl, tmpFile string, track types.TrackType, message string) error {
+func terminalDownloadHooks(message string) DownloadTrackHooks {
+	var lastLogged int64
+	return DownloadTrackHooks{
+		Start: func(track types.TrackType) {
+			terminalStatus.Println(pending(track.SNG_TITLE + " by " + track.ART_NAME + " from " + track.ALB_TITLE))
+		},
+		Status: func(message string) {
+			terminalStatus.Update(pending(message))
+		},
+		Progress: func(track types.TrackType, transferred, total int64) {
+			bar := progressBar(total, 40)
+			humanSizeTotal := float64(total) / 1024 / 1024
+			progress := info(fmt.Sprintf("Downloading %s %s  %s | %.2fMiB", track.SNG_TITLE, message, bar(transferred), humanSizeTotal))
+			if terminalStatus.interactive {
+				terminalStatus.Update(progress)
+			} else if transferred-lastLogged > 5*1024*1024 || (total > 0 && transferred >= total) {
+				lastLogged = transferred
+				terminalStatus.Println(progress)
+			}
+		},
+		Skip: func(track types.TrackType, savedPath, reason string) {
+			if reason == "exists" {
+				terminalStatus.Println(info(fmt.Sprintf("Skipped %q, track already exists.", track.SNG_TITLE)))
+				terminalStatus.Println(note(savedPath))
+				return
+			}
+			terminalStatus.Println(warn(fmt.Sprintf("Skipped %q, track not available.", track.SNG_TITLE)))
+		},
+		Done: func(track types.TrackType, savedPath string, isFallback, isQualityFallback bool, label string) {
+			prefix := ""
+			if isFallback {
+				prefix = "[Fallback] "
+			}
+			terminalStatus.Done(success(prefix + track.SNG_TITLE + " by " + track.ART_NAME))
+			if isQualityFallback {
+				if label == "320" {
+					terminalStatus.Println(note("Used 320kbps as other formats were unavailable"))
+				} else {
+					terminalStatus.Println(note("Used 128kbps as other formats were unavailable"))
+				}
+			}
+		},
+	}
+}
+
+func downloadToTemp(ctx context.Context, trackData *download.TrackDownloadUrl, tmpFile string, onProgress func(transferred, total int64)) error {
 	var downloaded int64
 	resuming := false
 	headers := http.Header{}
@@ -168,7 +233,7 @@ func downloadToTemp(ctx context.Context, trackData *download.TrackDownloadUrl, t
 			return err
 		}
 		downloaded = 0
-		return downloadToTemp(ctx, trackData, tmpFile, track, message)
+		return downloadToTemp(ctx, trackData, tmpFile, onProgress)
 	}
 
 	out, err := os.OpenFile(tmpFile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
@@ -178,11 +243,8 @@ func downloadToTemp(ctx context.Context, trackData *download.TrackDownloadUrl, t
 	defer out.Close()
 
 	total := trackData.FileSize
-	bar := progressBar(total, 40)
-	humanSizeTotal := float64(total) / 1024 / 1024
 	transferred := downloaded
 	lastPrinted := transferred
-	lastLogged := transferred
 	lastProgressUpdate := time.Now().Add(-500 * time.Millisecond)
 	buffer := make([]byte, 32*1024)
 	for {
@@ -198,12 +260,8 @@ func downloadToTemp(ctx context.Context, trackData *download.TrackDownloadUrl, t
 			if (transferred-lastPrinted > 50000 && now.Sub(lastProgressUpdate) >= 500*time.Millisecond) || completed {
 				lastPrinted = transferred
 				lastProgressUpdate = now
-				progress := info(fmt.Sprintf("Downloading %s %s  %s | %.2fMiB", track.SNG_TITLE, message, bar(transferred), humanSizeTotal))
-				if terminalStatus.interactive {
-					terminalStatus.Update(progress)
-				} else if transferred-lastLogged > 5*1024*1024 || completed {
-					lastLogged = transferred
-					terminalStatus.Println(progress)
+				if onProgress != nil {
+					onProgress(transferred, total)
 				}
 			}
 		}

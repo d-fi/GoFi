@@ -50,29 +50,6 @@ func TestSelectTracks(t *testing.T) {
 	}
 }
 
-func TestSavePathsForTracksUsesLayout(t *testing.T) {
-	position := 4
-	tracks := []types.TrackType{
-		{
-			SongType: types.SongType{
-				ALB_TITLE: "Discovery",
-				ART_NAME:  "Daft Punk",
-				SNG_TITLE: "Harder/Better",
-			},
-			TRACK_POSITION: &position,
-		},
-	}
-
-	paths := savePathsForTracks(tracks, nil, "Music/{ALB_TITLE}/{ART_NAME}/{SNG_TITLE}", true, "flac")
-	if len(paths) != 1 {
-		t.Fatalf("len(paths) = %d, want 1", len(paths))
-	}
-	want := filepath.Join("Music", "Discovery", "Daft Punk", "04 - Harder_Better.flac")
-	if paths[0] != want {
-		t.Fatalf("path = %q, want %q", paths[0], want)
-	}
-}
-
 func TestConfigHandlers(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "d-fi.config.json")
 	server := NewServer(Options{ConfigPath: path})

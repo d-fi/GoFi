@@ -17,7 +17,6 @@ import (
 
 	"github.com/d-fi/GoFi/api"
 	"github.com/d-fi/GoFi/converter"
-	"github.com/d-fi/GoFi/download"
 	"github.com/d-fi/GoFi/internal/dfi"
 	"github.com/d-fi/GoFi/request"
 	"github.com/d-fi/GoFi/types"
@@ -286,7 +285,7 @@ func (s *Server) handleStartDownload(w http.ResponseWriter, r *http.Request) {
 	}
 
 	cfg := s.currentConfig()
-	quality, label, err := parseQuality(req.Quality)
+	_, label, err := parseQuality(req.Quality)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err)
 		return
@@ -295,8 +294,15 @@ func (s *Server) handleStartDownload(w http.ResponseWriter, r *http.Request) {
 	if concurrency <= 0 {
 		concurrency = 1
 	}
-	if req.CoverSize <= 0 {
-		req.CoverSize = dfi.CoverSizeForQuality(cfg.CoverSize, label)
+	if req.CoverSize > 0 {
+		switch label {
+		case "128":
+			cfg.CoverSize.MP3_128 = req.CoverSize
+		case "flac":
+			cfg.CoverSize.FLAC = req.CoverSize
+		default:
+			cfg.CoverSize.MP3_320 = req.CoverSize
+		}
 	}
 
 	res, err := s.resolveInput(req.Query)
@@ -313,7 +319,6 @@ func (s *Server) handleStartDownload(w http.ResponseWriter, r *http.Request) {
 	if req.SaveToDir != "" {
 		pathTemplate = filepath.Join(req.SaveToDir, "{SNG_TITLE}")
 	}
-	savePaths := savePathsForTracks(tracks, res.linkInfo, pathTemplate, cfg.TrackNumber, label)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	job := &downloadJob{
@@ -332,7 +337,7 @@ func (s *Server) handleStartDownload(w http.ResponseWriter, r *http.Request) {
 	s.jobs[job.ID] = job
 	s.mu.Unlock()
 
-	go s.runDownloadJob(ctx, job.ID, tracks, savePaths, quality, req.CoverSize, concurrency)
+	go s.runDownloadJob(ctx, job.ID, tracks, res.linkInfo, pathTemplate, label, cfg, concurrency)
 	writeJSON(w, http.StatusAccepted, jobResponse{Job: s.snapshotJob(job.ID)})
 }
 
@@ -380,7 +385,7 @@ func (s *Server) handleDeleteJob(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (s *Server) runDownloadJob(ctx context.Context, jobID int64, tracks []types.TrackType, savePaths []string, quality, coverSize int, concurrency int) {
+func (s *Server) runDownloadJob(ctx context.Context, jobID int64, tracks []types.TrackType, info any, pathTemplate, quality string, cfg dfi.Config, concurrency int) {
 	s.updateJob(jobID, func(job *downloadJob) {
 		job.Status = "running"
 	})
@@ -404,17 +409,32 @@ func (s *Server) runDownloadJob(ctx context.Context, jobID int64, tracks []types
 			s.updateJob(jobID, func(job *downloadJob) {
 				job.Current = track.SNG_TITLE + " - " + track.ART_NAME
 			})
-			path, err := download.DownloadTrack(download.DownloadTrackOptions{
-				SngID:     track.SNG_ID,
-				Quality:   quality,
-				CoverSize: coverSize,
-				SavePath:  savePaths[index],
-				Context:   ctx,
-				OnProgress: func(progress float64, downloaded, total int64) {
-					s.updateJob(jobID, func(job *downloadJob) {
-						job.trackPct[index] = progress
-						job.Progress = jobProgress(job)
-					})
+			path, err := dfi.DownloadTrack(ctx, dfi.DownloadTrackOptions{
+				Track:           track,
+				Quality:         quality,
+				Info:            info,
+				CoverSizes:      cfg.CoverSize,
+				Path:            pathTemplate,
+				TotalTracks:     len(tracks),
+				TrackNumber:     cfg.TrackNumber,
+				FallbackTrack:   cfg.FallbackTrack,
+				FallbackQuality: cfg.FallbackQuality,
+				Hooks: dfi.DownloadTrackHooks{
+					Status: func(message string) {
+						s.updateJob(jobID, func(job *downloadJob) {
+							job.Current = message
+						})
+					},
+					Progress: func(track types.TrackType, transferred, total int64) {
+						if total <= 0 {
+							return
+						}
+						progress := float64(transferred) / float64(total) * 100
+						s.updateJob(jobID, func(job *downloadJob) {
+							job.trackPct[index] = progress
+							job.Progress = jobProgress(job)
+						})
+					},
 				},
 			})
 			s.updateJob(jobID, func(job *downloadJob) {
@@ -631,23 +651,6 @@ func previewTracks(tracks []types.TrackType) []trackPreview {
 		})
 	}
 	return out
-}
-
-func savePathsForTracks(tracks []types.TrackType, info any, pathTemplate string, trackNumber bool, label string) []string {
-	out := make([]string, 0, len(tracks))
-	if strings.HasPrefix(pathTemplate, "{") {
-		pathTemplate = "." + string(filepath.Separator) + pathTemplate
-	}
-	for _, track := range tracks {
-		path := dfi.SaveLayout(track, info, pathTemplate, trackNumber, len(tracks))
-		out = append(out, path+extensionForQuality(label))
-	}
-	return out
-}
-
-func extensionForQuality(label string) string {
-	_, ext, _ := dfi.ParseQuality(label)
-	return ext
 }
 
 func searchOptions(searchType, query string) ([]searchOption, error) {

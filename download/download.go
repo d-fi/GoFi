@@ -19,7 +19,7 @@ import (
 )
 
 // DownloadTrack downloads a track, adds metadata, and saves it to the specified directory.
-func DownloadTrack(options DownloadTrackOptions) (string, error) {
+func DownloadTrack(ctx context.Context, options DownloadTrackOptions) (string, error) {
 	logger.Debug("Starting download for track ID: %s with quality: %d", options.SngID, options.Quality)
 	track, err := api.GetTrackInfo(options.SngID)
 	if err != nil {
@@ -35,7 +35,10 @@ func DownloadTrack(options DownloadTrackOptions) (string, error) {
 		ext = "mp3"
 	}
 
-	trackData, err := GetTrackDownloadUrl(track, options.Quality)
+	ctx, stop := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
+	trackData, err := GetTrackDownloadUrl(ctx, track, options.Quality)
 	if err != nil || trackData == nil {
 		logger.Debug("Failed to retrieve downloadable URL: %v", err)
 		return "", fmt.Errorf("failed to retrieve downloadable URL: %v", err)
@@ -80,13 +83,6 @@ func DownloadTrack(options DownloadTrackOptions) (string, error) {
 			_ = os.Remove(savedPath)
 		}
 	}()
-
-	ctx := options.Context
-	if ctx == nil {
-		ctx = context.Background()
-	}
-	ctx, stop := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
-	defer stop()
 
 	// Download the track from the generated URL with progress tracking
 	resp, err := request.Client.R().

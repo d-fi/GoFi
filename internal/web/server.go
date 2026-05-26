@@ -360,13 +360,20 @@ func (s *Server) handleCancelJob(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, err)
 		return
 	}
-	job := s.snapshotJob(id)
-	if job == nil {
+	s.mu.Lock()
+	live := s.jobs[id]
+	if live == nil {
+		s.mu.Unlock()
 		writeError(w, http.StatusNotFound, fmt.Errorf("job not found"))
 		return
 	}
-	s.mu.Lock()
-	if live := s.jobs[id]; live != nil && live.cancel != nil {
+	if live.Status == "queued" || live.Status == "running" {
+		live.Status = "canceling"
+		live.Current = "Canceling download"
+		live.Error = ""
+		live.UpdatedAt = time.Now()
+	}
+	if live.cancel != nil {
 		live.cancel()
 	}
 	s.mu.Unlock()
@@ -397,11 +404,16 @@ func (s *Server) runDownloadJob(ctx context.Context, jobID int64, linkType strin
 	var wg sync.WaitGroup
 	var failed atomic.Int64
 
+trackLoop:
 	for i, track := range tracks {
 		if ctx.Err() != nil {
 			break
 		}
-		sem <- struct{}{}
+		select {
+		case sem <- struct{}{}:
+		case <-ctx.Done():
+			break trackLoop
+		}
 		wg.Add(1)
 		go func(index int, track types.TrackType) {
 			defer wg.Done()
@@ -443,9 +455,16 @@ func (s *Server) runDownloadJob(ctx context.Context, jobID int64, linkType strin
 			s.updateJob(jobID, func(job *downloadJob) {
 				delete(job.trackPct, index)
 				if err != nil {
+					if ctx.Err() != nil {
+						job.Error = "Canceled by user"
+						return
+					}
 					failed.Add(1)
 					job.Error = err.Error()
 				} else {
+					if ctx.Err() != nil {
+						return
+					}
 					job.DoneTracks++
 					job.Progress = jobProgress(job)
 					if path != "" {
@@ -474,7 +493,8 @@ func (s *Server) runDownloadJob(ctx context.Context, jobID int64, linkType strin
 	s.updateJob(jobID, func(job *downloadJob) {
 		if ctx.Err() != nil {
 			job.Status = "canceled"
-			job.Error = ctx.Err().Error()
+			job.Error = "Canceled by user"
+			job.Current = ""
 			return
 		}
 		if failed.Load() > 0 {
@@ -648,7 +668,7 @@ func jobProgress(job *downloadJob) float64 {
 }
 
 func isActiveJob(job *downloadJob) bool {
-	return job != nil && (job.Status == "queued" || job.Status == "running")
+	return job != nil && (job.Status == "queued" || job.Status == "running" || job.Status == "canceling")
 }
 
 func previewTracks(tracks []types.TrackType) []trackPreview {

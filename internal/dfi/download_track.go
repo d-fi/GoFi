@@ -51,6 +51,9 @@ func DownloadTrack(ctx context.Context, options DownloadTrackOptions) (string, e
 	if options.Hooks.Start != nil {
 		options.Hooks.Start(track)
 	}
+	if err := ctx.Err(); err != nil {
+		return "", err
+	}
 
 	quality, ext, label := ParseQuality(options.Quality)
 	coverSize := CoverSizeForQuality(options.CoverSizes, label)
@@ -66,7 +69,7 @@ func DownloadTrack(ctx context.Context, options DownloadTrackOptions) (string, e
 		return savePath, nil
 	}
 
-	trackData, err := download.GetTrackDownloadUrl(track, quality)
+	trackData, err := download.GetTrackDownloadUrl(ctx, track, quality)
 	if err != nil {
 		var geoBlocked *download.GeoBlocked
 		if !errors.As(err, &geoBlocked) || track.FALLBACK == nil {
@@ -112,9 +115,15 @@ func DownloadTrack(ctx context.Context, options DownloadTrackOptions) (string, e
 		return "", err
 	}
 	defer os.Remove(tmpFile)
+	if err := ctx.Err(); err != nil {
+		return "", err
+	}
 
 	raw, err := os.ReadFile(tmpFile)
 	if err != nil {
+		return "", err
+	}
+	if err := ctx.Err(); err != nil {
 		return "", err
 	}
 	if trackData.IsEncrypted {
@@ -123,12 +132,18 @@ func DownloadTrack(ctx context.Context, options DownloadTrackOptions) (string, e
 		}
 		raw = decrypt.DecryptDownload(raw, track.SNG_ID)
 	}
+	if err := ctx.Err(); err != nil {
+		return "", err
+	}
 
 	if options.Hooks.Status != nil {
 		options.Hooks.Status("Tagging " + track.SNG_TITLE + " by " + track.ART_NAME)
 	}
 	tagged, err := metadata.AddTrackTags(raw, track, coverSize)
 	if err != nil {
+		return "", err
+	}
+	if err := ctx.Err(); err != nil {
 		return "", err
 	}
 
@@ -140,6 +155,10 @@ func DownloadTrack(ctx context.Context, options DownloadTrackOptions) (string, e
 			return "", err
 		}
 		if err := os.WriteFile(savePath, tagged, 0644); err != nil {
+			return "", err
+		}
+		if err := ctx.Err(); err != nil {
+			_ = os.Remove(savePath)
 			return "", err
 		}
 	}

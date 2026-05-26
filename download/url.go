@@ -1,6 +1,7 @@
 package download
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -33,7 +34,7 @@ func (e *GeoBlocked) Error() string {
 var userData *UserData
 
 // DzAuthenticate authenticates with Deezer and retrieves user data.
-func DzAuthenticate() (*UserData, error) {
+func DzAuthenticate(ctx context.Context) (*UserData, error) {
 	if userData != nil {
 		logger.Debug("Using cached user data.")
 		return userData, nil
@@ -41,6 +42,7 @@ func DzAuthenticate() (*UserData, error) {
 
 	logger.Debug("Authenticating with Deezer to retrieve user data.")
 	resp, err := request.Client.R().
+		SetContext(ctx).
 		SetQueryParams(map[string]string{
 			"method":      "deezer.getUserData",
 			"api_version": "1.0",
@@ -75,9 +77,9 @@ func DzAuthenticate() (*UserData, error) {
 }
 
 // GetTrackUrlFromServer fetches the track URL from the server based on the track token and format.
-func GetTrackUrlFromServer(trackToken, format string) (string, error) {
+func GetTrackUrlFromServer(ctx context.Context, trackToken, format string) (string, error) {
 	logger.Debug("Fetching track URL from server for format: %s", format)
-	user, err := DzAuthenticate()
+	user, err := DzAuthenticate(ctx)
 	if err != nil {
 		logger.Debug("Error during Deezer authentication: %v", err)
 		return "", err
@@ -90,6 +92,7 @@ func GetTrackUrlFromServer(trackToken, format string) (string, error) {
 	}
 
 	resp, err := request.Client.R().
+		SetContext(ctx).
 		SetBody(map[string]any{
 			"license_token": user.LicenseToken,
 			"media": []map[string]any{
@@ -139,7 +142,7 @@ func GetTrackUrlFromServer(trackToken, format string) (string, error) {
 }
 
 // GetTrackDownloadUrl retrieves the download URL of a track based on quality.
-func GetTrackDownloadUrl(track types.TrackType, quality int) (*TrackDownloadUrl, error) {
+func GetTrackDownloadUrl(ctx context.Context, track types.TrackType, quality int) (*TrackDownloadUrl, error) {
 	var formatName string
 	switch quality {
 	case 9:
@@ -158,9 +161,9 @@ func GetTrackDownloadUrl(track types.TrackType, quality int) (*TrackDownloadUrl,
 	var geoBlocked *GeoBlocked
 
 	// Attempt to get the URL with the official API.
-	url, err := GetTrackUrlFromServer(track.TRACK_TOKEN, formatName)
+	url, err := GetTrackUrlFromServer(ctx, track.TRACK_TOKEN, formatName)
 	if err == nil && url != "" {
-		fileSize, err := utils.CheckURLFileSize(url, nil)
+		fileSize, err := utils.CheckURLFileSize(ctx, url, nil)
 		if err == nil && fileSize > 0 {
 			logger.Debug("Track URL obtained and verified successfully. File size: %d bytes", fileSize)
 			return &TrackDownloadUrl{
@@ -182,6 +185,9 @@ func GetTrackDownloadUrl(track types.TrackType, quality int) (*TrackDownloadUrl,
 	}
 
 	// Fallback to the old method.
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	logger.Debug("Falling back to old method for track URL.")
 	filename := decrypt.GetSongFileName(&decrypt.TrackType{
 		MD5_ORIGIN:    track.MD5_ORIGIN,
@@ -189,7 +195,7 @@ func GetTrackDownloadUrl(track types.TrackType, quality int) (*TrackDownloadUrl,
 		MEDIA_VERSION: track.MEDIA_VERSION,
 	}, quality)
 	fallbackURL := fmt.Sprintf("https://e-cdns-proxy-%s.dzcdn.net/mobile/1/%s", string(track.MD5_ORIGIN[0]), filename)
-	fileSize, err := utils.CheckURLFileSize(fallbackURL, nil)
+	fileSize, err := utils.CheckURLFileSize(ctx, fallbackURL, nil)
 	if err == nil && fileSize > 0 {
 		logger.Debug("Fallback URL obtained and verified successfully. File size: %d bytes", fileSize)
 		return &TrackDownloadUrl{

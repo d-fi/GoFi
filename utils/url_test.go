@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -57,7 +58,7 @@ func TestCheckURLFileSize(t *testing.T) {
 			server := httptest.NewServer(test.handler)
 			defer server.Close()
 
-			size, err := CheckURLFileSize(server.URL, test.timeout)
+			size, err := CheckURLFileSize(context.Background(), server.URL, test.timeout)
 
 			if test.expectedErrMsg != "" {
 				assert.Error(t, err, "Expected an error for test '%s'", test.name)
@@ -68,4 +69,12 @@ func TestCheckURLFileSize(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestCheckURLFileSizeCanceled(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	_, err := CheckURLFileSize(ctx, "http://example.com/file.mp3", nil)
+	assert.ErrorIs(t, err, context.Canceled)
 }

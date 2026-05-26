@@ -1,7 +1,5 @@
 package download
 
-import "context"
-
 // UserData struct stores user license and streaming capabilities
 type UserData struct {
 	LicenseToken      string
@@ -28,7 +26,6 @@ type DownloadTrackOptions struct {
 	SaveToDir  string                                          // The directory where the track will be saved.
 	SavePath   string                                          // Optional exact path where the track will be saved.
 	OnProgress func(progress float64, downloaded, total int64) // The progress callback function.
-	Context    context.Context                                 // Optional context for canceling the download.
 }
 
 // DownloadTrackToBufferOptions contains all the details needed for downloading a track to a buffer.

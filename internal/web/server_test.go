@@ -2,6 +2,7 @@ package web
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -58,6 +59,7 @@ func TestClearJobsKeepsActiveJobs(t *testing.T) {
 	server.jobs[2] = &downloadJob{ID: 2, Status: "error", CreatedAt: now, UpdatedAt: now}
 	server.jobs[3] = &downloadJob{ID: 3, Status: "queued", CreatedAt: now, UpdatedAt: now}
 	server.jobs[4] = &downloadJob{ID: 4, Status: "running", CreatedAt: now, UpdatedAt: now}
+	server.jobs[5] = &downloadJob{ID: 5, Status: "canceling", CreatedAt: now, UpdatedAt: now}
 
 	req := httptest.NewRequest(http.MethodDelete, "/api/jobs", nil)
 	rec := httptest.NewRecorder()
@@ -68,7 +70,34 @@ func TestClearJobsKeepsActiveJobs(t *testing.T) {
 	if server.jobs[1] != nil || server.jobs[2] != nil {
 		t.Fatal("inactive jobs were not cleared")
 	}
-	if server.jobs[3] == nil || server.jobs[4] == nil {
+	if server.jobs[3] == nil || server.jobs[4] == nil || server.jobs[5] == nil {
 		t.Fatal("active jobs should be kept")
+	}
+}
+
+func TestCancelJobMarksJobCanceling(t *testing.T) {
+	server := NewServer(Options{ConfigPath: filepath.Join(t.TempDir(), "d-fi.config.json")})
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	now := time.Now()
+	server.jobs[1] = &downloadJob{
+		ID:        1,
+		Status:    "running",
+		CreatedAt: now,
+		UpdatedAt: now,
+		cancel:    cancel,
+	}
+
+	req := httptest.NewRequest(http.MethodPost, "/api/jobs/1/cancel", nil)
+	rec := httptest.NewRecorder()
+	server.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("POST /api/jobs/1/cancel status = %d body=%s", rec.Code, rec.Body.String())
+	}
+	if got := server.jobs[1].Status; got != "canceling" {
+		t.Fatalf("Status = %q, want canceling", got)
+	}
+	if err := ctx.Err(); err == nil {
+		t.Fatal("cancel function was not called")
 	}
 }

@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -12,7 +13,7 @@ import (
 // CheckURLFileSize performs a HEAD request to check the availability of a URL
 // and returns the content length if available.
 // The timeout parameter is optional; if nil, it defaults to 10 seconds.
-func CheckURLFileSize(url string, timeout *time.Duration) (int64, error) {
+func CheckURLFileSize(ctx context.Context, url string, timeout *time.Duration) (int64, error) {
 	var clientTimeout time.Duration
 
 	if timeout != nil && *timeout > 0 {
@@ -27,7 +28,11 @@ func CheckURLFileSize(url string, timeout *time.Duration) (int64, error) {
 		Timeout: clientTimeout,
 	}
 
-	resp, err := client.Head(url)
+	req, err := http.NewRequestWithContext(ctx, http.MethodHead, url, nil)
+	if err != nil {
+		return 0, err
+	}
+	resp, err := client.Do(req)
 	if err != nil {
 		logger.Debug("Error during HEAD request: %v", err)
 		return 0, err

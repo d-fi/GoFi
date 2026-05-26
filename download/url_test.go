@@ -1,6 +1,7 @@
 package download
 
 import (
+	"context"
 	"os"
 	"strconv"
 	"testing"
@@ -29,7 +30,7 @@ func TestMain(m *testing.M) {
 }
 
 func TestDzAuthenticate(t *testing.T) {
-	user, err := DzAuthenticate()
+	user, err := DzAuthenticate(context.Background())
 	assert.NoError(t, err)
 	assert.NotNil(t, user)
 	assert.NotEmpty(t, user.LicenseToken)
@@ -39,7 +40,7 @@ func TestDzAuthenticate(t *testing.T) {
 
 func TestGetTrackUrlFromServer(t *testing.T) {
 	trackToken := "example_track_token"
-	_, err := GetTrackUrlFromServer(trackToken, "MP3_320")
+	_, err := GetTrackUrlFromServer(context.Background(), trackToken, "MP3_320")
 	assert.Error(t, err, "Expected error due to incorrect token or unavailable track")
 }
 
@@ -54,7 +55,7 @@ func TestGetTrackDownloadUrl(t *testing.T) {
 
 	for _, quality := range qualities {
 		t.Run("Quality "+strconv.Itoa(quality), func(t *testing.T) {
-			trackURL, err := GetTrackDownloadUrl(track, quality)
+			trackURL, err := GetTrackDownloadUrl(context.Background(), track, quality)
 			if err == nil {
 				assert.NotNil(t, trackURL)
 				assert.NotEmpty(t, trackURL.TrackUrl)
@@ -72,7 +73,7 @@ func TestGetTrackDownloadUrlWithInvalidQuality(t *testing.T) {
 	assert.NoError(t, err, "Failed to fetch track information")
 	assert.NotEmpty(t, track.TRACK_TOKEN, "Track token should not be empty")
 
-	_, err = GetTrackDownloadUrl(track, 999) // Testing an invalid quality
+	_, err = GetTrackDownloadUrl(context.Background(), track, 999) // Testing an invalid quality
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "unknown quality 999")
 }

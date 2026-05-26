@@ -1026,6 +1026,13 @@
         state.jobsTimer = window.setTimeout(loadJobs, delay);
       }
       function isActiveJob(job) {
+        return (
+          job.status === "queued" ||
+          job.status === "running" ||
+          job.status === "canceling"
+        );
+      }
+      function isCancelableJob(job) {
         return job.status === "queued" || job.status === "running";
       }
       function syncClearHistoryButton(jobs) {
@@ -1065,13 +1072,15 @@
               .join("");
             const pct = Math.max(0, Math.min(100, Number(job.progress || 0)));
             const line = jobLine(job);
-            const action = isActiveJob(job)
+            const action = isCancelableJob(job)
               ? '<button class="secondary" onclick="cancelJob(' +
                 job.id +
                 ')">Cancel</button>'
-              : '<button class="danger" onclick="deleteJob(' +
-                job.id +
-                ')">Remove</button>';
+              : job.status === "canceling"
+                ? '<button class="secondary" disabled>Canceling</button>'
+                : '<button class="danger" onclick="deleteJob(' +
+                  job.id +
+                  ')">Remove</button>';
             return (
               '<div class="job">' +
               '<div class="job-head"><strong>#' +
@@ -1110,6 +1119,7 @@
         if (job.status === "running") return "Downloading";
         if (job.status === "done") return "Done";
         if (job.status === "error") return "Error";
+        if (job.status === "canceling") return "Canceling";
         if (job.status === "canceled") return "Canceled";
         if (job.status === "queued") return "Queued";
         return job.status;
@@ -1125,6 +1135,7 @@
             : "Preparing download";
         }
         if (job.status === "queued") return "Waiting to start";
+        if (job.status === "canceling") return "Canceling download";
         if (job.status === "error") return job.error || "Download failed";
         if (job.status === "canceled") return job.error || "Canceled";
         return job.source;

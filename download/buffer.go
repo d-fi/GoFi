@@ -23,7 +23,7 @@ func DownloadTrackToBuffer(ctx context.Context, options DownloadTrackToBufferOpt
 		return nil, fmt.Errorf("failed to fetch track info: %v", err)
 	}
 
-	trackData, err := GetTrackDownloadUrl(track, options.Quality)
+	trackData, err := GetTrackDownloadUrl(ctx, track, options.Quality)
 	if err != nil || trackData == nil {
 		logger.Debug("Failed to retrieve downloadable URL: %v", err)
 		return nil, fmt.Errorf("failed to retrieve downloadable URL: %v", err)

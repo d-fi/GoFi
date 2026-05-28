@@ -42,26 +42,3 @@ func TestSpotifyTokenResourceRejectsUnsupportedPath(t *testing.T) {
 	_, _, err := spotifyTokenResource("me")
 	require.Error(t, err)
 }
-
-func TestParseSpotifyPlaylistEmbed(t *testing.T) {
-	body := []byte(`<html><script id="__NEXT_DATA__" type="application/json">{"props":{"pageProps":{"state":{"data":{"entity":{"id":"playlist-id","title":"My Playlist","subtitle":"Owner","coverArt":{"sources":[{"url":"https://example.com/cover.jpg"}]},"trackList":[{"uri":"spotify:track:track-id","title":"Track Title","subtitle":"Artist One, Artist Two","duration":123000,"isExplicit":true}]}}}}}}</script></html>`)
-
-	entity, err := parseSpotifyPlaylistEmbed(body)
-	require.NoError(t, err)
-	assert.Equal(t, "playlist-id", entity.ID)
-	assert.Equal(t, "My Playlist", entity.Title)
-	require.Len(t, entity.CoverArt.Sources, 1)
-	assert.Equal(t, "https://example.com/cover.jpg", entity.CoverArt.Sources[0].URL)
-	require.Len(t, entity.TrackList, 1)
-
-	track := entity.TrackList[0]
-	assert.Equal(t, "spotify:track:track-id", track.URI)
-	assert.Equal(t, "Track Title", track.Title)
-	assert.Equal(t, 123000, track.Duration)
-	assert.True(t, track.IsExplicit)
-
-	artists := spotifyArtistsFromSubtitle(track.Subtitle)
-	require.Len(t, artists, 2)
-	assert.Equal(t, "Artist One", artists[0].Name)
-	assert.Equal(t, "Artist Two", artists[1].Name)
-}

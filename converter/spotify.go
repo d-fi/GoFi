@@ -3,7 +3,6 @@ package converter
 import (
 	"encoding/json"
 	"fmt"
-	"html"
 	"io"
 	"net/http"
 	"net/url"
@@ -13,7 +12,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/d-fi/GoFi/api"
 	"github.com/d-fi/GoFi/types"
 )
 
@@ -113,16 +111,13 @@ func GetSpotifyTrack(id string) (SpotifyTrack, error) {
 	return track, err
 }
 
-// SpotifyTrackToDeezer converts a Spotify track to a Deezer track via ISRC, with search fallback.
+// SpotifyTrackToDeezer converts a Spotify track to a Deezer track via ISRC.
 func SpotifyTrackToDeezer(id string) (types.TrackType, error) {
 	track, err := GetSpotifyTrack(id)
-	if err == nil {
-		return spotifyTrackToDeezerTrack(track)
+	if err != nil {
+		return types.TrackType{}, err
 	}
-	if fallback, fallbackErr := spotifyOEmbedTrackToDeezer(id); fallbackErr == nil {
-		return fallback, nil
-	}
-	return types.TrackType{}, err
+	return spotifyTrackToDeezerTrack(track)
 }
 
 // GetSpotifyAlbum fetches Spotify album metadata.
@@ -135,17 +130,10 @@ func GetSpotifyAlbum(id string) (SpotifyAlbum, error) {
 // SpotifyAlbumToDeezer converts a Spotify album to a Deezer album and track list via UPC.
 func SpotifyAlbumToDeezer(id string) (types.AlbumType, []types.TrackType, error) {
 	album, err := GetSpotifyAlbum(id)
-	if err == nil {
-		deezerAlbum, tracks, convertErr := UPCToDeezer(album.Name, album.ExternalIDs["upc"])
-		if convertErr == nil {
-			return deezerAlbum, tracks, nil
-		}
-		err = convertErr
+	if err != nil {
+		return types.AlbumType{}, nil, err
 	}
-	if fallbackAlbum, fallbackTracks, fallbackErr := spotifyOEmbedAlbumToDeezer(id); fallbackErr == nil {
-		return fallbackAlbum, fallbackTracks, nil
-	}
-	return types.AlbumType{}, nil, err
+	return UPCToDeezer(album.Name, album.ExternalIDs["upc"])
 }
 
 // GetSpotifyPlaylist fetches Spotify playlist metadata.
@@ -177,11 +165,11 @@ func GetSpotifyPlaylistTracks(id string) ([]SpotifyTrack, int, error) {
 func SpotifyPlaylistToDeezer(id string) (types.PlaylistInfo, []types.TrackType, error) {
 	body, err := GetSpotifyPlaylist(id)
 	if err != nil {
-		return spotifyPlaylistEmbedToDeezer(id, SpotifyPlaylist{}, err)
+		return types.PlaylistInfo{}, nil, err
 	}
 	items, total, err := GetSpotifyPlaylistTracks(id)
 	if err != nil {
-		return spotifyPlaylistEmbedToDeezer(id, body, err)
+		return types.PlaylistInfo{}, nil, err
 	}
 
 	playlist := types.PlaylistInfo{
@@ -190,7 +178,6 @@ func SpotifyPlaylistToDeezer(id string) (types.PlaylistInfo, []types.TrackType, 
 		ParentUsername:  body.Owner.DisplayName,
 		ParentUserID:    body.Owner.ID,
 		PictureType:     "cover",
-		PlaylistPicture: firstSpotifyImage(body.Images),
 		Title:           body.Name,
 		Type:            "0",
 		Status:          0,
@@ -201,6 +188,9 @@ func SpotifyPlaylistToDeezer(id string) (types.PlaylistInfo, []types.TrackType, 
 		IsSponsored:     false,
 		IsEdito:         false,
 		TYPE_INTERNAL:   "playlist",
+	}
+	if len(body.Images) > 0 {
+		playlist.PlaylistPicture = body.Images[0].URL
 	}
 	return playlist, spotifyPlaylistTracksToDeezer(items), nil
 }
@@ -234,21 +224,7 @@ func spotifyTrackToDeezerTrack(track SpotifyTrack) (types.TrackType, error) {
 	if track.ExternalIDs["isrc"] != "" {
 		return ISRCToDeezer(track.Name, track.ExternalIDs["isrc"])
 	}
-	if len(track.Artists) > 0 {
-		search, err := api.SearchAlternative(track.Artists[0].Name, track.Name, 1)
-		if err == nil && len(search.TRACK.Data) > 0 {
-			return search.TRACK.Data[0], nil
-		}
-	}
-
-	query := strings.TrimSpace(track.Name + " " + spotifyArtistsString(track.Artists))
-	if query != "" {
-		search, err := api.SearchMusic(query, 20, "TRACK")
-		if err == nil && len(search.TRACK.Data) > 0 {
-			return search.TRACK.Data[0], nil
-		}
-	}
-	return types.TrackType{}, fmt.Errorf("no track found for spotify track %s", track.ID)
+	return types.TrackType{}, fmt.Errorf("spotify track %s has no ISRC", track.ID)
 }
 
 func spotifyPlaylistTracksToDeezer(items []SpotifyTrack) []types.TrackType {
@@ -438,357 +414,4 @@ func extractSpotifyToken(body string) (string, int64) {
 	}
 	expiry, _ := strconv.ParseInt(expiryMatch[1], 10, 64)
 	return tokenMatch[1], expiry
-}
-
-func spotifyOEmbedTrackToDeezer(id string) (types.TrackType, error) {
-	metadata, metadataErr := fetchSpotifyEmbedMetadata("track", id)
-	if metadataErr == nil {
-		cleanTitle := cleanSpotifyTitle(metadata.Title)
-		if metadata.Title != "" && len(metadata.Artists) > 0 {
-			search, err := api.SearchAlternative(metadata.Artists[0], metadata.Title, 1)
-			if err == nil && len(search.TRACK.Data) > 0 {
-				return search.TRACK.Data[0], nil
-			}
-			if cleanTitle != "" && cleanTitle != metadata.Title {
-				search, err := api.SearchAlternative(metadata.Artists[0], cleanTitle, 1)
-				if err == nil && len(search.TRACK.Data) > 0 {
-					return search.TRACK.Data[0], nil
-				}
-			}
-		}
-		for _, query := range []string{
-			strings.TrimSpace(cleanTitle + " " + strings.Join(metadata.Artists, " ")),
-			strings.TrimSpace(metadata.Title + " " + strings.Join(metadata.Artists, " ")),
-		} {
-			if query == "" {
-				continue
-			}
-			search, err := api.SearchMusic(query, 20, "TRACK")
-			if err == nil && len(search.TRACK.Data) > 0 {
-				return search.TRACK.Data[0], nil
-			}
-		}
-	}
-
-	title, err := fetchSpotifyOEmbedTitle("track", id)
-	if err != nil {
-		return types.TrackType{}, err
-	}
-	search, err := api.SearchMusic(title, 20, "TRACK")
-	if err != nil {
-		return types.TrackType{}, err
-	}
-	if len(search.TRACK.Data) == 0 {
-		return types.TrackType{}, fmt.Errorf("no track found for spotify track %s", id)
-	}
-	return search.TRACK.Data[0], nil
-}
-
-func spotifyOEmbedAlbumToDeezer(id string) (types.AlbumType, []types.TrackType, error) {
-	title := ""
-	if metadata, err := fetchSpotifyEmbedMetadata("album", id); err == nil {
-		title = strings.TrimSpace(metadata.Title + " " + strings.Join(metadata.Artists, " "))
-	}
-	if title == "" {
-		oembedTitle, err := fetchSpotifyOEmbedTitle("album", id)
-		if err != nil {
-			return types.AlbumType{}, nil, err
-		}
-		title = oembedTitle
-	}
-	search, err := api.SearchMusic(title, 10, "ALBUM")
-	if err != nil {
-		return types.AlbumType{}, nil, err
-	}
-	if len(search.ALBUM.Data) == 0 {
-		return types.AlbumType{}, nil, fmt.Errorf("no album found for spotify album %s", id)
-	}
-	albumID := search.ALBUM.Data[0].ALB_ID
-	album, err := api.GetAlbumInfo(albumID)
-	if err != nil {
-		return types.AlbumType{}, nil, err
-	}
-	tracks, err := api.GetAlbumTracks(albumID)
-	if err != nil {
-		return types.AlbumType{}, nil, err
-	}
-	return album, tracks.Data, nil
-}
-
-type spotifyEmbedPlaylistEntity struct {
-	ID       string `json:"id"`
-	Title    string `json:"title"`
-	Subtitle string `json:"subtitle"`
-	CoverArt struct {
-		Sources []struct {
-			URL string `json:"url"`
-		} `json:"sources"`
-	} `json:"coverArt"`
-	TrackList []spotifyEmbedPlaylistTrack `json:"trackList"`
-}
-
-type spotifyEmbedPlaylistTrack struct {
-	URI        string `json:"uri"`
-	Title      string `json:"title"`
-	Subtitle   string `json:"subtitle"`
-	Duration   int    `json:"duration"`
-	IsExplicit bool   `json:"isExplicit"`
-}
-
-func spotifyPlaylistEmbedToDeezer(id string, body SpotifyPlaylist, originalErr error) (types.PlaylistInfo, []types.TrackType, error) {
-	entity, err := fetchSpotifyPlaylistEmbed(id)
-	if err != nil {
-		return types.PlaylistInfo{}, nil, originalErr
-	}
-	items := make([]SpotifyTrack, 0, len(entity.TrackList))
-	for _, item := range entity.TrackList {
-		id := strings.TrimPrefix(item.URI, "spotify:track:")
-		if id != "" && item.Title != "" {
-			items = append(items, SpotifyTrack{
-				ID:         id,
-				Name:       item.Title,
-				DurationMS: item.Duration,
-				Explicit:   item.IsExplicit,
-				Artists:    spotifyArtistsFromSubtitle(item.Subtitle),
-				Type:       "track",
-				URI:        item.URI,
-			})
-		}
-	}
-	if len(items) == 0 {
-		return types.PlaylistInfo{}, nil, originalErr
-	}
-
-	total := body.Tracks.Total
-	if total == 0 {
-		total = len(entity.TrackList)
-	}
-	playlistID := body.ID
-	if playlistID == "" {
-		playlistID = entity.ID
-	}
-	if playlistID == "" {
-		playlistID = id
-	}
-	parentUsername := body.Owner.DisplayName
-	if parentUsername == "" {
-		parentUsername = entity.Subtitle
-	}
-	playlistPicture := firstSpotifyImage(body.Images)
-	if playlistPicture == "" && len(entity.CoverArt.Sources) > 0 {
-		playlistPicture = entity.CoverArt.Sources[0].URL
-	}
-	title := body.Name
-	if title == "" {
-		title = entity.Title
-	}
-
-	playlist := types.PlaylistInfo{
-		PlaylistID:      playlistID,
-		Description:     body.Description,
-		ParentUsername:  parentUsername,
-		ParentUserID:    body.Owner.ID,
-		PictureType:     "cover",
-		PlaylistPicture: playlistPicture,
-		Title:           title,
-		Type:            "0",
-		Status:          0,
-		UserID:          body.Owner.ID,
-		NbSong:          total,
-		NbFan:           0,
-		HasArtistLinked: false,
-		IsSponsored:     false,
-		IsEdito:         false,
-		TYPE_INTERNAL:   "playlist",
-	}
-	return playlist, spotifyPlaylistTracksToDeezer(items), nil
-}
-
-func fetchSpotifyPlaylistEmbed(id string) (spotifyEmbedPlaylistEntity, error) {
-	var entity spotifyEmbedPlaylistEntity
-	embedURL := fmt.Sprintf("https://open.spotify.com/embed/playlist/%s?utm_source=oembed", url.PathEscape(id))
-	req, err := http.NewRequest(http.MethodGet, embedURL, nil)
-	if err != nil {
-		return entity, err
-	}
-	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
-	req.Header.Set("Accept-Language", "en-US,en;q=0.9")
-	req.Header.Set("User-Agent", spotifyBrowserUserAgent)
-
-	resp, err := spotifyHTTPClient.Do(req)
-	if err != nil {
-		return entity, err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return entity, fmt.Errorf("spotify embed error: %s", resp.Status)
-	}
-	bodyBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return entity, err
-	}
-
-	return parseSpotifyPlaylistEmbed(bodyBytes)
-}
-
-func parseSpotifyPlaylistEmbed(bodyBytes []byte) (spotifyEmbedPlaylistEntity, error) {
-	var entity spotifyEmbedPlaylistEntity
-	nextData := regexp.MustCompile(`<script id="__NEXT_DATA__" type="application/json">(.*?)</script>`).FindSubmatch(bodyBytes)
-	if len(nextData) < 2 {
-		return entity, fmt.Errorf("spotify embed data not found")
-	}
-	var page struct {
-		Props struct {
-			PageProps struct {
-				State struct {
-					Data struct {
-						Entity spotifyEmbedPlaylistEntity `json:"entity"`
-					} `json:"data"`
-				} `json:"state"`
-			} `json:"pageProps"`
-		} `json:"props"`
-	}
-	if err := json.Unmarshal(nextData[1], &page); err != nil {
-		return entity, err
-	}
-	entity = page.Props.PageProps.State.Data.Entity
-	if entity.ID == "" && entity.Title == "" && len(entity.TrackList) == 0 {
-		return entity, fmt.Errorf("spotify embed playlist data not found")
-	}
-	return entity, nil
-}
-
-func spotifyArtistsFromSubtitle(subtitle string) []SpotifyArtist {
-	parts := strings.FieldsFunc(subtitle, func(r rune) bool {
-		return r == ',' || r == '\u00a0'
-	})
-	artists := make([]SpotifyArtist, 0, len(parts))
-	for _, part := range parts {
-		name := strings.TrimSpace(part)
-		if name != "" {
-			artists = append(artists, SpotifyArtist{Name: name, Type: "artist"})
-		}
-	}
-	if len(artists) == 0 && strings.TrimSpace(subtitle) != "" {
-		artists = append(artists, SpotifyArtist{Name: strings.TrimSpace(subtitle), Type: "artist"})
-	}
-	return artists
-}
-
-type spotifyEmbedMetadata struct {
-	Title   string
-	Artists []string
-}
-
-func fetchSpotifyEmbedMetadata(resourceType, id string) (spotifyEmbedMetadata, error) {
-	var metadata spotifyEmbedMetadata
-	embedURL := fmt.Sprintf("https://open.spotify.com/embed/%s/%s?utm_source=oembed", url.PathEscape(resourceType), url.PathEscape(id))
-	req, err := http.NewRequest(http.MethodGet, embedURL, nil)
-	if err != nil {
-		return metadata, err
-	}
-	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
-	req.Header.Set("Accept-Language", "en-US,en;q=0.9")
-	req.Header.Set("User-Agent", spotifyBrowserUserAgent)
-
-	resp, err := spotifyHTTPClient.Do(req)
-	if err != nil {
-		return metadata, err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return metadata, fmt.Errorf("spotify embed error: %s", resp.Status)
-	}
-	bodyBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return metadata, err
-	}
-	body := string(bodyBytes)
-
-	metadata.Title = firstJSONRegexValue(body, `"title":"([^"]+)"`)
-	if metadata.Title == "" {
-		metadata.Title = firstJSONRegexValue(body, `"name":"([^"]+)"`)
-	}
-	artistBlock := regexp.MustCompile(`"artists":\[(.*?)\]`).FindStringSubmatch(body)
-	if len(artistBlock) > 1 {
-		for _, match := range regexp.MustCompile(`"name":"([^"]+)"`).FindAllStringSubmatch(artistBlock[1], -1) {
-			if len(match) > 1 {
-				metadata.Artists = append(metadata.Artists, unquoteJSONString(match[1]))
-			}
-		}
-	}
-
-	if metadata.Title == "" && len(metadata.Artists) == 0 {
-		return metadata, fmt.Errorf("spotify embed metadata not found")
-	}
-	return metadata, nil
-}
-
-func fetchSpotifyOEmbedTitle(resourceType, id string) (string, error) {
-	oembedURL := fmt.Sprintf("https://open.spotify.com/oembed?url=https://open.spotify.com/%s/%s", url.PathEscape(resourceType), url.PathEscape(id))
-	req, err := http.NewRequest(http.MethodGet, oembedURL, nil)
-	if err != nil {
-		return "", err
-	}
-	req.Header.Set("Accept", "application/json")
-	req.Header.Set("User-Agent", spotifyBrowserUserAgent)
-
-	resp, err := spotifyHTTPClient.Do(req)
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return "", fmt.Errorf("spotify oembed error: %s", resp.Status)
-	}
-
-	var data struct {
-		Title string `json:"title"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
-		return "", err
-	}
-	if data.Title == "" {
-		return "", fmt.Errorf("spotify oembed title not found")
-	}
-	return html.UnescapeString(data.Title), nil
-}
-
-func firstJSONRegexValue(body, pattern string) string {
-	match := regexp.MustCompile(pattern).FindStringSubmatch(body)
-	if len(match) < 2 {
-		return ""
-	}
-	return unquoteJSONString(match[1])
-}
-
-func unquoteJSONString(value string) string {
-	unquoted, err := strconv.Unquote(`"` + value + `"`)
-	if err != nil {
-		return html.UnescapeString(value)
-	}
-	return html.UnescapeString(unquoted)
-}
-
-func cleanSpotifyTitle(title string) string {
-	title = regexp.MustCompile(`(?i)\s*[\(\[]\s*(feat\.?|featuring|with)\b[^\)\]]*[\)\]]`).ReplaceAllString(title, "")
-	title = regexp.MustCompile(`(?i)\s+-\s+(feat\.?|featuring|with)\b.*$`).ReplaceAllString(title, "")
-	return strings.TrimSpace(title)
-}
-
-func spotifyArtistsString(artists []SpotifyArtist) string {
-	names := make([]string, 0, len(artists))
-	for _, artist := range artists {
-		if artist.Name != "" {
-			names = append(names, artist.Name)
-		}
-	}
-	return strings.Join(names, " ")
-}
-
-func firstSpotifyImage(images []SpotifyImage) string {
-	if len(images) == 0 {
-		return ""
-	}
-	return images[0].URL
 }

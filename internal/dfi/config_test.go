@@ -25,6 +25,9 @@ func TestLoadConfigDefaults(t *testing.T) {
 	if cfg.Cookies.ARL != "" {
 		t.Fatal("ARL should not be hardcoded in defaults")
 	}
+	if cfg.Cover.Mode != "embed" {
+		t.Fatalf("Cover.Mode = %q, want embed", cfg.Cover.Mode)
+	}
 }
 
 func TestLoadConfigMergesFalseValues(t *testing.T) {
@@ -32,11 +35,12 @@ func TestLoadConfigMergesFalseValues(t *testing.T) {
 	if err := os.WriteFile(path, []byte(`{
 		"concurrency": 2,
 		"trackNumber": false,
-		"fallbackTrack": false,
-		"fallbackQuality": false,
-		"playlist": {"resolveFullPath": true},
-		"saveLayout": {"track": "{ART_NAME}/{SNG_TITLE}"}
-	}`), 0644); err != nil {
+			"fallbackTrack": false,
+			"fallbackQuality": false,
+			"cover": {"mode": "file"},
+			"playlist": {"resolveFullPath": true},
+			"saveLayout": {"track": "{ART_NAME}/{SNG_TITLE}"}
+		}`), 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -61,6 +65,9 @@ func TestLoadConfigMergesFalseValues(t *testing.T) {
 	}
 	if cfg.SaveLayout.Album != "Music/{ALB_TITLE}/{SNG_TITLE}" {
 		t.Fatalf("album layout default was not preserved: %s", cfg.SaveLayout.Album)
+	}
+	if cfg.Cover.Mode != "file" {
+		t.Fatalf("Cover.Mode = %q, want file", cfg.Cover.Mode)
 	}
 }
 
@@ -99,6 +106,19 @@ func TestConfigSetConcurrency(t *testing.T) {
 	}
 	if raw["concurrency"] != float64(9) {
 		t.Fatalf("persisted concurrency = %#v, want 9", raw["concurrency"])
+	}
+}
+
+func TestConfigSetCoverMode(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "d-fi.config.json")
+	cfg := LoadConfig(path)
+
+	if err := cfg.Set("cover.mode", "both"); err != nil {
+		t.Fatal(err)
+	}
+	loaded := LoadConfig(path)
+	if loaded.Cover.Mode != "both" {
+		t.Fatalf("Cover.Mode = %q, want both", loaded.Cover.Mode)
 	}
 }
 

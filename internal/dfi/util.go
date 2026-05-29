@@ -114,6 +114,31 @@ func CoverSizeForQuality(sizes CoverSizes, label string) int {
 	}
 }
 
+func CoverFilePolicy(tracks []types.TrackType, info any, path string, trackNumber bool) map[string]bool {
+	totalTracks := len(tracks)
+	albumByDir := map[string]string{}
+	allowedByDir := map[string]bool{}
+	for _, track := range tracks {
+		if track.ALB_PICTURE == "" {
+			continue
+		}
+		dir := CoverFilePolicyKey(track, info, path, trackNumber, totalTracks)
+		if existing, ok := albumByDir[dir]; ok && existing != track.ALB_PICTURE {
+			allowedByDir[dir] = false
+			continue
+		}
+		if _, ok := albumByDir[dir]; !ok {
+			albumByDir[dir] = track.ALB_PICTURE
+			allowedByDir[dir] = true
+		}
+	}
+	return allowedByDir
+}
+
+func CoverFilePolicyKey(track types.TrackType, info any, path string, trackNumber bool, totalTracks int) string {
+	return filepath.Dir(SaveLayout(track, info, path, trackNumber, totalTracks))
+}
+
 func AsInt(value any) int {
 	switch v := value.(type) {
 	case int:

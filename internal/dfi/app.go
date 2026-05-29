@@ -486,6 +486,7 @@ func downloadAll(ctx context.Context, data ResolvedInput, cfg Config, opts optio
 	var mu sync.Mutex
 	savedFiles := []string{}
 	workerCount := min(len(data.Tracks), concurrency)
+	coverPolicy := CoverFilePolicy(data.Tracks, data.LinkInfo, pathTemplate, cfg.TrackNumber)
 
 	for range workerCount {
 		wg.Go(func() {
@@ -495,6 +496,8 @@ func downloadAll(ctx context.Context, data ResolvedInput, cfg Config, opts optio
 					Quality:         opts.quality,
 					Info:            data.LinkInfo,
 					CoverSizes:      cfg.CoverSize,
+					CoverMode:       cfg.Cover.Mode,
+					CoverFilePolicy: coverPolicy,
 					Path:            pathTemplate,
 					TotalTracks:     len(data.Tracks),
 					TrackNumber:     cfg.TrackNumber,

@@ -14,14 +14,69 @@ import (
 
 // AddTrackTags adds metadata to the track buffer (MP3 or FLAC) based on track and album information.
 func AddTrackTags(trackBuffer []byte, track types.TrackType, albumCoverSize int) ([]byte, error) {
+	return AddTrackTagsWithOptions(trackBuffer, track, TagOptions{
+		AlbumCoverSize: albumCoverSize,
+		CoverMode:      CoverModeEmbed,
+	})
+}
+
+type CoverMode string
+
+const (
+	CoverModeEmbed CoverMode = "embed"
+	CoverModeFile  CoverMode = "file"
+	CoverModeBoth  CoverMode = "both"
+	CoverModeNone  CoverMode = "none"
+)
+
+type TagOptions struct {
+	AlbumCoverSize int
+	CoverMode      CoverMode
+}
+
+func NormalizeCoverMode(mode CoverMode) CoverMode {
+	normalized := CoverMode(strings.ToLower(strings.TrimSpace(string(mode))))
+	switch normalized {
+	case CoverModeFile, CoverModeBoth, CoverModeNone:
+		return normalized
+	default:
+		return CoverModeEmbed
+	}
+}
+
+func ShouldEmbedCover(mode CoverMode) bool {
+	switch NormalizeCoverMode(mode) {
+	case CoverModeEmbed, CoverModeBoth:
+		return true
+	default:
+		return false
+	}
+}
+
+func ShouldSaveCoverFile(mode CoverMode) bool {
+	switch NormalizeCoverMode(mode) {
+	case CoverModeFile, CoverModeBoth:
+		return true
+	default:
+		return false
+	}
+}
+
+func AddTrackTagsWithOptions(trackBuffer []byte, track types.TrackType, options TagOptions) ([]byte, error) {
 	logger.Debug("Starting to add track tags for track: %s", track.SNG_TITLE)
 
-	cover, coverErr := DownloadAlbumCover(track.ALB_PICTURE, albumCoverSize)
-	if coverErr != nil {
-		logger.Debug("Failed to download album cover: %v", coverErr)
-		return nil, coverErr
+	coverMode := NormalizeCoverMode(options.CoverMode)
+	albumCoverSize := options.AlbumCoverSize
+	var cover []byte
+	if ShouldEmbedCover(coverMode) {
+		coverData, coverErr := DownloadAlbumCover(track.ALB_PICTURE, albumCoverSize)
+		if coverErr != nil {
+			logger.Debug("Failed to download album cover: %v", coverErr)
+			return nil, coverErr
+		}
+		cover = coverData
+		logger.Debug("Downloaded album cover successfully")
 	}
-	logger.Debug("Downloaded album cover successfully")
 
 	var lyrics types.LyricsType
 	if track.LYRICS_ID > 0 {

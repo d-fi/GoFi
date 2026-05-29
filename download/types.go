@@ -23,6 +23,7 @@ type DownloadTrackOptions struct {
 	SngID      string                                          // The ID of the track to download.
 	Quality    int                                             // The quality of the track (e.g., 1 for MP3_128, 3 for MP3_320, 9 for FLAC).
 	CoverSize  int                                             // The size of the album cover in pixels.
+	CoverMode  string                                          // Optional cover handling: embed, file, both, or none. Empty keeps the default embed behavior.
 	SaveToDir  string                                          // The directory where the track will be saved.
 	SavePath   string                                          // Optional exact path where the track will be saved.
 	OnProgress func(progress float64, downloaded, total int64) // The progress callback function.
@@ -33,6 +34,7 @@ type DownloadTrackToBufferOptions struct {
 	SngID     string // The ID of the track to download.
 	Quality   int    // The quality of the track (e.g., 1 for MP3_128, 3 for MP3_320, 9 for FLAC).
 	CoverSize int    // The size of the album cover in pixels.
+	CoverMode string // Optional cover handling: embed, file, both, or none. Empty keeps the default embed behavior.
 }
 
 // DownloadTrackWithoutMetadataOptions contains all the details needed for downloading a track without adding metadata.

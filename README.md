@@ -150,6 +150,9 @@ You can omit fields you do not need. GoFi merges your config with the defaults b
     "320": 500,
     "flac": 1000
   },
+  "cover": {
+    "mode": "embed"
+  },
   "cookies": {
     "arl": ""
   }
@@ -231,13 +234,26 @@ When `true`, GoFi falls back to a lower available quality when the requested qua
 
 ### `coverSize`
 
-Album cover size used for metadata tagging. Original d-fi documents acceptable values between `50` and `1800`.
+Album cover size used for metadata tagging and saved cover files. Original d-fi documents acceptable values between `50` and `1800`.
 
 ```text
 coverSize.128     Cover size for MP3 128 downloads
 coverSize.320     Cover size for MP3 320 downloads
 coverSize.flac    Cover size for FLAC downloads
 ```
+
+### `cover.mode`
+
+Controls how album artwork is handled. The default is `embed`, so existing configs keep the previous behavior.
+
+```text
+embed    Embed album art in each downloaded track
+file     Save cover.jpg next to tracks, without embedding artwork
+both     Embed album art and save cover.jpg
+none     Do not embed or save album artwork
+```
+
+When saving `cover.jpg`, GoFi only creates it in a folder where all selected tracks share the same album cover. This avoids writing a misleading cover file into a mixed playlist folder.
 
 ### `cookies.arl`
 
@@ -306,6 +322,7 @@ path, err := download.DownloadTrack(context.Background(), download.DownloadTrack
 	SngID:     "3135556",
 	Quality:   3, // 1 = MP3 128, 3 = MP3 320, 9 = FLAC
 	CoverSize: 500,
+	CoverMode: "embed", // optional: embed, file, both, or none
 	SaveToDir: "Music",
 })
 if err != nil {

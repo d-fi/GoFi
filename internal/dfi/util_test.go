@@ -41,6 +41,23 @@ func TestSaveLayout(t *testing.T) {
 	}
 }
 
+func TestCoverFilePolicyAllowsOnlySingleCoverPerDirectory(t *testing.T) {
+	tracks := []types.TrackType{
+		{SongType: types.SongType{ALB_TITLE: "One", SNG_TITLE: "A", ALB_PICTURE: "cover-a"}},
+		{SongType: types.SongType{ALB_TITLE: "Two", SNG_TITLE: "B", ALB_PICTURE: "cover-b"}},
+	}
+
+	policy := CoverFilePolicy(tracks, nil, "Music/{SNG_TITLE}", true)
+	if policy["Music"] {
+		t.Fatal("mixed album folder should not save cover.jpg")
+	}
+
+	policy = CoverFilePolicy(tracks, nil, "Music/{ALB_TITLE}/{SNG_TITLE}", true)
+	if !policy["Music/One"] || !policy["Music/Two"] {
+		t.Fatalf("album folders should save cover.jpg: %#v", policy)
+	}
+}
+
 func TestCommonPath(t *testing.T) {
 	got := commonPath([]string{"Playlist/Test", "Playlist/Test/Sub"})
 	if got != "Playlist/Test" {

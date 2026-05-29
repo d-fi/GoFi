@@ -1,8 +1,11 @@
 package metadata
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/d-fi/GoFi/logger"
@@ -71,4 +74,26 @@ func DownloadAlbumCover(albumPicture string, albumCoverSize int) ([]byte, error)
 	logger.Debug("Album cover downloaded and cached successfully: %s", cacheKey)
 
 	return data, nil
+}
+
+func SaveAlbumCoverFile(dir string, albumPicture string, albumCoverSize int) (string, error) {
+	cover, err := DownloadAlbumCover(albumPicture, albumCoverSize)
+	if err != nil {
+		return "", err
+	}
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return "", err
+	}
+	path := filepath.Join(dir, "cover.jpg")
+	if existing, err := os.ReadFile(path); err == nil {
+		if bytes.Equal(existing, cover) {
+			return path, nil
+		}
+		logger.Debug("Skipping cover file because %s already exists with different data", path)
+		return "", nil
+	}
+	if err := os.WriteFile(path, cover, 0644); err != nil {
+		return "", err
+	}
+	return path, nil
 }

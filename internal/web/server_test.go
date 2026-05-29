@@ -52,6 +52,40 @@ func TestConfigHandlers(t *testing.T) {
 	if got := server.currentConfig().Concurrency; got != 2 {
 		t.Fatalf("Concurrency = %d, want 2", got)
 	}
+	if got := server.currentConfig().Cover.Mode; got != "embed" {
+		t.Fatalf("Cover.Mode = %q, want embed", got)
+	}
+}
+
+func TestConfigUpdatePreservesCoverModeWhenMissing(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "d-fi.config.json")
+	server := NewServer(Options{ConfigPath: path})
+	server.cfg.Cover.Mode = "file"
+
+	body := []byte(`{
+		"concurrency": 3,
+		"trackNumber": true,
+		"fallbackTrack": true,
+		"fallbackQuality": true,
+		"saveLayout": {
+			"track": "Music/{ALB_TITLE}/{SNG_TITLE}",
+			"album": "Music/{ALB_TITLE}/{SNG_TITLE}",
+			"artist": "Music/{ALB_TITLE}/{SNG_TITLE}",
+			"playlist": "Playlist/{TITLE}/{SNG_TITLE}"
+		},
+		"playlist": {"resolveFullPath": false},
+		"coverSize": {"128": 500, "320": 500, "flac": 1000},
+		"cookies": {"arl": ""}
+	}`)
+	req := httptest.NewRequest(http.MethodPut, "/api/config", bytes.NewReader(body))
+	rec := httptest.NewRecorder()
+	server.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("PUT /api/config status = %d body=%s", rec.Code, rec.Body.String())
+	}
+	if got := server.currentConfig().Cover.Mode; got != "file" {
+		t.Fatalf("Cover.Mode = %q, want file", got)
+	}
 }
 
 func TestClearJobsKeepsActiveJobs(t *testing.T) {

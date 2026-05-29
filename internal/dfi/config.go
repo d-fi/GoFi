@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 	"strings"
+
+	"github.com/d-fi/GoFi/metadata"
 )
 
 type Config struct {
@@ -15,6 +17,7 @@ type Config struct {
 	FallbackTrack      bool         `json:"fallbackTrack"`
 	FallbackQuality    bool         `json:"fallbackQuality"`
 	CoverSize          CoverSizes   `json:"coverSize"`
+	Cover              CoverConfig  `json:"cover"`
 	Cookies            Cookies      `json:"cookies"`
 	path               string
 	UserConfigLocation string `json:"-"`
@@ -35,6 +38,10 @@ type CoverSizes struct {
 	MP3_128 int `json:"128"`
 	MP3_320 int `json:"320"`
 	FLAC    int `json:"flac"`
+}
+
+type CoverConfig struct {
+	Mode string `json:"mode"`
 }
 
 type Cookies struct {
@@ -60,6 +67,9 @@ func defaultConfig() Config {
 			MP3_128: 500,
 			MP3_320: 500,
 			FLAC:    1000,
+		},
+		Cover: CoverConfig{
+			Mode: string(metadata.CoverModeEmbed),
 		},
 	}
 }
@@ -141,6 +151,9 @@ func mergeConfig(cfg *Config, user Config) {
 	if user.CoverSize.FLAC != 0 {
 		cfg.CoverSize.FLAC = user.CoverSize.FLAC
 	}
+	if user.Cover.Mode != "" {
+		cfg.Cover.Mode = NormalizeCoverMode(user.Cover.Mode)
+	}
 	if user.Cookies.ARL != "" {
 		cfg.Cookies.ARL = user.Cookies.ARL
 	}
@@ -154,10 +167,16 @@ func (cfg *Config) Set(key string, value any) error {
 		if v, ok := value.(int); ok {
 			cfg.Concurrency = v
 		}
+	case "cover.mode":
+		cfg.Cover.Mode = NormalizeCoverMode(fmt.Sprintf("%v", value))
 	default:
 		return fmt.Errorf("unsupported config key: %s", key)
 	}
 	return cfg.Save()
+}
+
+func NormalizeCoverMode(mode string) string {
+	return string(metadata.NormalizeCoverMode(metadata.CoverMode(strings.ToLower(strings.TrimSpace(mode)))))
 }
 
 func (cfg Config) Save() error {

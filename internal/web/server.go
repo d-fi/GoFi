@@ -217,6 +217,9 @@ func (s *Server) handleUpdateConfig(w http.ResponseWriter, r *http.Request) {
 	s.cfg.FallbackTrack = cfg.FallbackTrack
 	s.cfg.FallbackQuality = cfg.FallbackQuality
 	s.cfg.CoverSize = cfg.CoverSize
+	if cfg.Cover.Mode != "" {
+		s.cfg.Cover.Mode = dfi.NormalizeCoverMode(cfg.Cover.Mode)
+	}
 	s.cfg.Cookies = cfg.Cookies
 	cfgToSave := s.cfg
 	s.mu.Unlock()
@@ -402,6 +405,7 @@ func (s *Server) runDownloadJob(ctx context.Context, jobID int64, linkType strin
 	sem := make(chan struct{}, concurrency)
 	var wg sync.WaitGroup
 	var failed atomic.Int64
+	coverPolicy := dfi.CoverFilePolicy(tracks, info, pathTemplate, cfg.TrackNumber)
 
 trackLoop:
 	for i, track := range tracks {
@@ -428,6 +432,8 @@ trackLoop:
 				Quality:         quality,
 				Info:            info,
 				CoverSizes:      cfg.CoverSize,
+				CoverMode:       cfg.Cover.Mode,
+				CoverFilePolicy: coverPolicy,
 				Path:            pathTemplate,
 				TotalTracks:     len(tracks),
 				TrackNumber:     cfg.TrackNumber,

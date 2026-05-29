@@ -27,6 +27,9 @@ type DownloadTrackOptions struct {
 	TrackNumber       bool
 	FallbackTrack     bool
 	FallbackQuality   bool
+	CoverMode         string
+	SaveCoverFile     bool
+	CoverFilePolicy   map[string]bool
 	IsFallback        bool
 	IsQualityFallback bool
 	Message           string
@@ -63,6 +66,11 @@ func DownloadTrack(ctx context.Context, options DownloadTrackOptions) (string, e
 
 	savePath := SaveLayout(track, options.Info, options.Path, options.TrackNumber, options.TotalTracks) + ext
 	if _, err := os.Stat(savePath); err == nil {
+		if options.shouldSaveCoverFile(savePath) && os.Getenv("SIMULATE") == "" && metadata.ShouldSaveCoverFile(metadata.CoverMode(options.CoverMode)) {
+			if _, err := metadata.SaveAlbumCoverFile(filepath.Dir(savePath), track.ALB_PICTURE, coverSize); err != nil {
+				return "", err
+			}
+		}
 		if options.Hooks.Skip != nil {
 			options.Hooks.Skip(track, savePath, "exists")
 		}
@@ -139,7 +147,10 @@ func DownloadTrack(ctx context.Context, options DownloadTrackOptions) (string, e
 	if options.Hooks.Status != nil {
 		options.Hooks.Status("Tagging " + track.SNG_TITLE + " by " + track.ART_NAME)
 	}
-	tagged, err := metadata.AddTrackTags(raw, track, coverSize)
+	tagged, err := metadata.AddTrackTagsWithOptions(raw, track, metadata.TagOptions{
+		AlbumCoverSize: coverSize,
+		CoverMode:      metadata.CoverMode(options.CoverMode),
+	})
 	if err != nil {
 		return "", err
 	}
@@ -157,6 +168,11 @@ func DownloadTrack(ctx context.Context, options DownloadTrackOptions) (string, e
 		if err := os.WriteFile(savePath, tagged, 0644); err != nil {
 			return "", err
 		}
+		if options.shouldSaveCoverFile(savePath) && metadata.ShouldSaveCoverFile(metadata.CoverMode(options.CoverMode)) {
+			if _, err := metadata.SaveAlbumCoverFile(filepath.Dir(savePath), track.ALB_PICTURE, coverSize); err != nil {
+				return "", err
+			}
+		}
 		if err := ctx.Err(); err != nil {
 			_ = os.Remove(savePath)
 			return "", err
@@ -167,6 +183,16 @@ func DownloadTrack(ctx context.Context, options DownloadTrackOptions) (string, e
 		options.Hooks.Done(track, savePath, options.IsFallback, options.IsQualityFallback, label)
 	}
 	return savePath, nil
+}
+
+func (options DownloadTrackOptions) shouldSaveCoverFile(savePath string) bool {
+	if options.SaveCoverFile {
+		return true
+	}
+	if options.CoverFilePolicy == nil {
+		return false
+	}
+	return options.CoverFilePolicy[filepath.Dir(savePath)]
 }
 
 func terminalDownloadHooks(message string) DownloadTrackHooks {

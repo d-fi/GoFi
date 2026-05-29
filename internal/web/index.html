@@ -613,7 +613,14 @@
             >
           </div>
           <div>
-            <div class="settings-title">Cover Size</div>
+            <div class="settings-title">Cover</div>
+            <label for="cfgCoverMode">Mode</label>
+            <select id="cfgCoverMode">
+              <option value="embed">Embed in tracks</option>
+              <option value="file">Save cover.jpg only</option>
+              <option value="both">Embed and save cover.jpg</option>
+              <option value="none">No cover artwork</option>
+            </select>
             <div class="row">
               <div>
                 <label for="cfgCover128">128</label>
@@ -796,6 +803,7 @@
         $("cfgCover128").value = cfg.coverSize?.["128"] || 500;
         $("cfgCover320").value = cfg.coverSize?.["320"] || 500;
         $("cfgCoverFlac").value = cfg.coverSize?.flac || 1000;
+        $("cfgCoverMode").value = cfg.cover?.mode || "embed";
       }
       function readConfig() {
         const current = state.config || {};
@@ -818,6 +826,9 @@
             128: Number($("cfgCover128").value || 500),
             320: Number($("cfgCover320").value || 500),
             flac: Number($("cfgCoverFlac").value || 1000),
+          },
+          cover: {
+            mode: $("cfgCoverMode").value || "embed",
           },
           cookies: {
             ...(current.cookies || {}),
@@ -918,6 +929,7 @@
           "cfgFallbackTrack",
           "cfgFallbackQuality",
           "cfgResolveFullPath",
+          "cfgCoverMode",
         ].forEach((id) => $(id).addEventListener("change", scheduleConfigSave));
         $("arl").addEventListener("input", updateSaveARLButton);
         $("arl").addEventListener("keydown", (event) => {

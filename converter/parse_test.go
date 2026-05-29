@@ -3,6 +3,7 @@ package converter
 import (
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"testing"
@@ -105,6 +106,48 @@ func TestGetURLPartsDeezerShareLink(t *testing.T) {
 	actual, err := GetURLParts("https://link.deezer.com/s/33mHLHCANAsGjpIDT5fji")
 	require.NoError(t, err)
 	assert.Equal(t, URLParts{ID: "3135556", Type: "track"}, actual)
+}
+
+func TestGetURLPartsDeezerShareDestinationFields(t *testing.T) {
+	tests := []struct {
+		name     string
+		key      string
+		target   string
+		expected URLParts
+	}{
+		{
+			name:     "track dest",
+			key:      "dest",
+			target:   "https://www.deezer.com/track/3135556?utm_source=user_sharing",
+			expected: URLParts{ID: "3135556", Type: "track"},
+		},
+		{
+			name:     "album awf",
+			key:      "awf",
+			target:   "https://www.deezer.com/album/6575789",
+			expected: URLParts{ID: "6575789", Type: "album"},
+		},
+		{
+			name:     "playlist gwf",
+			key:      "gwf",
+			target:   "https://www.deezer.com/playlist/4523119944",
+			expected: URLParts{ID: "4523119944", Type: "playlist"},
+		},
+		{
+			name:     "artist iwf",
+			key:      "iwf",
+			target:   "https://www.deezer.com/artist/13",
+			expected: URLParts{ID: "13", Type: "artist"},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			actual, err := GetURLParts("https://link.deezer.com/?" + test.key + "=" + url.QueryEscape(test.target))
+			require.NoError(t, err)
+			assert.Equal(t, test.expected, actual)
+		})
+	}
 }
 
 type roundTripFunc func(*http.Request) (*http.Response, error)

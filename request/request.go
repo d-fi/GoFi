@@ -3,6 +3,7 @@ package request
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"strings"
 	"time"
 
@@ -74,9 +75,12 @@ func Request(body map[string]any, method string) ([]byte, error) {
 }
 
 func RequestGet(method string, params map[string]any, key ...string) ([]byte, error) {
+	queryParams := utils.ConvertToQueryParams(params)
 	cacheKeyPart := "get_request"
 	if len(key) > 0 && key[0] != "" {
 		cacheKeyPart = key[0]
+	} else if encodedParams := encodeQueryParams(queryParams); encodedParams != "" {
+		cacheKeyPart = encodedParams
 	}
 	cacheKey := method + ":" + cacheKeyPart
 	if cachedData, ok := cache.Get(cacheKey); ok && len(cachedData) > 0 {
@@ -84,7 +88,6 @@ func RequestGet(method string, params map[string]any, key ...string) ([]byte, er
 		return cachedData, nil
 	}
 
-	queryParams := utils.ConvertToQueryParams(params)
 	logger.Debug("Making GET request with method: %s", method)
 	resp, err := Client.R().
 		SetQueryParams(queryParams).
@@ -106,6 +109,14 @@ func RequestGet(method string, params map[string]any, key ...string) ([]byte, er
 	cache.Add(cacheKey, results)
 	logger.Debug("GET request successful, response cached")
 	return results, nil
+}
+
+func encodeQueryParams(params map[string]string) string {
+	values := url.Values{}
+	for key, value := range params {
+		values.Set(key, value)
+	}
+	return values.Encode()
 }
 
 func RequestPublicApi(slug string) ([]byte, error) {

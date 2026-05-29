@@ -18,6 +18,10 @@ import (
 const (
 	spotifyAPIBaseURL       = "https://api.spotify.com/v1/"
 	spotifyBrowserUserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0 Safari/537.36"
+	spotifyPartnerQueryURL  = "https://api-partner.spotify.com/pathfinder/v1/query"
+	spotifyPlaylistQuery    = "queryPlaylist"
+	spotifyPlaylistQuerySHA = "908a5597b4d0af0489a9ad6a2d41bc3b416ff47c0884016d92bbd6822d0eb6d8"
+	spotifyPartnerPageLimit = 1000
 )
 
 var (
@@ -164,14 +168,27 @@ func GetSpotifyPlaylistTracks(id string) ([]SpotifyTrack, int, error) {
 // SpotifyPlaylistToDeezer converts a Spotify playlist to Deezer playlist metadata and matching Deezer tracks.
 func SpotifyPlaylistToDeezer(id string) (types.PlaylistInfo, []types.TrackType, error) {
 	body, err := GetSpotifyPlaylist(id)
-	if err != nil {
-		return types.PlaylistInfo{}, nil, err
+	var items []SpotifyTrack
+	var total int
+	var trackErr error
+	if err == nil {
+		items, total, trackErr = GetSpotifyPlaylistTracks(id)
 	}
-	items, total, err := GetSpotifyPlaylistTracks(id)
-	if err != nil {
-		return types.PlaylistInfo{}, nil, err
+	if err != nil || trackErr != nil {
+		playlist, partnerItems, partnerErr := GetSpotifyPartnerPlaylist(id)
+		if partnerErr != nil {
+			if err != nil {
+				return types.PlaylistInfo{}, nil, fmt.Errorf("%w; spotify partner fallback failed: %v", err, partnerErr)
+			}
+			return types.PlaylistInfo{}, nil, fmt.Errorf("%w; spotify partner fallback failed: %v", trackErr, partnerErr)
+		}
+		return spotifyPlaylistInfoToDeezer(playlist, playlist.Tracks.Total), spotifyPlaylistTracksToDeezer(partnerItems), nil
 	}
 
+	return spotifyPlaylistInfoToDeezer(body, total), spotifyPlaylistTracksToDeezer(items), nil
+}
+
+func spotifyPlaylistInfoToDeezer(body SpotifyPlaylist, total int) types.PlaylistInfo {
 	playlist := types.PlaylistInfo{
 		PlaylistID:      body.ID,
 		Description:     body.Description,
@@ -192,7 +209,7 @@ func SpotifyPlaylistToDeezer(id string) (types.PlaylistInfo, []types.TrackType, 
 	if len(body.Images) > 0 {
 		playlist.PlaylistPicture = body.Images[0].URL
 	}
-	return playlist, spotifyPlaylistTracksToDeezer(items), nil
+	return playlist
 }
 
 // GetSpotifyArtistTopTracks fetches Spotify artist top tracks.
@@ -222,9 +239,12 @@ func SpotifyArtistToDeezer(id string) ([]types.TrackType, error) {
 
 func spotifyTrackToDeezerTrack(track SpotifyTrack) (types.TrackType, error) {
 	if track.ExternalIDs["isrc"] != "" {
-		return ISRCToDeezer(track.Name, track.ExternalIDs["isrc"])
+		result, err := ISRCToDeezer(track.Name, track.ExternalIDs["isrc"])
+		if err == nil {
+			return result, nil
+		}
 	}
-	return types.TrackType{}, fmt.Errorf("spotify track %s has no ISRC", track.ID)
+	return SpotifyTrackMetadataToDeezer(track)
 }
 
 func spotifyPlaylistTracksToDeezer(items []SpotifyTrack) []types.TrackType {

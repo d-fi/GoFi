@@ -383,15 +383,18 @@ function renderTracks() {
   const body = $("tracksBody");
   if (!state.tracks.length) {
     body.innerHTML = "";
+    $("trackRange").value = "";
     syncSelectAllTracks();
     return;
   }
   body.innerHTML = state.tracks
     .map(
-      (track) =>
+      (track, rowIndex) =>
         "<tr>" +
         '<td class="col-select"><input type="checkbox" data-index="' +
         track.index +
+        '" data-row="' +
+        (rowIndex + 1) +
         '" checked></td>' +
         '<td class="col-position">' +
         (track.position || track.index + 1) +
@@ -418,11 +421,11 @@ function renderTracks() {
     )
     .join("");
   body.querySelectorAll("[data-index]").forEach((checkbox) => {
-    checkbox.addEventListener("change", syncSelectAllTracks);
+    checkbox.addEventListener("change", () => syncSelectAllTracks());
   });
   syncSelectAllTracks();
 }
-function syncSelectAllTracks() {
+function syncSelectAllTracks(updateRange = true) {
   const selectAll = $("selectAllTracks");
   const downloadBtn = $("downloadSelectedBtn");
   const selectionCount = $("selectionCount");
@@ -434,6 +437,9 @@ function syncSelectAllTracks() {
   downloadBtn.disabled = checked === 0;
   selectionCount.textContent =
     checked + " of " + checkboxes.length + " selected";
+  if (updateRange) {
+    $("trackRange").value = selectedRowsToRange(checkboxes);
+  }
 }
 function toggleAllTracks() {
   document
@@ -441,15 +447,84 @@ function toggleAllTracks() {
     .forEach((checkbox) => (checkbox.checked = $("selectAllTracks").checked));
   syncSelectAllTracks();
 }
+function selectedRowsToRange(checkboxes) {
+  const rows = checkboxes
+    .filter((el) => el.checked)
+    .map((el) => Number(el.dataset.row))
+    .sort((a, b) => a - b);
+  if (!rows.length) return "";
+  const ranges = [];
+  let start = rows[0];
+  let previous = rows[0];
+  for (const row of rows.slice(1)) {
+    if (row === previous + 1) {
+      previous = row;
+      continue;
+    }
+    ranges.push(formatRange(start, previous));
+    start = row;
+    previous = row;
+  }
+  ranges.push(formatRange(start, previous));
+  return ranges.join(",");
+}
+function formatRange(start, end) {
+  return start === end ? String(start) : start + "-" + end;
+}
+function applyTrackRange(normalize = false) {
+  const checkboxes = [...document.querySelectorAll("[data-index]")];
+  const value = $("trackRange").value;
+  const selected = parseTrackRange(value, checkboxes.length);
+  checkboxes.forEach((checkbox) => {
+    checkbox.checked = selected.has(Number(checkbox.dataset.row));
+  });
+  syncSelectAllTracks(false);
+  if (normalize && value.trim()) {
+    $("trackRange").value = selectedRowsToRange(checkboxes);
+  }
+}
+function parseTrackRange(value, count) {
+  const selected = new Set();
+  const trimmed = value.trim();
+  if (!trimmed) {
+    for (let row = 1; row <= count; row++) selected.add(row);
+    return selected;
+  }
+  trimmed.split(",").forEach((part) => {
+    part = part.trim();
+    if (!part) return;
+    if (part.includes("-")) {
+      const edges = part.split("-");
+      if (edges.length !== 2) return;
+      const start = parseTrackRangeNumber(edges[0]);
+      const end = parseTrackRangeNumber(edges[1]);
+      if (start === null || end === null) return;
+      for (let row = start; row <= end; row++) {
+        if (row >= 1 && row <= count) selected.add(row);
+      }
+      return;
+    }
+    const row = parseTrackRangeNumber(part);
+    if (row >= 1 && row <= count) selected.add(row);
+  });
+  return selected;
+}
+function parseTrackRangeNumber(value) {
+  const trimmed = value.trim();
+  if (!/^\d+$/.test(trimmed)) return null;
+  return Number(trimmed);
+}
 function renderOptions() {
   const previewArea = $("previewArea");
   const box = $("optionsBox");
   const tracksBox = $("tracksBox");
+  const trackRangeBox = $("trackRangeBox");
   const previewActions = $("previewActions");
   if (!state.options.length) {
     box.hidden = true;
     box.innerHTML = "";
     tracksBox.hidden = state.tracks.length === 0;
+    trackRangeBox.hidden = state.tracks.length === 0;
     previewActions.hidden = state.tracks.length === 0;
     previewArea.hidden = state.tracks.length === 0;
     return;
@@ -457,6 +532,7 @@ function renderOptions() {
   previewArea.hidden = false;
   box.hidden = false;
   tracksBox.hidden = true;
+  trackRangeBox.hidden = true;
   previewActions.hidden = true;
   box.innerHTML = state.options
     .map(
@@ -787,5 +863,7 @@ $("previewBtn").addEventListener("click", preview);
 $("downloadSelectedBtn").addEventListener("click", startDownload);
 $("clearHistoryBtn").addEventListener("click", clearHistory);
 $("selectAllTracks").addEventListener("change", toggleAllTracks);
+$("trackRange").addEventListener("input", () => applyTrackRange());
+$("trackRange").addEventListener("change", () => applyTrackRange(true));
 loadConfig();
 loadJobs();

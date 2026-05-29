@@ -286,6 +286,7 @@ th.col-select input {
   border-radius: 6px;
 }
 .tracks[hidden],
+.track-range[hidden],
 .preview-area[hidden],
 .preview-actions[hidden],
 .option-list[hidden] {
@@ -293,6 +294,12 @@ th.col-select input {
 }
 .preview-area {
   margin-top: 12px;
+}
+.track-range {
+  margin-top: 10px;
+}
+.track-range label {
+  margin-top: 0;
 }
 .option-list {
   max-height: 300px;

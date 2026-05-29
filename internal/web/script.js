@@ -860,6 +860,9 @@ $("layoutFieldsDialog").addEventListener("click", (event) => {
   if (event.target === $("layoutFieldsDialog")) closeLayoutFields();
 });
 $("previewBtn").addEventListener("click", preview);
+$("query").addEventListener("keydown", (event) => {
+  if (event.key === "Enter") preview();
+});
 $("downloadSelectedBtn").addEventListener("click", startDownload);
 $("clearHistoryBtn").addEventListener("click", clearHistory);
 $("selectAllTracks").addEventListener("change", toggleAllTracks);

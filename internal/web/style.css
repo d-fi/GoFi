@@ -411,8 +411,17 @@ th.col-select input {
 .download-panel select {
   padding: 8px 10px;
 }
-.download-panel .toolbar {
+.download-panel .toolbar,
+.query-row {
   margin-top: 10px;
+}
+.query-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+}
+.query-row button {
+  min-width: 96px;
 }
 .download-panel #mainMessage {
   margin: 8px 0 0;
@@ -604,5 +613,8 @@ dialog::backdrop {
   }
   .row {
     display: grid;
+  }
+  .query-row {
+    grid-template-columns: 1fr;
   }
 }

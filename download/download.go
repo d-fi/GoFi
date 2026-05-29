@@ -161,9 +161,9 @@ func DownloadTrack(ctx context.Context, options DownloadTrackOptions) (string, e
 	}
 
 	// Add metadata to the downloaded track
-	trackWithMetadata, err := metadata.AddTrackTagsWithOptions(trackBody, track, metadata.TagOptions{
-		AlbumCoverSize: options.CoverSize,
-		CoverMode:      metadata.CoverMode(options.CoverMode),
+	trackWithMetadata, err := metadata.AddTrackTags(trackBody, track, metadata.TagOptions{
+		CoverSize: options.CoverSize,
+		CoverMode: metadata.CoverMode(options.CoverMode),
 	})
 	if err != nil {
 		logger.Debug("Failed to add metadata: %v", err)

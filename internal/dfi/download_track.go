@@ -28,7 +28,6 @@ type DownloadTrackOptions struct {
 	FallbackTrack     bool
 	FallbackQuality   bool
 	CoverMode         string
-	SaveCoverFile     bool
 	CoverFilePolicy   map[string]bool
 	IsFallback        bool
 	IsQualityFallback bool
@@ -147,9 +146,9 @@ func DownloadTrack(ctx context.Context, options DownloadTrackOptions) (string, e
 	if options.Hooks.Status != nil {
 		options.Hooks.Status("Tagging " + track.SNG_TITLE + " by " + track.ART_NAME)
 	}
-	tagged, err := metadata.AddTrackTagsWithOptions(raw, track, metadata.TagOptions{
-		AlbumCoverSize: coverSize,
-		CoverMode:      metadata.CoverMode(options.CoverMode),
+	tagged, err := metadata.AddTrackTags(raw, track, metadata.TagOptions{
+		CoverSize: coverSize,
+		CoverMode: metadata.CoverMode(options.CoverMode),
 	})
 	if err != nil {
 		return "", err
@@ -186,9 +185,6 @@ func DownloadTrack(ctx context.Context, options DownloadTrackOptions) (string, e
 }
 
 func (options DownloadTrackOptions) shouldSaveCoverFile(savePath string) bool {
-	if options.SaveCoverFile {
-		return true
-	}
 	if options.CoverFilePolicy == nil {
 		return false
 	}

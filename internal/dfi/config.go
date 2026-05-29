@@ -176,7 +176,7 @@ func (cfg *Config) Set(key string, value any) error {
 }
 
 func NormalizeCoverMode(mode string) string {
-	return string(metadata.NormalizeCoverMode(metadata.CoverMode(strings.ToLower(strings.TrimSpace(mode)))))
+	return string(metadata.NormalizeCoverMode(metadata.CoverMode(mode)))
 }
 
 func (cfg Config) Save() error {

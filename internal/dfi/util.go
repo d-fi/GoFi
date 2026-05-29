@@ -122,7 +122,7 @@ func CoverFilePolicy(tracks []types.TrackType, info any, path string, trackNumbe
 		if track.ALB_PICTURE == "" {
 			continue
 		}
-		dir := CoverFilePolicyKey(track, info, path, trackNumber, totalTracks)
+		dir := coverFilePolicyKey(track, info, path, trackNumber, totalTracks)
 		if existing, ok := albumByDir[dir]; ok && existing != track.ALB_PICTURE {
 			allowedByDir[dir] = false
 			continue
@@ -135,7 +135,7 @@ func CoverFilePolicy(tracks []types.TrackType, info any, path string, trackNumbe
 	return allowedByDir
 }
 
-func CoverFilePolicyKey(track types.TrackType, info any, path string, trackNumber bool, totalTracks int) string {
+func coverFilePolicyKey(track types.TrackType, info any, path string, trackNumber bool, totalTracks int) string {
 	return filepath.Dir(SaveLayout(track, info, path, trackNumber, totalTracks))
 }
 

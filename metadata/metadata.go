@@ -12,14 +12,6 @@ import (
 	"github.com/d-fi/GoFi/types"
 )
 
-// AddTrackTags adds metadata to the track buffer (MP3 or FLAC) based on track and album information.
-func AddTrackTags(trackBuffer []byte, track types.TrackType, albumCoverSize int) ([]byte, error) {
-	return AddTrackTagsWithOptions(trackBuffer, track, TagOptions{
-		AlbumCoverSize: albumCoverSize,
-		CoverMode:      CoverModeEmbed,
-	})
-}
-
 type CoverMode string
 
 const (
@@ -30,8 +22,8 @@ const (
 )
 
 type TagOptions struct {
-	AlbumCoverSize int
-	CoverMode      CoverMode
+	CoverSize int
+	CoverMode CoverMode
 }
 
 func NormalizeCoverMode(mode CoverMode) CoverMode {
@@ -62,14 +54,14 @@ func ShouldSaveCoverFile(mode CoverMode) bool {
 	}
 }
 
-func AddTrackTagsWithOptions(trackBuffer []byte, track types.TrackType, options TagOptions) ([]byte, error) {
+// AddTrackTags adds metadata to the track buffer (MP3 or FLAC) based on track and album information.
+func AddTrackTags(trackBuffer []byte, track types.TrackType, options TagOptions) ([]byte, error) {
 	logger.Debug("Starting to add track tags for track: %s", track.SNG_TITLE)
 
 	coverMode := NormalizeCoverMode(options.CoverMode)
-	albumCoverSize := options.AlbumCoverSize
 	var cover []byte
 	if ShouldEmbedCover(coverMode) {
-		coverData, coverErr := DownloadAlbumCover(track.ALB_PICTURE, albumCoverSize)
+		coverData, coverErr := DownloadAlbumCover(track.ALB_PICTURE, options.CoverSize)
 		if coverErr != nil {
 			logger.Debug("Failed to download album cover: %v", coverErr)
 			return nil, coverErr
@@ -115,7 +107,7 @@ func AddTrackTagsWithOptions(trackBuffer []byte, track types.TrackType, options 
 	isFlac := bytes.HasPrefix(trackBuffer, []byte("fLaC"))
 	if isFlac {
 		logger.Debug("Detected FLAC format for track: %s", track.SNG_TITLE)
-		return WriteMetadataFlac(trackBuffer, track, &album, albumCoverSize, cover)
+		return WriteMetadataFlac(trackBuffer, track, &album, options.CoverSize, cover)
 	}
 
 	logger.Debug("Detected MP3 format for track: %s", track.SNG_TITLE)

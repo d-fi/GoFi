@@ -13,6 +13,34 @@
   --success-line: #b9e4ce;
   --error-bg: #fff4f2;
   --error-line: #f0b8b2;
+  --field: #ffffff;
+  --hover: #f7fafc;
+  --progress-bg: #e8edf2;
+  --shadow: rgb(23 32 42 / 12%);
+  --dialog-shadow: rgb(23 32 42 / 24%);
+  --backdrop: rgb(23 32 42 / 28%);
+}
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #111418;
+  --panel: #181d23;
+  --line: #303946;
+  --text: #edf2f7;
+  --muted: #9aa8b6;
+  --accent: #2f9bbf;
+  --ok: #42b883;
+  --danger: #ff6b5f;
+  --warn: #f3b340;
+  --success-bg: #10251d;
+  --success-line: #245a43;
+  --error-bg: #2a1514;
+  --error-line: #7c332d;
+  --field: #12171d;
+  --hover: #202832;
+  --progress-bg: #2b3541;
+  --shadow: rgb(0 0 0 / 34%);
+  --dialog-shadow: rgb(0 0 0 / 44%);
+  --backdrop: rgb(0 0 0 / 48%);
 }
 * {
   box-sizing: border-box;
@@ -39,6 +67,11 @@ header {
   position: sticky;
   top: 0;
   z-index: 2;
+}
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 h1 {
   font-size: 18px;
@@ -89,7 +122,7 @@ select {
   border: 1px solid var(--line);
   border-radius: 6px;
   padding: 8px 10px;
-  background: #fff;
+  background: var(--field);
   color: var(--text);
 }
 button {
@@ -102,7 +135,7 @@ button {
   min-height: 34px;
 }
 button.secondary {
-  background: #fff;
+  background: var(--field);
   color: var(--text);
   border-color: var(--line);
 }
@@ -176,10 +209,10 @@ button:disabled {
   pointer-events: auto;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #fff;
+  background: var(--field);
   color: var(--text);
   padding: 10px 12px;
-  box-shadow: 0 10px 30px rgb(23 32 42 / 12%);
+  box-shadow: 0 10px 30px var(--shadow);
   overflow-wrap: anywhere;
 }
 .toast.error {
@@ -255,7 +288,7 @@ th.col-select input {
   overflow: auto;
   border: 1px solid var(--line);
   border-radius: 6px;
-  background: #fff;
+  background: var(--field);
 }
 .option-row {
   display: block;
@@ -264,7 +297,7 @@ th.col-select input {
   border-bottom: 1px solid var(--line);
   border-radius: 0;
   padding: 9px 11px;
-  background: #fff;
+  background: var(--field);
   color: var(--text);
   text-align: left;
 }
@@ -272,7 +305,7 @@ th.col-select input {
   border-bottom: 0;
 }
 .option-row:hover {
-  background: #f7fafc;
+  background: var(--hover);
 }
 .option-title {
   font-weight: 700;
@@ -315,7 +348,7 @@ th.col-select input {
 }
 .progress {
   height: 7px;
-  background: #e8edf2;
+  background: var(--progress-bg);
   border-radius: 999px;
   overflow: hidden;
 }
@@ -451,11 +484,11 @@ dialog {
   padding: 0;
   color: var(--text);
   background: var(--panel);
-  box-shadow: 0 18px 60px rgb(23 32 42 / 24%);
+  box-shadow: 0 18px 60px var(--dialog-shadow);
   overflow: hidden;
 }
 dialog::backdrop {
-  background: rgb(23 32 42 / 28%);
+  background: var(--backdrop);
 }
 .modal-head,
 .modal-foot {
@@ -491,7 +524,7 @@ dialog::backdrop {
   min-height: 0;
   padding: 7px 8px;
   border: 1px solid var(--line);
-  background: #fff;
+  background: var(--field);
   color: var(--text);
   text-align: left;
   overflow: hidden;
@@ -520,6 +553,11 @@ dialog::backdrop {
   header {
     padding: 12px;
     align-items: flex-start;
+  }
+  .header-actions {
+    align-items: flex-end;
+    flex-direction: column;
+    gap: 8px;
   }
   .toasts {
     top: 58px;

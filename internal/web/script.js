@@ -27,6 +27,24 @@ const api = async (path, opts = {}) => {
 const setMainMessage = (text) => {
   $("mainMessage").textContent = text || "";
 };
+function currentTheme() {
+  return document.documentElement.dataset.theme === "dark" ? "dark" : "light";
+}
+function setTheme(theme) {
+  const next = theme === "dark" ? "dark" : "light";
+  document.documentElement.dataset.theme = next;
+  $("themeToggle").textContent = next === "dark" ? "Light" : "Dark";
+  $("themeToggle").setAttribute(
+    "aria-label",
+    "Switch to " + (next === "dark" ? "light" : "dark") + " theme",
+  );
+  try {
+    localStorage.setItem("d-fi-theme", next);
+  } catch (_) {}
+}
+function toggleTheme() {
+  setTheme(currentTheme() === "dark" ? "light" : "dark");
+}
 function showToast(text, kind = "success") {
   if (!text) return;
   const toast = document.createElement("div");
@@ -638,6 +656,8 @@ function escapeHTML(value) {
   );
 }
 bindConfigAutosave();
+setTheme(currentTheme());
+$("themeToggle").addEventListener("click", toggleTheme);
 $("saveArlBtn").addEventListener("click", saveARL);
 $("layoutFieldsBtn").addEventListener("click", openLayoutFields);
 $("closeLayoutFieldsBtn").addEventListener("click", closeLayoutFields);

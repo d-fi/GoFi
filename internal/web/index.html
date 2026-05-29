@@ -4,14 +4,23 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>d-fi web</title>
+    <script>
+      try {
+        document.documentElement.dataset.theme =
+          localStorage.getItem("d-fi-theme") === "dark" ? "dark" : "light";
+      } catch (_) {}
+    </script>
     <link rel="stylesheet" href="/style.css" />
   </head>
   <body>
     <header>
       <h1>d-fi web</h1>
-      <div class="status">
-        <span id="sessionDot" class="dot"></span
-        ><span id="sessionText">Loading</span>
+      <div class="header-actions">
+        <button id="themeToggle" class="secondary" type="button">Dark</button>
+        <div class="status">
+          <span id="sessionDot" class="dot"></span
+          ><span id="sessionText">Loading</span>
+        </div>
       </div>
     </header>
     <div id="toasts" class="toasts" aria-live="polite"></div>

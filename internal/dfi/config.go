@@ -41,8 +41,8 @@ type CoverSizes struct {
 }
 
 type CoverConfig struct {
-	Mode     string `json:"mode"`
-	FileName string `json:"fileName"`
+	Mode     metadata.CoverMode `json:"mode"`
+	FileName string             `json:"fileName"`
 }
 
 type Cookies struct {
@@ -70,7 +70,7 @@ func defaultConfig() Config {
 			FLAC:    1000,
 		},
 		Cover: CoverConfig{
-			Mode:     string(metadata.CoverModeEmbed),
+			Mode:     metadata.CoverModeEmbed,
 			FileName: metadata.DefaultCoverFileName,
 		},
 	}
@@ -154,10 +154,10 @@ func mergeConfig(cfg *Config, user Config) {
 		cfg.CoverSize.FLAC = user.CoverSize.FLAC
 	}
 	if user.Cover.Mode != "" {
-		cfg.Cover.Mode = NormalizeCoverMode(user.Cover.Mode)
+		cfg.Cover.Mode = metadata.NormalizeCoverMode(user.Cover.Mode)
 	}
 	if user.Cover.FileName != "" {
-		cfg.Cover.FileName = NormalizeCoverFileName(user.Cover.FileName)
+		cfg.Cover.FileName = metadata.NormalizeCoverFileName(user.Cover.FileName)
 	}
 	if user.Cookies.ARL != "" {
 		cfg.Cookies.ARL = user.Cookies.ARL
@@ -173,21 +173,13 @@ func (cfg *Config) Set(key string, value any) error {
 			cfg.Concurrency = v
 		}
 	case "cover.mode":
-		cfg.Cover.Mode = NormalizeCoverMode(fmt.Sprintf("%v", value))
+		cfg.Cover.Mode = metadata.NormalizeCoverMode(metadata.CoverMode(fmt.Sprintf("%v", value)))
 	case "cover.fileName":
-		cfg.Cover.FileName = NormalizeCoverFileName(fmt.Sprintf("%v", value))
+		cfg.Cover.FileName = metadata.NormalizeCoverFileName(fmt.Sprintf("%v", value))
 	default:
 		return fmt.Errorf("unsupported config key: %s", key)
 	}
 	return cfg.Save()
-}
-
-func NormalizeCoverMode(mode string) string {
-	return string(metadata.NormalizeCoverMode(metadata.CoverMode(mode)))
-}
-
-func NormalizeCoverFileName(fileName string) string {
-	return metadata.NormalizeCoverFileName(fileName)
 }
 
 func (cfg Config) Save() error {

@@ -18,6 +18,7 @@ import (
 
 	"github.com/d-fi/GoFi/api"
 	"github.com/d-fi/GoFi/internal/dfi"
+	"github.com/d-fi/GoFi/metadata"
 	"github.com/d-fi/GoFi/request"
 	"github.com/d-fi/GoFi/types"
 )
@@ -218,10 +219,10 @@ func (s *Server) handleUpdateConfig(w http.ResponseWriter, r *http.Request) {
 	s.cfg.FallbackQuality = cfg.FallbackQuality
 	s.cfg.CoverSize = cfg.CoverSize
 	if cfg.Cover.Mode != "" {
-		s.cfg.Cover.Mode = dfi.NormalizeCoverMode(cfg.Cover.Mode)
+		s.cfg.Cover.Mode = metadata.NormalizeCoverMode(cfg.Cover.Mode)
 	}
 	if cfg.Cover.FileName != "" {
-		s.cfg.Cover.FileName = dfi.NormalizeCoverFileName(cfg.Cover.FileName)
+		s.cfg.Cover.FileName = metadata.NormalizeCoverFileName(cfg.Cover.FileName)
 	}
 	s.cfg.Cookies = cfg.Cookies
 	cfgToSave := s.cfg

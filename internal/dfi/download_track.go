@@ -27,7 +27,7 @@ type DownloadTrackOptions struct {
 	TrackNumber       bool
 	FallbackTrack     bool
 	FallbackQuality   bool
-	CoverMode         string
+	CoverMode         metadata.CoverMode
 	CoverFileName     string
 	CoverFilePolicy   map[string]bool
 	IsFallback        bool
@@ -66,7 +66,7 @@ func DownloadTrack(ctx context.Context, options DownloadTrackOptions) (string, e
 
 	savePath := SaveLayout(track, options.Info, options.Path, options.TrackNumber, options.TotalTracks) + ext
 	if _, err := os.Stat(savePath); err == nil {
-		if options.shouldSaveCoverFile(savePath) && os.Getenv("SIMULATE") == "" && metadata.ShouldSaveCoverFile(metadata.CoverMode(options.CoverMode)) {
+		if options.shouldSaveCoverFile(savePath) && os.Getenv("SIMULATE") == "" && metadata.ShouldSaveCoverFile(options.CoverMode) {
 			if _, err := metadata.SaveAlbumCoverFile(filepath.Dir(savePath), options.CoverFileName, track.ALB_PICTURE, coverSize); err != nil {
 				return "", err
 			}
@@ -149,7 +149,7 @@ func DownloadTrack(ctx context.Context, options DownloadTrackOptions) (string, e
 	}
 	tagged, err := metadata.AddTrackTags(raw, track, metadata.TagOptions{
 		CoverSize: coverSize,
-		CoverMode: metadata.CoverMode(options.CoverMode),
+		CoverMode: options.CoverMode,
 	})
 	if err != nil {
 		return "", err
@@ -168,7 +168,7 @@ func DownloadTrack(ctx context.Context, options DownloadTrackOptions) (string, e
 		if err := os.WriteFile(savePath, tagged, 0644); err != nil {
 			return "", err
 		}
-		if options.shouldSaveCoverFile(savePath) && metadata.ShouldSaveCoverFile(metadata.CoverMode(options.CoverMode)) {
+		if options.shouldSaveCoverFile(savePath) && metadata.ShouldSaveCoverFile(options.CoverMode) {
 			if _, err := metadata.SaveAlbumCoverFile(filepath.Dir(savePath), options.CoverFileName, track.ALB_PICTURE, coverSize); err != nil {
 				return "", err
 			}

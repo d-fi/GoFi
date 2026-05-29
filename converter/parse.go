@@ -37,11 +37,9 @@ func GetURLParts(rawURL string) (URLParts, error) {
 	host := strings.ToLower(parsed.Host)
 	switch {
 	case strings.Contains(host, "deezer"):
-		if strings.Contains(host, "page.link") {
-			rawURL, err = resolveRedirect(rawURL)
-			if err != nil {
-				return URLParts{}, err
-			}
+		rawURL, err = resolveDeezerShareURL(rawURL)
+		if err != nil {
+			return URLParts{}, err
 		}
 		return parseDeezerURL(rawURL)
 	case strings.Contains(host, "spotify"):
@@ -63,6 +61,51 @@ func GetURLParts(rawURL string) (URLParts, error) {
 	default:
 		return URLParts{}, fmt.Errorf("unknown URL: %s", rawURL)
 	}
+}
+
+func resolveDeezerShareURL(rawURL string) (string, error) {
+	parsed, err := url.Parse(rawURL)
+	if err != nil {
+		return "", err
+	}
+	if dest := deezerShareDestination(parsed); dest != "" {
+		return dest, nil
+	}
+
+	host := strings.ToLower(parsed.Host)
+	if strings.Contains(host, "page.link") || strings.EqualFold(host, "link.deezer.com") {
+		redirectURL, err := resolveRedirect(rawURL)
+		if err != nil {
+			return "", err
+		}
+		parsedRedirect, err := url.Parse(redirectURL)
+		if err != nil {
+			return "", err
+		}
+		if dest := deezerShareDestination(parsedRedirect); dest != "" {
+			return dest, nil
+		}
+		return redirectURL, nil
+	}
+
+	return rawURL, nil
+}
+
+func deezerShareDestination(parsed *url.URL) string {
+	for _, key := range []string{"dest", "awf", "gwf", "iwf"} {
+		value := parsed.Query().Get(key)
+		if value == "" {
+			continue
+		}
+		target, err := url.Parse(value)
+		if err != nil {
+			continue
+		}
+		if strings.Contains(strings.ToLower(target.Host), "deezer") {
+			return target.String()
+		}
+	}
+	return ""
 }
 
 // ParseInfo resolves a supported Deezer, Spotify, Tidal, or YouTube URL into Deezer tracks.

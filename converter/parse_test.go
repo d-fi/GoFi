@@ -1,6 +1,8 @@
 package converter
 
 import (
+	"io"
+	"net/http"
 	"os"
 	"strings"
 	"testing"
@@ -80,6 +82,35 @@ func TestGetURLParts(t *testing.T) {
 			assert.Equal(t, test.expected, actual)
 		})
 	}
+}
+
+func TestGetURLPartsDeezerShareLink(t *testing.T) {
+	previousTransport := http.DefaultTransport
+	http.DefaultTransport = roundTripFunc(func(req *http.Request) (*http.Response, error) {
+		require.Equal(t, http.MethodHead, req.Method)
+		require.Equal(t, "link.deezer.com", req.URL.Host)
+
+		location := "https://link.deezer.com/?dest=https%3A%2F%2Fwww.deezer.com%2Ftrack%2F3135556%3Futm_source%3Duser_sharing"
+		return &http.Response{
+			StatusCode: http.StatusMovedPermanently,
+			Header:     http.Header{"Location": []string{location}},
+			Body:       io.NopCloser(strings.NewReader("")),
+			Request:    req,
+		}, nil
+	})
+	t.Cleanup(func() {
+		http.DefaultTransport = previousTransport
+	})
+
+	actual, err := GetURLParts("https://link.deezer.com/s/33mHLHCANAsGjpIDT5fji")
+	require.NoError(t, err)
+	assert.Equal(t, URLParts{ID: "3135556", Type: "track"}, actual)
+}
+
+type roundTripFunc func(*http.Request) (*http.Response, error)
+
+func (fn roundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
+	return fn(req)
 }
 
 func TestISRCToDeezer(t *testing.T) {

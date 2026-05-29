@@ -82,9 +82,6 @@ function setTheme(theme) {
     localStorage.setItem("d-fi-theme", next);
   } catch (_) {}
 }
-function toggleTheme() {
-  setTheme(currentTheme() === "dark" ? "light" : "dark");
-}
 function showToast(text, kind = "success") {
   if (!text) return;
   const toast = document.createElement("div");
@@ -213,12 +210,9 @@ function syncSettingsButton(section) {
   const current = JSON.stringify(readConfigSection(section));
   $(settingsSections[section].button).disabled = snapshot === current;
 }
-function coverWritesFile() {
-  const mode = $("cfgCoverMode").value;
-  return mode === "file" || mode === "both";
-}
 function syncCoverFileName() {
-  $("cfgCoverFileName").disabled = !coverWritesFile();
+  const mode = $("cfgCoverMode").value;
+  $("cfgCoverFileName").disabled = mode !== "file" && mode !== "both";
 }
 function cloneSavedConfig() {
   return JSON.parse(JSON.stringify(state.config || {}));
@@ -281,9 +275,6 @@ function setARLCollapsed(collapsed) {
   document
     .querySelector(".arl-section")
     .classList.toggle("collapsed", collapsed);
-}
-function toggleARL() {
-  setARLCollapsed(!state.arlCollapsed);
 }
 async function saveConfig(section) {
   try {
@@ -676,9 +667,6 @@ function openLayoutFields() {
   $("layoutCopyStatus").textContent = "";
   $("layoutFieldsDialog").showModal();
 }
-function closeLayoutFields() {
-  $("layoutFieldsDialog").close();
-}
 function renderLayoutFields() {
   const fields = state.layoutFields || defaultLayoutFields();
   $("alwaysFields").innerHTML = renderFieldButtons(fields.always || []);
@@ -760,9 +748,9 @@ function renderJobs(jobs) {
       const pct = Math.max(0, Math.min(100, Number(job.progress || 0)));
       const line = jobLine(job);
       const action = isCancelableJob(job)
-        ? '<button class="secondary" onclick="cancelJob(' +
+        ? '<button class="secondary" data-cancel-job="' +
           job.id +
-          ')">Cancel</button>'
+          '">Cancel</button>'
         : job.status === "canceling"
           ? '<button class="secondary" disabled>Canceling</button>'
           : "";
@@ -799,6 +787,11 @@ function renderJobs(jobs) {
       );
     })
     .join("");
+  root.querySelectorAll("[data-cancel-job]").forEach((button) => {
+    button.addEventListener("click", () =>
+      cancelJob(Number(button.dataset.cancelJob)),
+    );
+  });
 }
 function jobTitle(job) {
   if (job.status === "running") return "Downloading";
@@ -861,17 +854,25 @@ function escapeHTML(value) {
 fillCoverSizeOptions();
 bindConfigControls();
 setTheme(currentTheme());
-$("themeToggle").addEventListener("click", toggleTheme);
+$("themeToggle").addEventListener("click", () =>
+  setTheme(currentTheme() === "dark" ? "light" : "dark"),
+);
 $("saveArlBtn").addEventListener("click", saveARL);
-$("toggleArlBtn").addEventListener("click", toggleARL);
+$("toggleArlBtn").addEventListener("click", () =>
+  setARLCollapsed(!state.arlCollapsed),
+);
 $("saveDownloadsBtn").addEventListener("click", () => saveConfig("downloads"));
 $("saveLayoutBtn").addEventListener("click", () => saveConfig("layout"));
 $("savePlaylistBtn").addEventListener("click", () => saveConfig("playlist"));
 $("saveCoverBtn").addEventListener("click", () => saveConfig("cover"));
 $("layoutFieldsBtn").addEventListener("click", openLayoutFields);
-$("closeLayoutFieldsBtn").addEventListener("click", closeLayoutFields);
+$("closeLayoutFieldsBtn").addEventListener("click", () =>
+  $("layoutFieldsDialog").close(),
+);
 $("layoutFieldsDialog").addEventListener("click", (event) => {
-  if (event.target === $("layoutFieldsDialog")) closeLayoutFields();
+  if (event.target === $("layoutFieldsDialog")) {
+    $("layoutFieldsDialog").close();
+  }
 });
 $("previewBtn").addEventListener("click", preview);
 $("query").addEventListener("keydown", (event) => {

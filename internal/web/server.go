@@ -77,11 +77,6 @@ type searchOptionsRequest struct {
 	Query string `json:"query"`
 }
 
-type searchOptionsResponse struct {
-	Type    string             `json:"type"`
-	Options []dfi.SearchOption `json:"options"`
-}
-
 type previewResponse struct {
 	LinkType     string           `json:"linkType"`
 	Tracks       []trackPreview   `json:"tracks"`
@@ -110,10 +105,9 @@ type trackPreview struct {
 }
 
 type startRequest struct {
-	Query     string `json:"query"`
-	Quality   string `json:"quality"`
-	CoverSize int    `json:"coverSize"`
-	Tracks    []int  `json:"tracks"`
+	Query   string `json:"query"`
+	Quality string `json:"quality"`
+	Tracks  []int  `json:"tracks"`
 }
 
 type jobResponse struct {
@@ -290,10 +284,9 @@ func (s *Server) handleSearchOptions(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, searchOptionsResponse{
-		Type:    req.Type,
-		Options: options,
-	})
+	writeJSON(w, http.StatusOK, struct {
+		Options []dfi.SearchOption `json:"options"`
+	}{Options: options})
 }
 
 func (s *Server) handleStartDownload(w http.ResponseWriter, r *http.Request) {
@@ -323,17 +316,6 @@ func (s *Server) handleStartDownload(w http.ResponseWriter, r *http.Request) {
 	if concurrency <= 0 {
 		concurrency = 1
 	}
-	if req.CoverSize > 0 {
-		switch label {
-		case "128":
-			cfg.CoverSize.MP3_128 = req.CoverSize
-		case "flac":
-			cfg.CoverSize.FLAC = req.CoverSize
-		default:
-			cfg.CoverSize.MP3_320 = req.CoverSize
-		}
-	}
-
 	res, err := s.resolveInput(req.Query)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err)

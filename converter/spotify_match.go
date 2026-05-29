@@ -1,10 +1,8 @@
 package converter
 
 import (
-	"encoding/json"
 	"fmt"
 	"math"
-	"net/url"
 	"regexp"
 	"sort"
 	"strings"
@@ -12,7 +10,6 @@ import (
 	"unicode"
 
 	"github.com/d-fi/GoFi/api"
-	"github.com/d-fi/GoFi/request"
 	"github.com/d-fi/GoFi/types"
 	"golang.org/x/text/unicode/norm"
 )
@@ -69,7 +66,7 @@ func spotifyMetadataToDeezer(input spotifyMatchInput) (types.TrackType, error) {
 		return types.TrackType{}, fmt.Errorf("no deezer candidates for spotify track %q", input.title)
 	}
 
-	var best *types.TrackTypePublicAPI
+	var best *types.TrackType
 	var bestScore spotifyMatchScore
 	secondBest := 0
 	for index := range candidates {
@@ -104,22 +101,22 @@ func spotifyMetadataToDeezer(input spotifyMatchInput) (types.TrackType, error) {
 		return types.TrackType{}, fmt.Errorf("ambiguous deezer match for spotify track %q: best=%d second=%d", input.title, bestScore.total, secondBest)
 	}
 
-	return api.GetTrackInfo(fmt.Sprintf("%d", best.ID))
+	return *best, nil
 }
 
-func searchSpotifyDeezerCandidates(input spotifyMatchInput) ([]types.TrackTypePublicAPI, error) {
+func searchSpotifyDeezerCandidates(input spotifyMatchInput) ([]types.TrackType, error) {
 	queries := spotifyMatchQueries(input)
 	results := make(chan struct {
-		tracks []types.TrackTypePublicAPI
+		tracks []types.TrackType
 		err    error
 	}, len(queries))
 
 	var wg sync.WaitGroup
 	for _, query := range queries {
 		wg.Go(func() {
-			tracks, err := searchDeezerPublicTracks(query, spotifyMatchSearchLimit)
+			tracks, err := searchDeezerTracks(query, spotifyMatchSearchLimit)
 			results <- struct {
-				tracks []types.TrackTypePublicAPI
+				tracks []types.TrackType
 				err    error
 			}{tracks: tracks, err: err}
 		})
@@ -127,8 +124,8 @@ func searchSpotifyDeezerCandidates(input spotifyMatchInput) ([]types.TrackTypePu
 	wg.Wait()
 	close(results)
 
-	seen := map[int]bool{}
-	var candidates []types.TrackTypePublicAPI
+	seen := map[string]bool{}
+	var candidates []types.TrackType
 	var lastErr error
 
 	for result := range results {
@@ -137,10 +134,10 @@ func searchSpotifyDeezerCandidates(input spotifyMatchInput) ([]types.TrackTypePu
 			continue
 		}
 		for _, track := range result.tracks {
-			if track.ID == 0 || seen[track.ID] {
+			if track.SNG_ID == "" || seen[track.SNG_ID] {
 				continue
 			}
-			seen[track.ID] = true
+			seen[track.SNG_ID] = true
 			candidates = append(candidates, track)
 		}
 	}
@@ -179,30 +176,24 @@ func spotifyMatchQueries(input spotifyMatchInput) []string {
 	return queries
 }
 
-func searchDeezerPublicTracks(query string, limit int) ([]types.TrackTypePublicAPI, error) {
+func searchDeezerTracks(query string, limit int) ([]types.TrackType, error) {
 	spotifyDeezerSearchLimiter <- struct{}{}
 	defer func() {
 		<-spotifyDeezerSearchLimiter
 	}()
 
-	data, err := request.RequestPublicApi(fmt.Sprintf("/search/track?limit=%d&q=%s", limit, url.QueryEscape(query)))
+	search, err := api.SearchMusic(query, limit, "TRACK")
 	if err != nil {
 		return nil, err
 	}
-	var result struct {
-		Data []types.TrackTypePublicAPI `json:"data"`
-	}
-	if err := json.Unmarshal(data, &result); err != nil {
-		return nil, err
-	}
-	return result.Data, nil
+	return search.TRACK.Data, nil
 }
 
-func scoreSpotifyDeezerCandidate(input spotifyMatchInput, candidate types.TrackTypePublicAPI) spotifyMatchScore {
+func scoreSpotifyDeezerCandidate(input spotifyMatchInput, candidate types.TrackType) spotifyMatchScore {
 	title := bestTitleScore(input.title, candidate)
 	artist := bestArtistScore(input.artists, candidate)
-	album := similarityScore(normalizeForCompare(input.album), normalizeForCompare(candidate.Album.Title))
-	durationDiff := abs(input.durationSec - int(candidate.Duration))
+	album := similarityScore(normalizeForCompare(input.album), normalizeForCompare(candidate.ALB_TITLE))
+	durationDiff := abs(input.durationSec - int(candidate.DURATION))
 	duration := durationScore(durationDiff)
 	conflict := hasVersionConflict(input.title, candidate)
 
@@ -228,22 +219,19 @@ func scoreSpotifyDeezerCandidate(input spotifyMatchInput, candidate types.TrackT
 	}
 }
 
-func bestTitleScore(source string, candidate types.TrackTypePublicAPI) int {
-	score := similarityScore(normalizeTitleBase(source), normalizeTitleBase(candidate.Title))
-	if candidate.TitleShort != "" {
-		score = max(score, similarityScore(normalizeTitleBase(source), normalizeTitleBase(candidate.TitleShort)))
-	}
-	if candidate.TitleVersion != nil && *candidate.TitleVersion != "" {
-		score = max(score, similarityScore(normalizeTitleBase(source), normalizeTitleBase(candidate.Title+" "+*candidate.TitleVersion)))
+func bestTitleScore(source string, candidate types.TrackType) int {
+	score := similarityScore(normalizeTitleBase(source), normalizeTitleBase(candidate.SNG_TITLE))
+	if candidate.VERSION != nil && *candidate.VERSION != "" {
+		score = max(score, similarityScore(normalizeTitleBase(source), normalizeTitleBase(candidate.SNG_TITLE+" "+*candidate.VERSION)))
 	}
 	return score
 }
 
-func bestArtistScore(sourceArtists []string, candidate types.TrackTypePublicAPI) int {
-	candidateArtists := []string{candidate.Artist.Name}
-	for _, contributor := range candidate.Contributors {
-		if contributor.Name != "" {
-			candidateArtists = append(candidateArtists, contributor.Name)
+func bestArtistScore(sourceArtists []string, candidate types.TrackType) int {
+	candidateArtists := []string{candidate.ART_NAME}
+	for _, artist := range candidate.ARTISTS {
+		if artist.ART_NAME != "" {
+			candidateArtists = append(candidateArtists, artist.ART_NAME)
 		}
 	}
 
@@ -271,11 +259,11 @@ func durationScore(diff int) int {
 	}
 }
 
-func hasVersionConflict(source string, candidate types.TrackTypePublicAPI) bool {
+func hasVersionConflict(source string, candidate types.TrackType) bool {
 	sourceTags := versionTags(source)
-	candidateTitle := candidate.Title
-	if candidate.TitleVersion != nil {
-		candidateTitle += " " + *candidate.TitleVersion
+	candidateTitle := candidate.SNG_TITLE
+	if candidate.VERSION != nil {
+		candidateTitle += " " + *candidate.VERSION
 	}
 	candidateTags := versionTags(candidateTitle)
 

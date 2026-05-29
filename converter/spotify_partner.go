@@ -46,8 +46,6 @@ type spotifyPartnerPlaylistResponse struct {
 type spotifyPartnerTrack struct {
 	URI          string                `json:"uri"`
 	Name         string                `json:"name"`
-	DiscNumber   int                   `json:"discNumber"`
-	TrackNumber  int                   `json:"trackNumber"`
 	AlbumOfTrack spotifyPartnerAlbum   `json:"albumOfTrack"`
 	Artists      spotifyPartnerArtists `json:"artists"`
 	Duration     struct {
@@ -114,15 +112,6 @@ func GetSpotifyPartnerPlaylist(id string) (SpotifyPlaylist, []SpotifyTrack, erro
 	}
 
 	return playlist, tracks, nil
-}
-
-// GetSpotifyPartnerPlaylistTracks fetches all public playlist tracks through Spotify's web partner GraphQL API.
-func GetSpotifyPartnerPlaylistTracks(id string) ([]SpotifyTrack, int, error) {
-	playlist, tracks, err := GetSpotifyPartnerPlaylist(id)
-	if err != nil {
-		return nil, 0, err
-	}
-	return tracks, playlist.Tracks.Total, nil
 }
 
 func getSpotifyPartnerPlaylistPage(id string, limit, offset int) (spotifyPartnerPlaylistResponse, error) {
@@ -192,7 +181,6 @@ func spotifyPartnerPlaylistToSpotifyPlaylist(page spotifyPartnerPlaylistResponse
 		ID:          body.ID,
 		Name:        body.Name,
 		Description: body.Description,
-		Images:      firstSpotifyImages(body.Images.Items),
 		Owner: SpotifyOwner{
 			ID:          spotifyIDFromURI(body.OwnerV2.Data.URI),
 			DisplayName: body.OwnerV2.Data.Name,
@@ -200,6 +188,9 @@ func spotifyPartnerPlaylistToSpotifyPlaylist(page spotifyPartnerPlaylistResponse
 		},
 		Type: "playlist",
 		URI:  body.URI,
+	}
+	if len(body.Images.Items) > 0 {
+		playlist.Images = body.Images.Items[0].Sources
 	}
 	if playlist.Owner.ID == "" {
 		playlist.Owner.ID = body.OwnerV2.Data.Username
@@ -238,15 +229,6 @@ func spotifyPartnerTrackToSpotifyTrack(track spotifyPartnerTrack) SpotifyTrack {
 		Type:       "track",
 		URI:        track.URI,
 	}
-}
-
-func firstSpotifyImages(items []struct {
-	Sources []SpotifyImage `json:"sources"`
-}) []SpotifyImage {
-	if len(items) == 0 {
-		return nil
-	}
-	return items[0].Sources
 }
 
 func spotifyIDFromURI(uri string) string {

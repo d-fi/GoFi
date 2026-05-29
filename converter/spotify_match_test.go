@@ -14,7 +14,7 @@ func TestScoreSpotifyDeezerCandidateAcceptsMatchingTrack(t *testing.T) {
 		album:       "After Hours",
 		durationSec: 200,
 	}
-	candidate := publicTrackCandidate("Blinding Lights", "The Weeknd", "After Hours", 200)
+	candidate := trackCandidate("Blinding Lights", "The Weeknd", "After Hours", 200)
 
 	score := scoreSpotifyDeezerCandidate(input, candidate)
 
@@ -32,7 +32,7 @@ func TestScoreSpotifyDeezerCandidateRejectsUnexpectedLiveVersion(t *testing.T) {
 		album:       "(What's The Story) Morning Glory?",
 		durationSec: 259,
 	}
-	candidate := publicTrackCandidate("Wonderwall (Live from Dublin, 16 August '25)", "Oasis", "Wonderwall", 261)
+	candidate := trackCandidate("Wonderwall (Live from Dublin, 16 August '25)", "Oasis", "Wonderwall", 261)
 
 	score := scoreSpotifyDeezerCandidate(input, candidate)
 
@@ -46,7 +46,7 @@ func TestScoreSpotifyDeezerCandidateRejectsUnexpectedRemasterVersion(t *testing.
 		album:       "Fanmail",
 		durationSec: 214,
 	}
-	candidate := publicTrackCandidate("No Scrubs (Re-Mastered Version)", "TLC", "Fanmail", 214)
+	candidate := trackCandidate("No Scrubs (Re-Mastered Version)", "TLC", "Fanmail", 214)
 
 	score := scoreSpotifyDeezerCandidate(input, candidate)
 
@@ -60,7 +60,7 @@ func TestScoreSpotifyDeezerCandidateRejectsUnexpectedReRecordedVersion(t *testin
 		album:       "Tomorrow",
 		durationSec: 240,
 	}
-	candidate := publicTrackCandidate("Fire Burning (Re-Recorded)", "Sean Kingston", "Tomorrow", 240)
+	candidate := trackCandidate("Fire Burning (Re-Recorded)", "Sean Kingston", "Tomorrow", 240)
 
 	score := scoreSpotifyDeezerCandidate(input, candidate)
 
@@ -74,7 +74,7 @@ func TestScoreSpotifyDeezerCandidateRejectsUnexpectedYearVersion(t *testing.T) {
 		album:       "The High Road",
 		durationSec: 221,
 	}
-	candidate := publicTrackCandidate("Too Little Too Late (2018)", "JoJo", "The High Road", 221)
+	candidate := trackCandidate("Too Little Too Late (2018)", "JoJo", "The High Road", 221)
 
 	score := scoreSpotifyDeezerCandidate(input, candidate)
 
@@ -88,7 +88,7 @@ func TestScoreSpotifyDeezerCandidateAcceptsMatchingRemixVersion(t *testing.T) {
 		album:       "At Night, Alone.",
 		durationSec: 198,
 	}
-	candidate := publicTrackCandidate("I Took A Pill In Ibiza (Seeb Remix)", "Mike Posner", "At Night, Alone.", 198)
+	candidate := trackCandidate("I Took A Pill In Ibiza (Seeb Remix)", "Mike Posner", "At Night, Alone.", 198)
 
 	score := scoreSpotifyDeezerCandidate(input, candidate)
 
@@ -103,7 +103,7 @@ func TestScoreSpotifyDeezerCandidateIgnoresWeakAlbumForExactTrack(t *testing.T) 
 		album:       "=",
 		durationSec: 207,
 	}
-	candidate := publicTrackCandidate("Shivers", "Ed Sheeran", "Shivers", 208)
+	candidate := trackCandidate("Shivers", "Ed Sheeran", "Shivers", 208)
 
 	score := scoreSpotifyDeezerCandidate(input, candidate)
 
@@ -162,10 +162,8 @@ func TestVersionTagsDetectHyphenatedRemaster(t *testing.T) {
 
 func TestSpotifyPartnerTrackToSpotifyTrack(t *testing.T) {
 	partnerTrack := spotifyPartnerTrack{
-		URI:         "spotify:track:abc123",
-		Name:        "Track Name",
-		DiscNumber:  1,
-		TrackNumber: 2,
+		URI:  "spotify:track:abc123",
+		Name: "Track Name",
 		AlbumOfTrack: spotifyPartnerAlbum{
 			URI:  "spotify:album:alb123",
 			Name: "Album Name",
@@ -194,13 +192,12 @@ func TestSpotifyPartnerTrackToSpotifyTrack(t *testing.T) {
 	assert.Equal(t, "Artist Name", track.Artists[0].Name)
 }
 
-func publicTrackCandidate(title, artist, album string, duration int) types.TrackTypePublicAPI {
-	candidate := types.TrackTypePublicAPI{
-		Title:      title,
-		TitleShort: title,
-		Duration:   types.StringOrInt(duration),
-	}
-	candidate.Artist.Name = artist
-	candidate.Album.Title = album
+func trackCandidate(title, artist, album string, duration int) types.TrackType {
+	candidate := types.TrackType{}
+	candidate.SNG_ID = "1"
+	candidate.SNG_TITLE = title
+	candidate.ART_NAME = artist
+	candidate.ALB_TITLE = album
+	candidate.DURATION = types.StringOrInt(duration)
 	return candidate
 }

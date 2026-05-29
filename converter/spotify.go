@@ -115,7 +115,7 @@ func GetSpotifyTrack(id string) (SpotifyTrack, error) {
 	return track, err
 }
 
-// SpotifyTrackToDeezer converts a Spotify track to a Deezer track via ISRC.
+// SpotifyTrackToDeezer converts a Spotify track to a Deezer track.
 func SpotifyTrackToDeezer(id string) (types.TrackType, error) {
 	track, err := GetSpotifyTrack(id)
 	if err != nil {

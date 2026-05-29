@@ -20,7 +20,7 @@ func WriteMetadataFlac(buffer []byte, track types.TrackType, album *types.AlbumT
 
 	var RELEASE_YEAR string
 	if album != nil {
-		RELEASE_YEAR = strings.Split(album.ReleaseDate, "-")[0]
+		RELEASE_YEAR, _, _ = strings.Cut(album.ReleaseDate, "-")
 		logger.Debug("Release year extracted: %s", RELEASE_YEAR)
 	}
 

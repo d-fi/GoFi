@@ -76,7 +76,7 @@ func SaveLayout(props SaveLayoutProps) string {
 				continue
 			}
 			albumInfo["RELEASE_DATE"] = date
-			if year := strings.Split(date, "-")[0]; year != "" {
+			if year, _, _ := strings.Cut(date, "-"); year != "" {
 				albumInfo["RELEASE_YEAR"] = year
 			}
 			break

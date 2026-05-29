@@ -27,19 +27,39 @@
     <main>
       <aside>
         <h2>Session</h2>
-        <label for="arl">Deezer ARL</label>
-        <input
-          id="arl"
-          type="text"
-          autocomplete="off"
-          placeholder="Paste ARL or leave blank to keep saved/env value"
-        />
-        <div class="arl-meta">
-          <span id="arlDot" class="arl-dot"></span>
-          <span id="arlText">Checking ARL</span>
-        </div>
-        <div class="toolbar">
-          <button id="saveArlBtn" class="secondary" disabled>Save ARL</button>
+        <div class="arl-section">
+          <div class="settings-heading">
+            <div>
+              <div class="settings-title">Deezer ARL</div>
+              <div class="arl-meta">
+                <span id="arlDot" class="arl-dot"></span>
+                <span id="arlText">Checking ARL</span>
+              </div>
+            </div>
+            <button
+              id="toggleArlBtn"
+              class="secondary"
+              type="button"
+              aria-expanded="true"
+              aria-controls="arlBody"
+            >
+              Hide
+            </button>
+          </div>
+          <div id="arlBody">
+            <label for="arl">ARL value</label>
+            <input
+              id="arl"
+              type="text"
+              autocomplete="off"
+              placeholder="Paste ARL or leave blank to keep saved/env value"
+            />
+            <div class="toolbar">
+              <button id="saveArlBtn" class="secondary" disabled>
+                Save ARL
+              </button>
+            </div>
+          </div>
         </div>
         <div class="settings">
           <div>

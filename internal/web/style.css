@@ -175,9 +175,20 @@ button:disabled {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  margin-top: 7px;
   color: var(--muted);
   font-size: 12px;
+}
+.arl-section {
+  margin-top: 12px;
+}
+.arl-section .settings-heading {
+  align-items: flex-start;
+}
+.arl-section .settings-heading button {
+  flex: 0 0 auto;
+}
+.arl-section.collapsed #arlBody {
+  display: none;
 }
 .arl-dot {
   width: 8px;

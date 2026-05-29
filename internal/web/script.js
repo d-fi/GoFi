@@ -8,6 +8,7 @@ const state = {
   jobsLoading: false,
   jobsTimer: null,
   saveTimer: null,
+  arlCollapsed: null,
 };
 const $ = (id) => document.getElementById(id);
 const api = async (path, opts = {}) => {
@@ -144,9 +145,24 @@ function updateSession(session, hasArl) {
 function updateARLStatus(hasArl) {
   $("arlDot").className = "arl-dot" + (hasArl ? " saved" : "");
   $("arlText").textContent = hasArl ? "ARL saved" : "No ARL saved";
+  if (state.arlCollapsed === null) {
+    setARLCollapsed(hasArl);
+  }
 }
 function updateSaveARLButton() {
   $("saveArlBtn").disabled = $("arl").value.trim() === "";
+}
+function setARLCollapsed(collapsed) {
+  state.arlCollapsed = collapsed;
+  $("arlBody").hidden = collapsed;
+  $("toggleArlBtn").textContent = collapsed ? "Edit" : "Hide";
+  $("toggleArlBtn").setAttribute("aria-expanded", String(!collapsed));
+  document
+    .querySelector(".arl-section")
+    .classList.toggle("collapsed", collapsed);
+}
+function toggleARL() {
+  setARLCollapsed(!state.arlCollapsed);
 }
 function scheduleConfigSave() {
   window.clearTimeout(state.saveTimer);
@@ -163,6 +179,9 @@ async function saveConfig() {
     fillConfig(data.config);
     updateSession(data.session, data.hasArl);
     updateARLStatus(data.hasArl);
+    if (data.hasArl) {
+      setARLCollapsed(true);
+    }
     if (data.session && data.session.error) {
       showToast(data.session.error, "error");
     }
@@ -659,6 +678,7 @@ bindConfigAutosave();
 setTheme(currentTheme());
 $("themeToggle").addEventListener("click", toggleTheme);
 $("saveArlBtn").addEventListener("click", saveARL);
+$("toggleArlBtn").addEventListener("click", toggleARL);
 $("layoutFieldsBtn").addEventListener("click", openLayoutFields);
 $("closeLayoutFieldsBtn").addEventListener("click", closeLayoutFields);
 $("layoutFieldsDialog").addEventListener("click", (event) => {

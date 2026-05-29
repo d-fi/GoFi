@@ -185,6 +185,8 @@ Common placeholders for track, album, artist, and playlist layouts:
 {ALB_TITLE}        Album title
 {ART_NAME}         Artist name
 {SNG_TITLE}        Track title
+{RELEASE_DATE}     Album release date, such as 2001-03-07
+{RELEASE_YEAR}     Album release year, such as 2001
 {TRACK_NUMBER}     Force track number in this position
 {NO_TRACK_NUMBER}  Disable automatic track number for this layout
 {TITLE}            Playlist title, only available for playlist layout
@@ -192,14 +194,14 @@ Common placeholders for track, album, artist, and playlist layouts:
 
 `{TRACK_NUMBER}` forces the track number at that position. `{NO_TRACK_NUMBER}` disables the automatic number prefix for that layout.
 
-Nested values can be accessed with dot notation, including array indexes, like `{ARTISTS.0.ART_NAME}` or `{SNG_CONTRIBUTORS.main_artist.0}`.
+Any field from the track or album metadata can be used as a placeholder. Nested values can be accessed with dot notation, including array indexes, like `{ARTISTS.0.ART_NAME}` or `{SNG_CONTRIBUTORS.main_artist.0}`.
 
 Example:
 
 ```json
 {
   "saveLayout": {
-    "album": "Music/{ARTISTS.0.ART_NAME}/{ALB_TITLE}/{TRACK_NUMBER} - {SNG_TITLE}",
+    "album": "Music/{ARTISTS.0.ART_NAME}/{RELEASE_YEAR} - {ALB_TITLE}/{TRACK_NUMBER} - {SNG_TITLE}",
     "playlist": "Playlist/{TITLE}/{SNG_TITLE}"
   }
 }

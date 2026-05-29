@@ -181,6 +181,38 @@ func TestSaveLayout(t *testing.T) {
 			},
 			expected: "Daft Punk/Daft Punk/Song Title.mp3",
 		},
+		{
+			name: "Release_date_aliases_from_album",
+			props: SaveLayoutProps{
+				Track: map[string]any{
+					"TITLE": "Song Title",
+				},
+				Album: map[string]any{
+					"ALB_TITLE":            "Album Name",
+					"DIGITAL_RELEASE_DATE": "2001-03-07",
+				},
+				Path:                 "{RELEASE_YEAR}/{RELEASE_DATE}/{ALB_TITLE}/{TITLE}.mp3",
+				MinimumIntegerDigits: 2,
+				TrackNumber:          false,
+			},
+			expected: "2001/2001-03-07/Album Name/Song Title.mp3",
+		},
+		{
+			name: "Release_date_aliases_from_public_track_album",
+			props: SaveLayoutProps{
+				Track: map[string]any{
+					"TITLE": "Song Title",
+					"album": map[string]any{
+						"release_date": "1998-01-20",
+					},
+				},
+				Album:                nil,
+				Path:                 "{RELEASE_YEAR}/{TITLE}.mp3",
+				MinimumIntegerDigits: 2,
+				TrackNumber:          false,
+			},
+			expected: "1998/Song Title.mp3",
+		},
 	}
 
 	for _, test := range tests {

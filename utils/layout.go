@@ -61,6 +61,28 @@ func SaveLayout(props SaveLayoutProps) string {
 		}
 	}
 
+	if _, ok := albumInfo["RELEASE_DATE"]; !ok {
+		for _, key := range []string{"DIGITAL_RELEASE_DATE", "PHYSICAL_RELEASE_DATE", "release_date", "album.release_date", "DATE_START"} {
+			var value any
+			var exists bool
+			if value, exists = GetNestedValue(albumInfo, key); !exists {
+				value, exists = GetNestedValue(props.Track, key)
+			}
+			if !exists {
+				continue
+			}
+			date := fmt.Sprintf("%v", value)
+			if date == "" || date == "<nil>" || date == "0000-00-00" {
+				continue
+			}
+			albumInfo["RELEASE_DATE"] = date
+			if year := strings.Split(date, "-")[0]; year != "" {
+				albumInfo["RELEASE_YEAR"] = year
+			}
+			break
+		}
+	}
+
 	// Find keys inside {}
 	re := regexp.MustCompile(`\{([^}]*)\}`)
 	matches := re.FindAllStringSubmatch(props.Path, -1)

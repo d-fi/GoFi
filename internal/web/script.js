@@ -145,6 +145,7 @@ function fillConfigSection(section, cfg) {
     $("cfgCoverFlac").value = cfg.coverSize?.flac || 1000;
     $("cfgCoverMode").value = cfg.cover?.mode || "embed";
     $("cfgCoverFileName").value = cfg.cover?.fileName || "cover.jpg";
+    syncCoverFileName();
   }
 }
 function readConfigSection(section) {
@@ -198,6 +199,13 @@ function syncSettingsButton(section) {
   const snapshot = state.settingsSnapshots[section];
   const current = JSON.stringify(readConfigSection(section));
   $(settingsSections[section].button).disabled = snapshot === current;
+}
+function coverWritesFile() {
+  const mode = $("cfgCoverMode").value;
+  return mode === "file" || mode === "both";
+}
+function syncCoverFileName() {
+  $("cfgCoverFileName").disabled = !coverWritesFile();
 }
 function cloneSavedConfig() {
   return JSON.parse(JSON.stringify(state.config || {}));
@@ -326,6 +334,7 @@ function bindConfigControls() {
   $("arl").addEventListener("keydown", (event) => {
     if (event.key === "Enter") saveARL();
   });
+  $("cfgCoverMode").addEventListener("change", syncCoverFileName);
 }
 async function preview() {
   setMainMessage("Fetching preview...");

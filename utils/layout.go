@@ -88,35 +88,25 @@ func SaveLayout(props SaveLayoutProps) string {
 	matches := re.FindAllStringSubmatch(props.Path, -1)
 
 	for _, match := range matches {
-		key := match[1]
-		logger.Debug("Processing key: %s", key)
+		expression := match[1]
+		logger.Debug("Processing key: %s", expression)
 
-		var value any
-		if val, ok := GetNestedValue(albumInfo, key); ok {
-			value = val
-			logger.Debug("Found value from album: %s = %v", key, value)
-		} else if val, ok := GetNestedValue(props.Track, key); ok {
-			value = val
-			logger.Debug("Found value from track: %s = %v", key, value)
-		} else {
-			value = ""
-		}
-
-		if key == "TRACK_NUMBER" || key == "TRACK_POSITION" || key == "NO_TRACK_NUMBER" || strings.HasSuffix(key, "TRACK_NUMBER") || strings.HasSuffix(key, "TRACK_POSITION") {
-			if value != "" {
+		key, value := resolveLayoutValue(albumInfo, props.Track, expression)
+		if isTrackNumberLayoutKey(expression) || isTrackNumberLayoutKey(key) {
+			if !isEmptyLayoutValue(value) {
 				num := atoiOrZero(fmt.Sprintf("%v", value))
 				formattedNum := fmt.Sprintf("%0*d", props.MinimumIntegerDigits, num)
-				props.Path = strings.ReplaceAll(props.Path, "{"+key+"}", formattedNum)
-				logger.Debug("Formatted track number for key %s: %s", key, props.Path)
+				props.Path = strings.ReplaceAll(props.Path, "{"+expression+"}", formattedNum)
+				logger.Debug("Formatted track number for key %s: %s", expression, props.Path)
 			} else {
-				props.Path = strings.ReplaceAll(props.Path, "{"+key+"}", "")
-				logger.Debug("Key %s had no value; replaced with empty string.", key)
+				props.Path = strings.ReplaceAll(props.Path, "{"+expression+"}", "")
+				logger.Debug("Key %s had no value; replaced with empty string.", expression)
 			}
 			props.TrackNumber = false
 		} else {
 			sanitizedValue := SanitizeFileName(fmt.Sprintf("%v", value))
-			props.Path = strings.ReplaceAll(props.Path, "{"+key+"}", sanitizedValue)
-			logger.Debug("Replaced key %s with sanitized value: %s", key, props.Path)
+			props.Path = strings.ReplaceAll(props.Path, "{"+expression+"}", sanitizedValue)
+			logger.Debug("Replaced key %s with sanitized value: %s", expression, props.Path)
 		}
 	}
 
@@ -145,4 +135,37 @@ func SaveLayout(props SaveLayoutProps) string {
 	finalPath := strings.Trim(regexp.MustCompile(`[?%*|"<>]`).ReplaceAllString(props.Path, ""), " ")
 	logger.Debug("Final sanitized path: %s", finalPath)
 	return finalPath
+}
+
+func resolveLayoutValue(album, track map[string]any, expression string) (string, any) {
+	for _, key := range strings.Split(expression, "|") {
+		key = strings.TrimSpace(key)
+		if key == "" {
+			continue
+		}
+		if value, ok := GetNestedValue(album, key); ok && !isEmptyLayoutValue(value) {
+			logger.Debug("Found value from album: %s = %v", key, value)
+			return key, value
+		}
+		if value, ok := GetNestedValue(track, key); ok && !isEmptyLayoutValue(value) {
+			logger.Debug("Found value from track: %s = %v", key, value)
+			return key, value
+		}
+	}
+	return expression, ""
+}
+
+func isEmptyLayoutValue(value any) bool {
+	if value == nil {
+		return true
+	}
+	text := strings.TrimSpace(fmt.Sprintf("%v", value))
+	return text == "" || text == "<nil>"
+}
+
+func isTrackNumberLayoutKey(key string) bool {
+	if key == "TRACK_NUMBER" || key == "TRACK_POSITION" || key == "NO_TRACK_NUMBER" {
+		return true
+	}
+	return strings.HasSuffix(key, "TRACK_NUMBER") || strings.HasSuffix(key, "TRACK_POSITION")
 }

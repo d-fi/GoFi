@@ -213,6 +213,52 @@ func TestSaveLayout(t *testing.T) {
 			},
 			expected: "1998/Song Title.mp3",
 		},
+		{
+			name: "Fallback_placeholder_uses_first_non_empty_value",
+			props: SaveLayoutProps{
+				Track: map[string]any{
+					"SNG_TITLE": "Song Title",
+				},
+				Album: map[string]any{
+					"ALB_TITLE": "",
+					"TITLE":     "Playlist Name",
+				},
+				Path:                 "{ALB_TITLE|TITLE}/{SNG_TITLE}.mp3",
+				MinimumIntegerDigits: 2,
+				TrackNumber:          false,
+			},
+			expected: "Playlist Name/Song Title.mp3",
+		},
+		{
+			name: "Fallback_placeholder_supports_nested_values",
+			props: SaveLayoutProps{
+				Track: map[string]any{
+					"ARTISTS": []any{
+						map[string]any{"ART_NAME": "Daft Punk"},
+					},
+					"SNG_TITLE": "Song Title",
+				},
+				Album:                nil,
+				Path:                 "{ART_NAME|ARTISTS.0.ART_NAME}/{SNG_TITLE}.mp3",
+				MinimumIntegerDigits: 2,
+				TrackNumber:          false,
+			},
+			expected: "Daft Punk/Song Title.mp3",
+		},
+		{
+			name: "Fallback_placeholder_formats_track_number",
+			props: SaveLayoutProps{
+				Track: map[string]any{
+					"TRACK_NUMBER": 7,
+					"SNG_TITLE":    "Song Title",
+				},
+				Album:                nil,
+				Path:                 "{TRACK_POSITION|TRACK_NUMBER} - {SNG_TITLE}.mp3",
+				MinimumIntegerDigits: 2,
+				TrackNumber:          false,
+			},
+			expected: "07 - Song Title.mp3",
+		},
 	}
 
 	for _, test := range tests {

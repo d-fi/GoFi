@@ -200,12 +200,19 @@ Common placeholders for track, album, artist, and playlist layouts:
 
 Any field from the track or album metadata can be used as a placeholder. Nested values can be accessed with dot notation, including array indexes, like `{ARTISTS.0.ART_NAME}` or `{SNG_CONTRIBUTORS.main_artist.0}`.
 
+Fallback placeholders are also supported. Use `|` inside a placeholder to use the first non-empty value:
+
+```text
+{ALB_TITLE|TITLE}              Album title, or playlist title if album title is empty
+{TRACK_POSITION|TRACK_NUMBER}  Track position, or track number if position is empty
+```
+
 Example:
 
 ```json
 {
   "saveLayout": {
-    "album": "Music/{ARTISTS.0.ART_NAME}/{RELEASE_YEAR} - {ALB_TITLE}/{TRACK_NUMBER} - {SNG_TITLE}",
+    "album": "Music/{ART_NAME|ARTISTS.0.ART_NAME}/{RELEASE_YEAR} - {ALB_TITLE}/{TRACK_POSITION|TRACK_NUMBER} - {SNG_TITLE}",
     "playlist": "Playlist/{TITLE}/{SNG_TITLE}"
   }
 }

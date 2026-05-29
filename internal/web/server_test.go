@@ -119,6 +119,7 @@ func TestLayoutFieldsIncludesAlwaysAndCurrentResponseFields(t *testing.T) {
 				SNG_TITLE:    "One More Time",
 				DATE_START:   "2001-03-07",
 				TRACK_NUMBER: 1,
+				STATUS:       0,
 			},
 		},
 	})
@@ -143,6 +144,9 @@ func TestLayoutFieldsIncludesAlwaysAndCurrentResponseFields(t *testing.T) {
 	}
 	if hasLayoutField(fields.Current, "empty") {
 		t.Fatal("current fields should skip empty response fields")
+	}
+	if hasLayoutField(fields.Current, "STATUS") {
+		t.Fatal("current fields should skip zero response fields")
 	}
 }
 

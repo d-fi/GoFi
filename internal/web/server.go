@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"reflect"
 	"sort"
 	"strconv"
 	"strings"
@@ -752,15 +753,32 @@ func flattenLayoutFields(out map[string]layoutField, scope, prefix string, value
 		if prefix == "" {
 			return
 		}
-		sample := fmt.Sprintf("%v", value)
-		if sample == "" || sample == "<nil>" {
+		if isEmptyLayoutFieldValue(value) {
 			return
 		}
+		sample := fmt.Sprintf("%v", value)
 		if len(sample) > 80 {
 			sample = sample[:77] + "..."
 		}
 		out[prefix] = layoutField{Key: prefix, Scope: scope, Sample: sample}
 	}
+}
+
+func isEmptyLayoutFieldValue(value any) bool {
+	if value == nil {
+		return true
+	}
+	rv := reflect.ValueOf(value)
+	for rv.Kind() == reflect.Pointer || rv.Kind() == reflect.Interface {
+		if rv.IsNil() {
+			return true
+		}
+		rv = rv.Elem()
+	}
+	if !rv.IsValid() || rv.IsZero() {
+		return true
+	}
+	return fmt.Sprintf("%v", value) == "<nil>"
 }
 
 func sortLayoutFields(fields []layoutField) {

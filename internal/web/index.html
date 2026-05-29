@@ -459,6 +459,7 @@
         color: var(--text);
         background: var(--panel);
         box-shadow: 0 18px 60px rgb(23 32 42 / 24%);
+        overflow: hidden;
       }
       dialog::backdrop {
         background: rgb(23 32 42 / 28%);
@@ -485,7 +486,7 @@
       .modal-body {
         padding: 12px 14px;
         overflow: auto;
-        max-height: calc(100vh - 150px);
+        max-height: min(610px, calc(100vh - 134px));
       }
       .field-grid {
         display: grid;
@@ -507,6 +508,9 @@
           ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
         font-size: 12px;
         font-weight: 700;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
       .field-meta {
         margin-top: 3px;
@@ -1217,6 +1221,8 @@
             return (
               '<button class="field-btn" type="button" data-layout-field="' +
               escapeHTML(field.key) +
+              '" title="' +
+              escapeHTML(placeholder) +
               '">' +
               '<div class="field-key">' +
               escapeHTML(placeholder) +

@@ -27,6 +27,20 @@ pkg: clean-pkg
 	cd $(BUILD_DIR) && cp $(BINARY_NAME)-win-arm64.exe $(BINARY_NAME).exe && cp ../scripts/windows/$(BINARY_NAME).bat $(BINARY_NAME).bat && zip -q $(BINARY_NAME)-win-arm64.zip $(BINARY_NAME).exe $(BINARY_NAME).bat && rm $(BINARY_NAME).exe $(BINARY_NAME).bat
 	rm -f $(BUILD_DIR)/$(BINARY_NAME)-linux-amd64 $(BUILD_DIR)/$(BINARY_NAME)-linux-arm64 $(BUILD_DIR)/$(BINARY_NAME)-macos-amd64 $(BUILD_DIR)/$(BINARY_NAME)-macos-arm64 $(BUILD_DIR)/$(BINARY_NAME)-win-amd64.exe $(BUILD_DIR)/$(BINARY_NAME)-win-arm64.exe
 	du -sh $(BUILD_DIR)/*.zip
+	$(MAKE) verify-pkg
+
+verify-pkg:
+	test "$$(unzip -Z1 $(BUILD_DIR)/$(BINARY_NAME)-linux.zip)" = "$(BINARY_NAME)"
+	test "$$(unzip -Z1 $(BUILD_DIR)/$(BINARY_NAME)-linux-arm64.zip)" = "$(BINARY_NAME)"
+	test "$$(unzip -Z1 $(BUILD_DIR)/$(BINARY_NAME)-macos.zip)" = "$(BINARY_NAME)"
+	test "$$(unzip -Z1 $(BUILD_DIR)/$(BINARY_NAME)-macos-arm64.zip)" = "$(BINARY_NAME)"
+	test "$$(unzip -Z1 $(BUILD_DIR)/$(BINARY_NAME)-win.zip | wc -l | tr -d ' ')" = "2"
+	unzip -Z1 $(BUILD_DIR)/$(BINARY_NAME)-win.zip | grep -Fxq "$(BINARY_NAME).exe"
+	unzip -Z1 $(BUILD_DIR)/$(BINARY_NAME)-win.zip | grep -Fxq "$(BINARY_NAME).bat"
+	test "$$(unzip -Z1 $(BUILD_DIR)/$(BINARY_NAME)-win-arm64.zip | wc -l | tr -d ' ')" = "2"
+	unzip -Z1 $(BUILD_DIR)/$(BINARY_NAME)-win-arm64.zip | grep -Fxq "$(BINARY_NAME).exe"
+	unzip -Z1 $(BUILD_DIR)/$(BINARY_NAME)-win-arm64.zip | grep -Fxq "$(BINARY_NAME).bat"
+	@echo "Package archives verified."
 
 clean-pkg:
 	rm -rf $(BUILD_DIR)
@@ -39,4 +53,4 @@ test:
 	$(GOCLEAN) -testcache
 	$(GOTEST) -v ./...
 
-.PHONY: build pkg clean-pkg clean test
+.PHONY: build pkg verify-pkg clean-pkg clean test

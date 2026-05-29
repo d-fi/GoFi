@@ -7,10 +7,48 @@ const state = {
   config: null,
   jobsLoading: false,
   jobsTimer: null,
-  saveTimer: null,
   arlCollapsed: null,
+  settingsSnapshots: {},
 };
 const $ = (id) => document.getElementById(id);
+const settingsSections = {
+  downloads: {
+    button: "saveDownloadsBtn",
+    inputs: [
+      "cfgConcurrency",
+      "cfgTrackNumber",
+      "cfgFallbackTrack",
+      "cfgFallbackQuality",
+    ],
+    label: "Download",
+  },
+  layout: {
+    button: "saveLayoutBtn",
+    inputs: [
+      "cfgLayoutTrack",
+      "cfgLayoutAlbum",
+      "cfgLayoutArtist",
+      "cfgLayoutPlaylist",
+    ],
+    label: "Layout",
+  },
+  playlist: {
+    button: "savePlaylistBtn",
+    inputs: ["cfgResolveFullPath"],
+    label: "Playlist",
+  },
+  cover: {
+    button: "saveCoverBtn",
+    inputs: [
+      "cfgCoverMode",
+      "cfgCoverFileName",
+      "cfgCover128",
+      "cfgCover320",
+      "cfgCoverFlac",
+    ],
+    label: "Cover",
+  },
+};
 const api = async (path, opts = {}) => {
   const res = await fetch(path, {
     headers: { "content-type": "application/json" },
@@ -76,61 +114,123 @@ async function loadConfig() {
   }
 }
 function fillConfig(cfg) {
-  $("cfgConcurrency").value = cfg.concurrency || 4;
-  $("cfgTrackNumber").checked = !!cfg.trackNumber;
-  $("cfgFallbackTrack").checked = !!cfg.fallbackTrack;
-  $("cfgFallbackQuality").checked = !!cfg.fallbackQuality;
-  $("cfgLayoutTrack").value = cfg.saveLayout?.track || "";
-  $("cfgLayoutAlbum").value = cfg.saveLayout?.album || "";
-  $("cfgLayoutArtist").value = cfg.saveLayout?.artist || "";
-  $("cfgLayoutPlaylist").value = cfg.saveLayout?.playlist || "";
-  $("cfgResolveFullPath").checked = !!cfg.playlist?.resolveFullPath;
-  $("cfgCover128").value = cfg.coverSize?.["128"] || 500;
-  $("cfgCover320").value = cfg.coverSize?.["320"] || 500;
-  $("cfgCoverFlac").value = cfg.coverSize?.flac || 1000;
-  $("cfgCoverMode").value = cfg.cover?.mode || "embed";
-  $("cfgCoverFileName").value = cfg.cover?.fileName || "cover.jpg";
+  fillConfigSection("downloads", cfg);
+  fillConfigSection("layout", cfg);
+  fillConfigSection("playlist", cfg);
+  fillConfigSection("cover", cfg);
+  snapshotAllSettings();
 }
-function readConfig() {
-  const current = state.config || {};
-  return {
-    ...current,
-    concurrency: Number($("cfgConcurrency").value || 1),
-    saveLayout: {
+function fillConfigSection(section, cfg) {
+  if (section === "downloads") {
+    $("cfgConcurrency").value = cfg.concurrency || 4;
+    $("cfgTrackNumber").checked = !!cfg.trackNumber;
+    $("cfgFallbackTrack").checked = !!cfg.fallbackTrack;
+    $("cfgFallbackQuality").checked = !!cfg.fallbackQuality;
+    return;
+  }
+  if (section === "layout") {
+    $("cfgLayoutTrack").value = cfg.saveLayout?.track || "";
+    $("cfgLayoutAlbum").value = cfg.saveLayout?.album || "";
+    $("cfgLayoutArtist").value = cfg.saveLayout?.artist || "";
+    $("cfgLayoutPlaylist").value = cfg.saveLayout?.playlist || "";
+    return;
+  }
+  if (section === "playlist") {
+    $("cfgResolveFullPath").checked = !!cfg.playlist?.resolveFullPath;
+    return;
+  }
+  if (section === "cover") {
+    $("cfgCover128").value = cfg.coverSize?.["128"] || 500;
+    $("cfgCover320").value = cfg.coverSize?.["320"] || 500;
+    $("cfgCoverFlac").value = cfg.coverSize?.flac || 1000;
+    $("cfgCoverMode").value = cfg.cover?.mode || "embed";
+    $("cfgCoverFileName").value = cfg.cover?.fileName || "cover.jpg";
+  }
+}
+function readConfigSection(section) {
+  if (section === "downloads") {
+    return {
+      concurrency: Number($("cfgConcurrency").value || 1),
+      trackNumber: $("cfgTrackNumber").checked,
+      fallbackTrack: $("cfgFallbackTrack").checked,
+      fallbackQuality: $("cfgFallbackQuality").checked,
+    };
+  }
+  if (section === "layout") {
+    return {
       track: $("cfgLayoutTrack").value,
       album: $("cfgLayoutAlbum").value,
       artist: $("cfgLayoutArtist").value,
       playlist: $("cfgLayoutPlaylist").value,
-    },
-    playlist: {
+    };
+  }
+  if (section === "playlist") {
+    return {
       resolveFullPath: $("cfgResolveFullPath").checked,
-    },
-    trackNumber: $("cfgTrackNumber").checked,
-    fallbackTrack: $("cfgFallbackTrack").checked,
-    fallbackQuality: $("cfgFallbackQuality").checked,
-    coverSize: {
-      128: Number($("cfgCover128").value || 500),
-      320: Number($("cfgCover320").value || 500),
-      flac: Number($("cfgCoverFlac").value || 1000),
-    },
-    cover: {
-      mode: $("cfgCoverMode").value || "embed",
-      fileName: $("cfgCoverFileName").value || "cover.jpg",
-    },
-    cookies: {
-      ...(current.cookies || {}),
-      arl: "",
-    },
+    };
+  }
+  if (section === "cover") {
+    return {
+      coverSize: {
+        128: Number($("cfgCover128").value || 500),
+        320: Number($("cfgCover320").value || 500),
+        flac: Number($("cfgCoverFlac").value || 1000),
+      },
+      cover: {
+        mode: $("cfgCoverMode").value || "embed",
+        fileName: $("cfgCoverFileName").value || "cover.jpg",
+      },
+    };
+  }
+  return {};
+}
+function snapshotAllSettings() {
+  Object.keys(settingsSections).forEach(snapshotSettingsSection);
+}
+function snapshotSettingsSection(section) {
+  state.settingsSnapshots[section] = JSON.stringify(readConfigSection(section));
+  syncSettingsButton(section);
+}
+function syncSettingsButtons() {
+  Object.keys(settingsSections).forEach(syncSettingsButton);
+}
+function syncSettingsButton(section) {
+  const snapshot = state.settingsSnapshots[section];
+  const current = JSON.stringify(readConfigSection(section));
+  $(settingsSections[section].button).disabled = snapshot === current;
+}
+function cloneSavedConfig() {
+  return JSON.parse(JSON.stringify(state.config || {}));
+}
+function readConfigForSection(section) {
+  const cfg = cloneSavedConfig();
+  const values = readConfigSection(section);
+  cfg.cookies = {
+    ...(cfg.cookies || {}),
+    arl: "",
   };
+  if (section === "downloads") {
+    cfg.concurrency = values.concurrency;
+    cfg.trackNumber = values.trackNumber;
+    cfg.fallbackTrack = values.fallbackTrack;
+    cfg.fallbackQuality = values.fallbackQuality;
+  } else if (section === "layout") {
+    cfg.saveLayout = values;
+  } else if (section === "playlist") {
+    cfg.playlist = values;
+  } else if (section === "cover") {
+    cfg.coverSize = values.coverSize;
+    cfg.cover = values.cover;
+  }
+  return cfg;
 }
 function readConfigWithARL(arl) {
-  return {
-    ...readConfig(),
-    cookies: {
-      ...((state.config && state.config.cookies) || {}),
-      arl,
-    },
+  const cfg = cloneSavedConfig();
+  cfg.cookies = {
+    ...(cfg.cookies || {}),
+    arl,
   };
+  return cfg;
 }
 function updateSession(session, hasArl) {
   const dot = $("sessionDot");
@@ -164,27 +264,23 @@ function setARLCollapsed(collapsed) {
 function toggleARL() {
   setARLCollapsed(!state.arlCollapsed);
 }
-function scheduleConfigSave() {
-  window.clearTimeout(state.saveTimer);
-  state.saveTimer = window.setTimeout(() => saveConfig(), 700);
-}
-async function saveConfig() {
-  window.clearTimeout(state.saveTimer);
+async function saveConfig(section) {
   try {
     const data = await api("/api/config", {
       method: "PUT",
-      body: JSON.stringify(readConfig()),
+      body: JSON.stringify(readConfigForSection(section)),
     });
     state.config = data.config;
-    fillConfig(data.config);
+    fillConfigSection(section, data.config);
     updateSession(data.session, data.hasArl);
     updateARLStatus(data.hasArl);
-    if (data.hasArl) {
-      setARLCollapsed(true);
-    }
     if (data.session && data.session.error) {
       showToast(data.session.error, "error");
+      return;
     }
+    snapshotSettingsSection(section);
+    syncSettingsButtons();
+    showToast(settingsSections[section].label + " settings saved.");
   } catch (err) {
     showToast(err.message, "error");
   }
@@ -204,9 +300,11 @@ async function saveARL() {
     state.config = data.config;
     $("arl").value = "";
     updateSaveARLButton();
-    fillConfig(data.config);
     updateSession(data.session, data.hasArl);
     updateARLStatus(data.hasArl);
+    if (data.hasArl) {
+      setARLCollapsed(true);
+    }
     if (data.session && data.session.error) {
       showToast(data.session.error, "error");
       return;
@@ -217,25 +315,13 @@ async function saveARL() {
     showToast(err.message, "error");
   }
 }
-function bindConfigAutosave() {
-  [
-    "cfgConcurrency",
-    "cfgLayoutTrack",
-    "cfgLayoutAlbum",
-    "cfgLayoutArtist",
-    "cfgLayoutPlaylist",
-    "cfgCover128",
-    "cfgCover320",
-    "cfgCoverFlac",
-    "cfgCoverFileName",
-  ].forEach((id) => $(id).addEventListener("input", scheduleConfigSave));
-  [
-    "cfgTrackNumber",
-    "cfgFallbackTrack",
-    "cfgFallbackQuality",
-    "cfgResolveFullPath",
-    "cfgCoverMode",
-  ].forEach((id) => $(id).addEventListener("change", scheduleConfigSave));
+function bindConfigControls() {
+  Object.entries(settingsSections).forEach(([section, settings]) => {
+    settings.inputs.forEach((id) => {
+      $(id).addEventListener("input", () => syncSettingsButton(section));
+      $(id).addEventListener("change", () => syncSettingsButton(section));
+    });
+  });
   $("arl").addEventListener("input", updateSaveARLButton);
   $("arl").addEventListener("keydown", (event) => {
     if (event.key === "Enter") saveARL();
@@ -674,11 +760,15 @@ function escapeHTML(value) {
       })[ch],
   );
 }
-bindConfigAutosave();
+bindConfigControls();
 setTheme(currentTheme());
 $("themeToggle").addEventListener("click", toggleTheme);
 $("saveArlBtn").addEventListener("click", saveARL);
 $("toggleArlBtn").addEventListener("click", toggleARL);
+$("saveDownloadsBtn").addEventListener("click", () => saveConfig("downloads"));
+$("saveLayoutBtn").addEventListener("click", () => saveConfig("layout"));
+$("savePlaylistBtn").addEventListener("click", () => saveConfig("playlist"));
+$("saveCoverBtn").addEventListener("click", () => saveConfig("cover"));
 $("layoutFieldsBtn").addEventListener("click", openLayoutFields);
 $("closeLayoutFieldsBtn").addEventListener("click", closeLayoutFields);
 $("layoutFieldsDialog").addEventListener("click", (event) => {

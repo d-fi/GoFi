@@ -416,10 +416,15 @@ th.col-select input {
 .settings-heading .settings-title {
   margin-bottom: 0;
 }
-.settings-heading button {
+.settings-heading button,
+.settings-actions button {
   min-height: 28px;
   padding: 5px 8px;
   font-size: 12px;
+}
+.settings-actions {
+  display: flex;
+  gap: 6px;
 }
 .check {
   display: flex;

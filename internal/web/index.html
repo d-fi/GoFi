@@ -63,7 +63,17 @@
         </div>
         <div class="settings">
           <div>
-            <div class="settings-title">Downloads</div>
+            <div class="settings-heading">
+              <div class="settings-title">Downloads</div>
+              <button
+                id="saveDownloadsBtn"
+                class="secondary"
+                type="button"
+                disabled
+              >
+                Save
+              </button>
+            </div>
             <label for="cfgConcurrency">Concurrency</label>
             <input id="cfgConcurrency" type="number" min="1" />
             <label class="check"
@@ -82,9 +92,19 @@
           <div>
             <div class="settings-heading">
               <div class="settings-title">Save Layout</div>
-              <button id="layoutFieldsBtn" class="secondary" type="button">
-                Fields
-              </button>
+              <div class="settings-actions">
+                <button id="layoutFieldsBtn" class="secondary" type="button">
+                  Fields
+                </button>
+                <button
+                  id="saveLayoutBtn"
+                  class="secondary"
+                  type="button"
+                  disabled
+                >
+                  Save
+                </button>
+              </div>
             </div>
             <label for="cfgLayoutTrack">Track</label>
             <input id="cfgLayoutTrack" />
@@ -96,14 +116,34 @@
             <input id="cfgLayoutPlaylist" />
           </div>
           <div>
-            <div class="settings-title">Playlist</div>
+            <div class="settings-heading">
+              <div class="settings-title">Playlist</div>
+              <button
+                id="savePlaylistBtn"
+                class="secondary"
+                type="button"
+                disabled
+              >
+                Save
+              </button>
+            </div>
             <label class="check"
               ><input id="cfgResolveFullPath" type="checkbox" /> Use absolute
               paths in playlists</label
             >
           </div>
           <div>
-            <div class="settings-title">Cover</div>
+            <div class="settings-heading">
+              <div class="settings-title">Cover</div>
+              <button
+                id="saveCoverBtn"
+                class="secondary"
+                type="button"
+                disabled
+              >
+                Save
+              </button>
+            </div>
             <label for="cfgCoverMode">Mode</label>
             <select id="cfgCoverMode">
               <option value="embed">Embed in tracks</option>

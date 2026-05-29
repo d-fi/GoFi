@@ -377,7 +377,6 @@ async function preview() {
     renderOptions();
     renderTracks();
     setMainMessage("");
-    showToast(state.tracks.length + " tracks found.");
   } catch (err) {
     showToast(err.message, "error");
     setMainMessage("");
@@ -570,7 +569,6 @@ function renderOptions() {
         renderOptions();
         renderTracks();
         setMainMessage("");
-        showToast(state.tracks.length + " tracks found.");
       } catch (err) {
         showToast(err.message, "error");
         setMainMessage("");

@@ -138,7 +138,7 @@ func SaveLayout(props SaveLayoutProps) string {
 }
 
 func resolveLayoutValue(album, track map[string]any, expression string) (string, any) {
-	for _, key := range strings.Split(expression, "|") {
+	for key := range strings.SplitSeq(expression, "|") {
 		key = strings.TrimSpace(key)
 		if key == "" {
 			continue

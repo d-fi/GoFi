@@ -55,12 +55,16 @@ func TestConfigHandlers(t *testing.T) {
 	if got := server.currentConfig().Cover.Mode; got != "embed" {
 		t.Fatalf("Cover.Mode = %q, want embed", got)
 	}
+	if got := server.currentConfig().Cover.FileName; got != "cover.jpg" {
+		t.Fatalf("Cover.FileName = %q, want cover.jpg", got)
+	}
 }
 
-func TestConfigUpdatePreservesCoverModeWhenMissing(t *testing.T) {
+func TestConfigUpdatePreservesCoverSettingsWhenMissing(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "d-fi.config.json")
 	server := NewServer(Options{ConfigPath: path})
 	server.cfg.Cover.Mode = "file"
+	server.cfg.Cover.FileName = "folder.jpg"
 
 	body := []byte(`{
 		"concurrency": 3,
@@ -85,6 +89,9 @@ func TestConfigUpdatePreservesCoverModeWhenMissing(t *testing.T) {
 	}
 	if got := server.currentConfig().Cover.Mode; got != "file" {
 		t.Fatalf("Cover.Mode = %q, want file", got)
+	}
+	if got := server.currentConfig().Cover.FileName; got != "folder.jpg" {
+		t.Fatalf("Cover.FileName = %q, want folder.jpg", got)
 	}
 }
 

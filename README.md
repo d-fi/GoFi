@@ -151,7 +151,8 @@ You can omit fields you do not need. GoFi merges your config with the defaults b
     "flac": 1000
   },
   "cover": {
-    "mode": "embed"
+    "mode": "embed",
+    "fileName": "cover.jpg"
   },
   "cookies": {
     "arl": ""
@@ -248,12 +249,18 @@ Controls how album artwork is handled. The default is `embed`, so existing confi
 
 ```text
 embed    Embed album art in each downloaded track
-file     Save cover.jpg next to tracks, without embedding artwork
-both     Embed album art and save cover.jpg
+file     Save the configured cover image file next to tracks, without embedding artwork
+both     Embed album art and save the configured cover image file
 none     Do not embed or save album artwork
 ```
 
-When saving `cover.jpg`, GoFi only creates it in a folder where all selected tracks share the same album cover. This avoids writing a misleading cover file into a mixed playlist folder.
+When saving a cover file, GoFi only creates it in a folder where all selected tracks share the same album cover. This avoids writing a misleading cover file into a mixed playlist folder.
+
+### `cover.fileName`
+
+File name used when `cover.mode` is `file` or `both`. The default is `cover.jpg`.
+
+Deezer returns JPEG cover bytes, so GoFi keeps the file extension as `.jpg` or `.jpeg`. Path-like names are reduced to a safe file name.
 
 ### `cookies.arl`
 
@@ -323,6 +330,7 @@ path, err := download.DownloadTrack(context.Background(), download.DownloadTrack
 	Quality:   3, // 1 = MP3 128, 3 = MP3 320, 9 = FLAC
 	CoverSize: 500,
 	CoverMode: "embed", // optional: embed, file, both, or none
+	CoverName: "cover.jpg",
 	SaveToDir: "Music",
 })
 if err != nil {

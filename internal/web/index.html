@@ -617,10 +617,12 @@
             <label for="cfgCoverMode">Mode</label>
             <select id="cfgCoverMode">
               <option value="embed">Embed in tracks</option>
-              <option value="file">Save cover.jpg only</option>
-              <option value="both">Embed and save cover.jpg</option>
+              <option value="file">Save image file only</option>
+              <option value="both">Embed and save image file</option>
               <option value="none">No cover artwork</option>
             </select>
+            <label for="cfgCoverFileName">File name</label>
+            <input id="cfgCoverFileName" placeholder="cover.jpg" />
             <div class="row">
               <div>
                 <label for="cfgCover128">128</label>
@@ -804,6 +806,7 @@
         $("cfgCover320").value = cfg.coverSize?.["320"] || 500;
         $("cfgCoverFlac").value = cfg.coverSize?.flac || 1000;
         $("cfgCoverMode").value = cfg.cover?.mode || "embed";
+        $("cfgCoverFileName").value = cfg.cover?.fileName || "cover.jpg";
       }
       function readConfig() {
         const current = state.config || {};
@@ -829,6 +832,7 @@
           },
           cover: {
             mode: $("cfgCoverMode").value || "embed",
+            fileName: $("cfgCoverFileName").value || "cover.jpg",
           },
           cookies: {
             ...(current.cookies || {}),
@@ -923,6 +927,7 @@
           "cfgCover128",
           "cfgCover320",
           "cfgCoverFlac",
+          "cfgCoverFileName",
         ].forEach((id) => $(id).addEventListener("input", scheduleConfigSave));
         [
           "cfgTrackNumber",

@@ -497,6 +497,7 @@ func downloadAll(ctx context.Context, data ResolvedInput, cfg Config, opts optio
 					Info:            data.LinkInfo,
 					CoverSizes:      cfg.CoverSize,
 					CoverMode:       cfg.Cover.Mode,
+					CoverFileName:   cfg.Cover.FileName,
 					CoverFilePolicy: coverPolicy,
 					Path:            pathTemplate,
 					TotalTracks:     len(data.Tracks),

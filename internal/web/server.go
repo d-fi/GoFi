@@ -220,6 +220,9 @@ func (s *Server) handleUpdateConfig(w http.ResponseWriter, r *http.Request) {
 	if cfg.Cover.Mode != "" {
 		s.cfg.Cover.Mode = dfi.NormalizeCoverMode(cfg.Cover.Mode)
 	}
+	if cfg.Cover.FileName != "" {
+		s.cfg.Cover.FileName = dfi.NormalizeCoverFileName(cfg.Cover.FileName)
+	}
 	s.cfg.Cookies = cfg.Cookies
 	cfgToSave := s.cfg
 	s.mu.Unlock()
@@ -433,6 +436,7 @@ trackLoop:
 				Info:            info,
 				CoverSizes:      cfg.CoverSize,
 				CoverMode:       cfg.Cover.Mode,
+				CoverFileName:   cfg.Cover.FileName,
 				CoverFilePolicy: coverPolicy,
 				Path:            pathTemplate,
 				TotalTracks:     len(tracks),

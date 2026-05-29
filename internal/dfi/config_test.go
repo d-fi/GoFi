@@ -28,6 +28,9 @@ func TestLoadConfigDefaults(t *testing.T) {
 	if cfg.Cover.Mode != "embed" {
 		t.Fatalf("Cover.Mode = %q, want embed", cfg.Cover.Mode)
 	}
+	if cfg.Cover.FileName != "cover.jpg" {
+		t.Fatalf("Cover.FileName = %q, want cover.jpg", cfg.Cover.FileName)
+	}
 }
 
 func TestLoadConfigMergesFalseValues(t *testing.T) {
@@ -37,7 +40,7 @@ func TestLoadConfigMergesFalseValues(t *testing.T) {
 		"trackNumber": false,
 			"fallbackTrack": false,
 			"fallbackQuality": false,
-			"cover": {"mode": "file"},
+			"cover": {"mode": "file", "fileName": "folder.jpg"},
 			"playlist": {"resolveFullPath": true},
 			"saveLayout": {"track": "{ART_NAME}/{SNG_TITLE}"}
 		}`), 0644); err != nil {
@@ -68,6 +71,9 @@ func TestLoadConfigMergesFalseValues(t *testing.T) {
 	}
 	if cfg.Cover.Mode != "file" {
 		t.Fatalf("Cover.Mode = %q, want file", cfg.Cover.Mode)
+	}
+	if cfg.Cover.FileName != "folder.jpg" {
+		t.Fatalf("Cover.FileName = %q, want folder.jpg", cfg.Cover.FileName)
 	}
 }
 
@@ -119,6 +125,19 @@ func TestConfigSetCoverMode(t *testing.T) {
 	loaded := LoadConfig(path)
 	if loaded.Cover.Mode != "both" {
 		t.Fatalf("Cover.Mode = %q, want both", loaded.Cover.Mode)
+	}
+}
+
+func TestConfigSetCoverFileName(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "d-fi.config.json")
+	cfg := LoadConfig(path)
+
+	if err := cfg.Set("cover.fileName", "../Folder.png"); err != nil {
+		t.Fatal(err)
+	}
+	loaded := LoadConfig(path)
+	if loaded.Cover.FileName != "Folder.jpg" {
+		t.Fatalf("Cover.FileName = %q, want Folder.jpg", loaded.Cover.FileName)
 	}
 }
 

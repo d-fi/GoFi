@@ -6,10 +6,12 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/d-fi/GoFi/logger"
 	"github.com/d-fi/GoFi/request"
+	"github.com/d-fi/GoFi/utils"
 	"github.com/hashicorp/golang-lru/v2/expirable"
 )
 
@@ -27,6 +29,8 @@ const (
 	CoverSize1500 = 1500
 	CoverSize1800 = 1800
 )
+
+const DefaultCoverFileName = "cover.jpg"
 
 var validCoverSizes = map[int]bool{
 	CoverSize56:   true,
@@ -76,7 +80,29 @@ func DownloadAlbumCover(albumPicture string, albumCoverSize int) ([]byte, error)
 	return data, nil
 }
 
-func SaveAlbumCoverFile(dir string, albumPicture string, albumCoverSize int) (string, error) {
+func NormalizeCoverFileName(fileName string) string {
+	fileName = strings.TrimSpace(filepath.Base(fileName))
+	if fileName == "." || fileName == string(filepath.Separator) {
+		fileName = ""
+	}
+	if fileName == "" {
+		return DefaultCoverFileName
+	}
+	ext := strings.ToLower(filepath.Ext(fileName))
+	base := strings.TrimSuffix(fileName, filepath.Ext(fileName))
+	if ext == "" {
+		fileName += ".jpg"
+	} else if ext != ".jpg" && ext != ".jpeg" {
+		fileName = base + ".jpg"
+	}
+	fileName = utils.SanitizeFileName(fileName)
+	if fileName == "" || fileName == "." {
+		return DefaultCoverFileName
+	}
+	return fileName
+}
+
+func SaveAlbumCoverFile(dir string, fileName string, albumPicture string, albumCoverSize int) (string, error) {
 	cover, err := DownloadAlbumCover(albumPicture, albumCoverSize)
 	if err != nil {
 		return "", err
@@ -84,7 +110,7 @@ func SaveAlbumCoverFile(dir string, albumPicture string, albumCoverSize int) (st
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return "", err
 	}
-	path := filepath.Join(dir, "cover.jpg")
+	path := filepath.Join(dir, NormalizeCoverFileName(fileName))
 	if existing, err := os.ReadFile(path); err == nil {
 		if bytes.Equal(existing, cover) {
 			return path, nil

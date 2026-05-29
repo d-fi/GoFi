@@ -63,7 +63,7 @@ func DownloadTrack(ctx context.Context, options DownloadTrackOptions) (string, e
 	// If the file exists, update its timestamp and return the path
 	if _, err := os.Stat(savedPath); err == nil {
 		if metadata.ShouldSaveCoverFile(metadata.CoverMode(options.CoverMode)) {
-			if _, err := metadata.SaveAlbumCoverFile(filepath.Dir(savedPath), track.ALB_PICTURE, options.CoverSize); err != nil {
+			if _, err := metadata.SaveAlbumCoverFile(filepath.Dir(savedPath), options.CoverName, track.ALB_PICTURE, options.CoverSize); err != nil {
 				logger.Debug("Failed to save album cover file: %v", err)
 				return "", fmt.Errorf("failed to save album cover file: %v", err)
 			}
@@ -177,7 +177,7 @@ func DownloadTrack(ctx context.Context, options DownloadTrackOptions) (string, e
 		return "", fmt.Errorf("failed to save track with metadata: %v", err)
 	}
 	if metadata.ShouldSaveCoverFile(metadata.CoverMode(options.CoverMode)) {
-		if _, err := metadata.SaveAlbumCoverFile(filepath.Dir(savedPath), track.ALB_PICTURE, options.CoverSize); err != nil {
+		if _, err := metadata.SaveAlbumCoverFile(filepath.Dir(savedPath), options.CoverName, track.ALB_PICTURE, options.CoverSize); err != nil {
 			logger.Debug("Failed to save album cover file: %v", err)
 			return "", fmt.Errorf("failed to save album cover file: %v", err)
 		}

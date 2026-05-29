@@ -22,3 +22,18 @@ func TestCoverModeFileDoesNotEmbed(t *testing.T) {
 		t.Fatal("file cover mode should save cover file")
 	}
 }
+
+func TestNormalizeCoverFileName(t *testing.T) {
+	tests := map[string]string{
+		"":                 "cover.jpg",
+		"folder":           "folder.jpg",
+		"folder.jpeg":      "folder.jpeg",
+		"../Folder.png":    "Folder.jpg",
+		"nested/cover.jpg": "cover.jpg",
+	}
+	for input, expected := range tests {
+		if got := NormalizeCoverFileName(input); got != expected {
+			t.Fatalf("NormalizeCoverFileName(%q) = %q, want %q", input, got, expected)
+		}
+	}
+}

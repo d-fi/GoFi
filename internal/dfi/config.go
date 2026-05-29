@@ -41,7 +41,8 @@ type CoverSizes struct {
 }
 
 type CoverConfig struct {
-	Mode string `json:"mode"`
+	Mode     string `json:"mode"`
+	FileName string `json:"fileName"`
 }
 
 type Cookies struct {
@@ -69,7 +70,8 @@ func defaultConfig() Config {
 			FLAC:    1000,
 		},
 		Cover: CoverConfig{
-			Mode: string(metadata.CoverModeEmbed),
+			Mode:     string(metadata.CoverModeEmbed),
+			FileName: metadata.DefaultCoverFileName,
 		},
 	}
 }
@@ -154,6 +156,9 @@ func mergeConfig(cfg *Config, user Config) {
 	if user.Cover.Mode != "" {
 		cfg.Cover.Mode = NormalizeCoverMode(user.Cover.Mode)
 	}
+	if user.Cover.FileName != "" {
+		cfg.Cover.FileName = NormalizeCoverFileName(user.Cover.FileName)
+	}
 	if user.Cookies.ARL != "" {
 		cfg.Cookies.ARL = user.Cookies.ARL
 	}
@@ -169,6 +174,8 @@ func (cfg *Config) Set(key string, value any) error {
 		}
 	case "cover.mode":
 		cfg.Cover.Mode = NormalizeCoverMode(fmt.Sprintf("%v", value))
+	case "cover.fileName":
+		cfg.Cover.FileName = NormalizeCoverFileName(fmt.Sprintf("%v", value))
 	default:
 		return fmt.Errorf("unsupported config key: %s", key)
 	}
@@ -177,6 +184,10 @@ func (cfg *Config) Set(key string, value any) error {
 
 func NormalizeCoverMode(mode string) string {
 	return string(metadata.NormalizeCoverMode(metadata.CoverMode(mode)))
+}
+
+func NormalizeCoverFileName(fileName string) string {
+	return metadata.NormalizeCoverFileName(fileName)
 }
 
 func (cfg Config) Save() error {

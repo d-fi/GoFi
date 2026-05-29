@@ -96,6 +96,50 @@ func TestScoreSpotifyDeezerCandidateAcceptsMatchingRemixVersion(t *testing.T) {
 	assert.GreaterOrEqual(t, score.total, spotifyMatchMinScore)
 }
 
+func TestScoreSpotifyDeezerCandidateRejectsUnexpectedFeature(t *testing.T) {
+	input := spotifyMatchInput{
+		title:       "Crazy Kids",
+		artists:     []string{"Kesha"},
+		album:       "Warrior (Deluxe Version)",
+		durationSec: 231,
+	}
+	candidate := trackCandidate("Crazy Kids (feat. Juicy J)", "Ke$ha", "Crazy Kids", 229)
+
+	score := scoreSpotifyDeezerCandidate(input, candidate)
+
+	assert.True(t, score.conflict)
+}
+
+func TestScoreSpotifyDeezerCandidateRejectsDifferentFeaturedArtist(t *testing.T) {
+	input := spotifyMatchInput{
+		title:       "Light It Up (feat. Nyla & Fuse ODG) [Remix]",
+		artists:     []string{"Major Lazer", "Nyla", "Fuse ODG"},
+		album:       "Peace Is The Mission (Extended)",
+		durationSec: 166,
+	}
+	candidate := trackCandidate("Light It Up (feat. Baby K)", "Major Lazer", "Light It Up (feat. Baby K) (Ora Che Non C'è Nessuno Remix)", 168)
+	version := "(Ora Che Non C'è Nessuno Remix)"
+	candidate.VERSION = &version
+
+	score := scoreSpotifyDeezerCandidate(input, candidate)
+
+	assert.True(t, score.conflict)
+}
+
+func TestScoreSpotifyDeezerCandidateAcceptsMatchingFeature(t *testing.T) {
+	input := spotifyMatchInput{
+		title:       "Work from Home (feat. Ty Dolla $ign)",
+		artists:     []string{"Fifth Harmony", "Ty Dolla $ign"},
+		album:       "7/27 (Deluxe)",
+		durationSec: 214,
+	}
+	candidate := trackCandidate("Work from Home (feat. Ty Dolla $ign)", "Fifth Harmony", "7/27 (Deluxe)", 214)
+
+	score := scoreSpotifyDeezerCandidate(input, candidate)
+
+	assert.False(t, score.conflict)
+}
+
 func TestScoreSpotifyDeezerCandidateIgnoresWeakAlbumForExactTrack(t *testing.T) {
 	input := spotifyMatchInput{
 		title:       "Shivers",
@@ -152,6 +196,13 @@ func TestNormalizeArtistKeepsExactSymbolVariant(t *testing.T) {
 	score := artistSimilarityScore("Ke$ha", "Ke$ha")
 
 	assert.Equal(t, 100, score)
+}
+
+func TestFeatureNamesExtractsFeaturedArtists(t *testing.T) {
+	features := featureNames("Light It Up (feat. Nyla & Fuse ODG) [Remix]")
+
+	assert.True(t, features["nyla"])
+	assert.True(t, features["fuse odg"])
 }
 
 func TestVersionTagsDetectHyphenatedRemaster(t *testing.T) {

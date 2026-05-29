@@ -195,7 +195,7 @@ func scoreSpotifyDeezerCandidate(input spotifyMatchInput, candidate types.TrackT
 	album := similarityScore(normalizeForCompare(input.album), normalizeForCompare(candidate.ALB_TITLE))
 	durationDiff := abs(input.durationSec - int(candidate.DURATION))
 	duration := durationScore(durationDiff)
-	conflict := hasVersionConflict(input.title, candidate)
+	conflict := hasVersionConflict(input.title, candidate) || hasFeatureConflict(input, candidate)
 
 	total := int(math.Round(float64(title)*0.40 + float64(artist)*0.30 + float64(album)*0.15 + float64(duration)*0.15))
 	if input.album == "" {
@@ -278,6 +278,29 @@ func hasVersionConflict(source string, candidate types.TrackType) bool {
 	return false
 }
 
+func hasFeatureConflict(input spotifyMatchInput, candidate types.TrackType) bool {
+	sourceFeatures := featureNames(input.title)
+	candidateTitle := candidate.SNG_TITLE
+	if candidate.VERSION != nil {
+		candidateTitle += " " + *candidate.VERSION
+	}
+	candidateFeatures := featureNames(candidateTitle)
+	if len(candidateFeatures) == 0 {
+		return false
+	}
+
+	sourceArtists := normalizedArtistSet(input.artists)
+	for feature := range sourceFeatures {
+		sourceArtists[feature] = true
+	}
+	for feature := range candidateFeatures {
+		if !sourceArtists[feature] {
+			return true
+		}
+	}
+	return false
+}
+
 func normalizeTitleBase(value string) string {
 	value = removeFeatureText(value)
 	value = removeNonVersionTitleNoise(value)
@@ -312,6 +335,61 @@ func artistCompareVariants(value string) []string {
 		return []string{decoded}
 	}
 	return []string{raw, decoded}
+}
+
+func normalizedArtistSet(artists []string) map[string]bool {
+	set := map[string]bool{}
+	for _, artist := range artists {
+		for _, variant := range artistCompareVariants(artist) {
+			if variant != "" {
+				set[variant] = true
+			}
+		}
+	}
+	return set
+}
+
+func featureNames(value string) map[string]bool {
+	names := map[string]bool{}
+	for _, group := range featureGroups(value) {
+		for _, name := range splitFeatureGroup(group) {
+			if normalized := normalizeArtistForCompare(name); normalized != "" {
+				names[normalized] = true
+			}
+			for _, variant := range artistCompareVariants(name) {
+				if variant != "" {
+					names[variant] = true
+				}
+			}
+		}
+	}
+	return names
+}
+
+func featureGroups(value string) []string {
+	re := regexp.MustCompile(`(?i)(?:\(|\[)?\b(?:featuring|feat|ft)\.?\s+([^)\]]+)`)
+	matches := re.FindAllStringSubmatch(value, -1)
+	groups := make([]string, 0, len(matches))
+	for _, match := range matches {
+		if len(match) > 1 {
+			groups = append(groups, match[1])
+		}
+	}
+	return groups
+}
+
+func splitFeatureGroup(value string) []string {
+	value = regexp.MustCompile(`(?i)\s+remix\b.*$`).ReplaceAllString(value, "")
+	value = strings.NewReplacer(" & ", ",", " and ", ",").Replace(value)
+	parts := strings.Split(value, ",")
+	names := make([]string, 0, len(parts))
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		if part != "" {
+			names = append(names, part)
+		}
+	}
+	return names
 }
 
 func cleanSpotifySearchTitle(value string) string {

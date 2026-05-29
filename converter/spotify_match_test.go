@@ -140,6 +140,25 @@ func TestScoreSpotifyDeezerCandidateAcceptsMatchingFeature(t *testing.T) {
 	assert.False(t, score.conflict)
 }
 
+func TestScoreSpotifyDeezerCandidateRejectsWrongPrimaryArtist(t *testing.T) {
+	input := spotifyMatchInput{
+		title:       "Mercy, Mercy",
+		artists:     []string{"Don Covay"},
+		album:       "Mercy!",
+		durationSec: 180,
+	}
+	candidate := trackCandidate("Mercy, Mercy", "Jimi Hendrix", "The Essential Jimi Hendrix", 180)
+	candidate.ARTISTS = []types.ArtistType{
+		{ART_NAME: "Don Covay"},
+	}
+
+	score := scoreSpotifyDeezerCandidate(input, candidate)
+
+	assert.True(t, score.conflict)
+	assert.GreaterOrEqual(t, score.artist, spotifyMatchMinArtist)
+	assert.Less(t, score.primaryArtist, spotifyMatchMinArtist)
+}
+
 func TestScoreSpotifyDeezerCandidateIgnoresWeakAlbumForExactTrack(t *testing.T) {
 	input := spotifyMatchInput{
 		title:       "Shivers",

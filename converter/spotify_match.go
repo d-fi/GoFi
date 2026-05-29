@@ -33,13 +33,14 @@ type spotifyMatchInput struct {
 }
 
 type spotifyMatchScore struct {
-	total        int
-	title        int
-	artist       int
-	album        int
-	duration     int
-	durationDiff int
-	conflict     bool
+	total         int
+	title         int
+	artist        int
+	primaryArtist int
+	album         int
+	duration      int
+	durationDiff  int
+	conflict      bool
 }
 
 // SpotifyTrackMetadataToDeezer matches Spotify track metadata to a Deezer track when ISRC is unavailable.
@@ -192,6 +193,7 @@ func searchDeezerTracks(query string, limit int) ([]types.TrackType, error) {
 func scoreSpotifyDeezerCandidate(input spotifyMatchInput, candidate types.TrackType) spotifyMatchScore {
 	title := bestTitleScore(input.title, candidate)
 	artist := bestArtistScore(input.artists, candidate)
+	primaryArtist := primaryArtistScore(input.artists, candidate.ART_NAME)
 	album := similarityScore(normalizeForCompare(input.album), normalizeForCompare(candidate.ALB_TITLE))
 	durationDiff := abs(input.durationSec - int(candidate.DURATION))
 	duration := durationScore(durationDiff)
@@ -207,15 +209,19 @@ func scoreSpotifyDeezerCandidate(input spotifyMatchInput, candidate types.TrackT
 	if durationDiff > 20 || title < 80 || artist < 70 {
 		conflict = true
 	}
+	if primaryArtist < spotifyMatchMinArtist {
+		conflict = true
+	}
 
 	return spotifyMatchScore{
-		total:        total,
-		title:        title,
-		artist:       artist,
-		album:        album,
-		duration:     duration,
-		durationDiff: durationDiff,
-		conflict:     conflict,
+		total:         total,
+		title:         title,
+		artist:        artist,
+		primaryArtist: primaryArtist,
+		album:         album,
+		duration:      duration,
+		durationDiff:  durationDiff,
+		conflict:      conflict,
 	}
 }
 
@@ -240,6 +246,14 @@ func bestArtistScore(sourceArtists []string, candidate types.TrackType) int {
 		for _, candidateArtist := range candidateArtists {
 			best = max(best, artistSimilarityScore(source, candidateArtist))
 		}
+	}
+	return best
+}
+
+func primaryArtistScore(sourceArtists []string, candidatePrimaryArtist string) int {
+	best := 0
+	for _, source := range sourceArtists {
+		best = max(best, artistSimilarityScore(source, candidatePrimaryArtist))
 	}
 	return best
 }

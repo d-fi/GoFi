@@ -21,7 +21,7 @@ import (
 	"github.com/d-fi/GoFi/utils"
 )
 
-const Version = "2.2.0-go"
+const Version = "2.3.0-go"
 
 type options struct {
 	quality         string
@@ -181,7 +181,8 @@ func printUsage(w io.Writer) {
 func printBanner() {
 	fmt.Println("             ♥ d-fi - " + Version + " ♥")
 	fmt.Println(" ──────────────────────────────────────────────")
-	fmt.Println(" │ github https://github.com/d-fi             │")
+	fmt.Println(" │ github   https://github.com/d-fi           │")
+	fmt.Println(" │ telegram https://t.me/dFiCommunity         │")
 	fmt.Println(" ──────────────────────────────────────────────")
 }
 

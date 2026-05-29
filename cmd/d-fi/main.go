@@ -50,8 +50,9 @@ func runWeb(args []string) error {
 func printWebBanner(addr, config string) {
 	fmt.Println("             ♥ d-fi web - " + dfi.Version + " ♥")
 	fmt.Println(" ──────────────────────────────────────────────")
-	fmt.Println(" │ url    http://" + addr)
-	fmt.Println(" │ config " + config)
+	fmt.Println(" │ url      http://" + addr)
+	fmt.Println(" │ config   " + config)
+	fmt.Println(" │ telegram https://t.me/dFiCommunity")
 	fmt.Println(" ──────────────────────────────────────────────")
 }
 

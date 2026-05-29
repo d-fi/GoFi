@@ -14,6 +14,7 @@
   --error-bg: #fff4f2;
   --error-line: #f0b8b2;
   --field: #ffffff;
+  --field-disabled: #edf1f5;
   --hover: #f7fafc;
   --progress-bg: #e8edf2;
   --shadow: rgb(23 32 42 / 12%);
@@ -36,6 +37,7 @@ html[data-theme="dark"] {
   --error-bg: #2a1514;
   --error-line: #7c332d;
   --field: #12171d;
+  --field-disabled: #202832;
   --hover: #202832;
   --progress-bg: #2b3541;
   --shadow: rgb(0 0 0 / 34%);
@@ -124,6 +126,14 @@ select {
   padding: 8px 10px;
   background: var(--field);
   color: var(--text);
+}
+input:disabled,
+select:disabled {
+  background: var(--field-disabled);
+  border-color: var(--line);
+  color: var(--muted);
+  cursor: not-allowed;
+  opacity: 1;
 }
 button {
   border: 1px solid transparent;

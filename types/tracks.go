@@ -3,6 +3,7 @@ package types
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 )
 
 // MediaType represents media details, including the type and URL.
@@ -110,6 +111,61 @@ type TrackType struct {
 	SongType
 	FALLBACK       *SongType `json:"FALLBACK,omitempty"`       // Fallback song type
 	TRACK_POSITION *int      `json:"TRACK_POSITION,omitempty"` // Track position
+}
+
+// UnmarshalJSON for SongType accepts Deezer ID fields as either strings or numbers.
+func (song *SongType) UnmarshalJSON(data []byte) error {
+	type Alias SongType
+	var aux struct {
+		ALB_ID        jsonString `json:"ALB_ID"`
+		ART_ID        jsonString `json:"ART_ID"`
+		SNG_ID        jsonString `json:"SNG_ID"`
+		RANK          jsonString `json:"RANK"`
+		MEDIA_VERSION jsonString `json:"MEDIA_VERSION"`
+		PROVIDER_ID   jsonString `json:"PROVIDER_ID"`
+		*Alias
+	}
+	aux.Alias = (*Alias)(song)
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	if aux.ALB_ID.set {
+		song.ALB_ID = aux.ALB_ID.value
+	}
+	if aux.ART_ID.set {
+		song.ART_ID = aux.ART_ID.value
+	}
+	if aux.SNG_ID.set {
+		song.SNG_ID = aux.SNG_ID.value
+	}
+	if aux.RANK.set {
+		song.RANK = aux.RANK.value
+	}
+	if aux.MEDIA_VERSION.set {
+		song.MEDIA_VERSION = aux.MEDIA_VERSION.value
+	}
+	if aux.PROVIDER_ID.set {
+		song.PROVIDER_ID = aux.PROVIDER_ID.value
+	}
+	return nil
+}
+
+type jsonString struct {
+	value string
+	set   bool
+}
+
+func (s *jsonString) UnmarshalJSON(data []byte) error {
+	s.set = true
+	if string(data) == "null" {
+		s.value = ""
+		return nil
+	}
+	if err := json.Unmarshal(data, &s.value); err == nil {
+		return nil
+	}
+	s.value = strings.TrimSpace(string(data))
+	return nil
 }
 
 // ContributorsPublicAPI represents information about contributors from the public API.

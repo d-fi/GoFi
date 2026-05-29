@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -80,8 +81,20 @@ type searchOptionsResponse struct {
 }
 
 type previewResponse struct {
-	LinkType string         `json:"linkType"`
-	Tracks   []trackPreview `json:"tracks"`
+	LinkType     string           `json:"linkType"`
+	Tracks       []trackPreview   `json:"tracks"`
+	LayoutFields layoutFieldGroup `json:"layoutFields"`
+}
+
+type layoutFieldGroup struct {
+	Always  []layoutField `json:"always"`
+	Current []layoutField `json:"current"`
+}
+
+type layoutField struct {
+	Key    string `json:"key"`
+	Scope  string `json:"scope"`
+	Sample string `json:"sample,omitempty"`
 }
 
 type trackPreview struct {
@@ -236,8 +249,9 @@ func (s *Server) handlePreview(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, previewResponse{
-		LinkType: res.LinkType,
-		Tracks:   previewTracks(res.Tracks),
+		LinkType:     res.LinkType,
+		Tracks:       previewTracks(res.Tracks),
+		LayoutFields: layoutFields(res.LinkType, res.LinkInfo, res.Tracks),
 	})
 }
 
@@ -669,6 +683,93 @@ func previewTracks(tracks []types.TrackType) []trackPreview {
 		})
 	}
 	return out
+}
+
+func layoutFields(linkType string, info any, tracks []types.TrackType) layoutFieldGroup {
+	fields := layoutFieldGroup{
+		Always: []layoutField{
+			{Key: "ALB_TITLE", Scope: "track"},
+			{Key: "ART_NAME", Scope: "track"},
+			{Key: "SNG_TITLE", Scope: "track"},
+			{Key: "TRACK_NUMBER", Scope: "special"},
+			{Key: "TRACK_POSITION", Scope: "special"},
+			{Key: "NO_TRACK_NUMBER", Scope: "special"},
+		},
+	}
+	if linkType == "playlist" {
+		fields.Always = append(fields.Always, layoutField{Key: "TITLE", Scope: "playlist"})
+	}
+
+	current := map[string]layoutField{}
+	addLayoutFields(current, "info", dfi.StructMap(info))
+	if len(tracks) > 0 {
+		addLayoutFields(current, "track", dfi.StructMap(tracks[0]))
+	}
+	if date := layoutReleaseDate(current); date != "" {
+		current["RELEASE_DATE"] = layoutField{Key: "RELEASE_DATE", Scope: "derived", Sample: date}
+		if year, _, _ := strings.Cut(date, "-"); year != "" {
+			current["RELEASE_YEAR"] = layoutField{Key: "RELEASE_YEAR", Scope: "derived", Sample: year}
+		}
+	}
+
+	fields.Current = make([]layoutField, 0, len(current))
+	for _, field := range current {
+		fields.Current = append(fields.Current, field)
+	}
+	sortLayoutFields(fields.Current)
+	return fields
+}
+
+func addLayoutFields(out map[string]layoutField, scope string, data map[string]any) {
+	flattenLayoutFields(out, scope, "", data)
+}
+
+func layoutReleaseDate(fields map[string]layoutField) string {
+	for _, key := range []string{"DIGITAL_RELEASE_DATE", "PHYSICAL_RELEASE_DATE", "release_date", "album.release_date", "DATE_START"} {
+		if field, ok := fields[key]; ok && field.Sample != "" && field.Sample != "0000-00-00" {
+			return field.Sample
+		}
+	}
+	return ""
+}
+
+func flattenLayoutFields(out map[string]layoutField, scope, prefix string, value any) {
+	switch typed := value.(type) {
+	case map[string]any:
+		for key, nested := range typed {
+			next := key
+			if prefix != "" {
+				next = prefix + "." + key
+			}
+			flattenLayoutFields(out, scope, next, nested)
+		}
+	case []any:
+		for i, nested := range typed {
+			next := fmt.Sprintf("%s.%d", prefix, i)
+			flattenLayoutFields(out, scope, next, nested)
+		}
+	default:
+		if prefix == "" {
+			return
+		}
+		sample := fmt.Sprintf("%v", value)
+		if sample == "" || sample == "<nil>" {
+			return
+		}
+		if len(sample) > 80 {
+			sample = sample[:77] + "..."
+		}
+		out[prefix] = layoutField{Key: prefix, Scope: scope, Sample: sample}
+	}
+}
+
+func sortLayoutFields(fields []layoutField) {
+	sort.Slice(fields, func(i, j int) bool {
+		if fields[i].Scope != fields[j].Scope {
+			return fields[i].Scope < fields[j].Scope
+		}
+		return fields[i].Key < fields[j].Key
+	})
 }
 
 func parseID(value string) (int64, error) {

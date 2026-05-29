@@ -369,6 +369,21 @@
         font-weight: 700;
         margin-bottom: 8px;
       }
+      .settings-heading {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 8px;
+      }
+      .settings-heading .settings-title {
+        margin-bottom: 0;
+      }
+      .settings-heading button {
+        min-height: 28px;
+        padding: 5px 8px;
+        font-size: 12px;
+      }
       .check {
         display: flex;
         align-items: center;
@@ -434,6 +449,72 @@
       .section-head button {
         min-height: 30px;
         padding: 6px 9px;
+      }
+      dialog {
+        width: min(760px, calc(100vw - 28px));
+        max-height: min(760px, calc(100vh - 28px));
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 0;
+        color: var(--text);
+        background: var(--panel);
+        box-shadow: 0 18px 60px rgb(23 32 42 / 24%);
+      }
+      dialog::backdrop {
+        background: rgb(23 32 42 / 28%);
+      }
+      .modal-head,
+      .modal-foot {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 12px 14px;
+        border-bottom: 1px solid var(--line);
+      }
+      .modal-foot {
+        border-top: 1px solid var(--line);
+        border-bottom: 0;
+      }
+      .modal-copy-status {
+        color: var(--ok);
+        font-size: 12px;
+        min-height: 18px;
+        text-align: right;
+      }
+      .modal-body {
+        padding: 12px 14px;
+        overflow: auto;
+        max-height: calc(100vh - 150px);
+      }
+      .field-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+        gap: 8px;
+        margin-bottom: 14px;
+      }
+      .field-btn {
+        min-height: 0;
+        padding: 7px 8px;
+        border: 1px solid var(--line);
+        background: #fff;
+        color: var(--text);
+        text-align: left;
+        overflow: hidden;
+      }
+      .field-key {
+        font-family:
+          ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: 12px;
+        font-weight: 700;
+      }
+      .field-meta {
+        margin-top: 3px;
+        color: var(--muted);
+        font-size: 12px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
       @media (max-width: 900px) {
         main {
@@ -505,7 +586,12 @@
             >
           </div>
           <div>
-            <div class="settings-title">Save Layout</div>
+            <div class="settings-heading">
+              <div class="settings-title">Save Layout</div>
+              <button id="layoutFieldsBtn" class="secondary" type="button">
+                Fields
+              </button>
+            </div>
             <label for="cfgLayoutTrack">Track</label>
             <input id="cfgLayoutTrack" />
             <label for="cfgLayoutAlbum">Album</label>
@@ -613,11 +699,32 @@
         </section>
       </div>
     </main>
+    <dialog id="layoutFieldsDialog">
+      <div class="modal-head">
+        <h2>Save Layout Fields</h2>
+        <button id="closeLayoutFieldsBtn" class="secondary" type="button">
+          Close
+        </button>
+      </div>
+      <div class="modal-body">
+        <h2>Common Fields</h2>
+        <div id="alwaysFields" class="field-grid"></div>
+        <h2>Current Preview Fields</h2>
+        <p id="currentFieldsNote" class="muted"></p>
+        <div id="currentFields" class="field-grid"></div>
+      </div>
+      <div class="modal-foot">
+        <span class="muted">Click a field to copy it.</span>
+        <span id="layoutCopyStatus" class="modal-copy-status"></span>
+      </div>
+    </dialog>
     <script>
       const state = {
         tracks: [],
         options: [],
         previewQuery: "",
+        previewLinkType: "",
+        layoutFields: null,
         config: null,
         jobsLoading: false,
         jobsTimer: null,
@@ -817,6 +924,8 @@
         setMainMessage("Fetching preview...");
         try {
           state.previewQuery = "";
+          state.previewLinkType = "";
+          state.layoutFields = null;
           state.options = [];
           state.tracks = [];
           renderOptions();
@@ -842,6 +951,8 @@
             body: JSON.stringify({ query }),
           });
           state.previewQuery = query;
+          state.previewLinkType = data.linkType || "";
+          state.layoutFields = data.layoutFields || null;
           state.tracks = data.tracks || [];
           renderOptions();
           renderTracks();
@@ -960,6 +1071,8 @@
                 body: JSON.stringify({ query: option.url }),
               });
               state.tracks = data.tracks || [];
+              state.previewLinkType = data.linkType || "";
+              state.layoutFields = data.layoutFields || null;
               state.options = [];
               renderOptions();
               renderTracks();
@@ -1055,6 +1168,76 @@
           value.startsWith("https://") ||
           value.startsWith("spotify:")
         );
+      }
+      function openLayoutFields() {
+        renderLayoutFields();
+        $("layoutCopyStatus").textContent = "";
+        $("layoutFieldsDialog").showModal();
+      }
+      function closeLayoutFields() {
+        $("layoutFieldsDialog").close();
+      }
+      function renderLayoutFields() {
+        const fields = state.layoutFields || defaultLayoutFields();
+        $("alwaysFields").innerHTML = renderFieldButtons(fields.always || []);
+        const current = fields.current || [];
+        $("currentFieldsNote").textContent = current.length
+          ? "Fields from the current " +
+            (state.previewLinkType || "download") +
+            " preview."
+          : "Preview a URL or search result to see fields from that response.";
+        $("currentFields").innerHTML = renderFieldButtons(current);
+        document
+          .querySelectorAll("[data-layout-field]")
+          .forEach((button) =>
+            button.addEventListener("click", () =>
+              copyLayoutField(button.dataset.layoutField),
+            ),
+          );
+      }
+      function defaultLayoutFields() {
+        return {
+          always: [
+            { key: "ALB_TITLE", scope: "track" },
+            { key: "ART_NAME", scope: "track" },
+            { key: "SNG_TITLE", scope: "track" },
+            { key: "TRACK_NUMBER", scope: "special" },
+            { key: "TRACK_POSITION", scope: "special" },
+            { key: "NO_TRACK_NUMBER", scope: "special" },
+            { key: "TITLE", scope: "playlist" },
+          ],
+          current: [],
+        };
+      }
+      function renderFieldButtons(fields) {
+        if (!fields.length) return "";
+        return fields
+          .map((field) => {
+            const placeholder = "{" + field.key + "}";
+            return (
+              '<button class="field-btn" type="button" data-layout-field="' +
+              escapeHTML(field.key) +
+              '">' +
+              '<div class="field-key">' +
+              escapeHTML(placeholder) +
+              "</div>" +
+              '<div class="field-meta">' +
+              escapeHTML(field.scope || "") +
+              (field.sample ? " · " + escapeHTML(field.sample) : "") +
+              "</div>" +
+              "</button>"
+            );
+          })
+          .join("");
+      }
+      async function copyLayoutField(key) {
+        const value = "{" + key + "}";
+        try {
+          await navigator.clipboard.writeText(value);
+          $("layoutCopyStatus").textContent = value + " copied";
+        } catch (_) {
+          $("layoutCopyStatus").textContent = "Copy failed";
+        }
       }
       function renderJobs(jobs) {
         const root = $("jobs");
@@ -1175,6 +1358,11 @@
       }
       bindConfigAutosave();
       $("saveArlBtn").addEventListener("click", saveARL);
+      $("layoutFieldsBtn").addEventListener("click", openLayoutFields);
+      $("closeLayoutFieldsBtn").addEventListener("click", closeLayoutFields);
+      $("layoutFieldsDialog").addEventListener("click", (event) => {
+        if (event.target === $("layoutFieldsDialog")) closeLayoutFields();
+      });
       $("previewBtn").addEventListener("click", preview);
       $("downloadSelectedBtn").addEventListener("click", startDownload);
       $("clearHistoryBtn").addEventListener("click", clearHistory);

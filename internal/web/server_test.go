@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"testing"
 	"time"
+
+	"github.com/d-fi/GoFi/types"
 )
 
 func TestConfigHandlers(t *testing.T) {
@@ -100,4 +102,55 @@ func TestCancelJobMarksJobCanceling(t *testing.T) {
 	if err := ctx.Err(); err == nil {
 		t.Fatal("cancel function was not called")
 	}
+}
+
+func TestLayoutFieldsIncludesAlwaysAndCurrentResponseFields(t *testing.T) {
+	fields := layoutFields("playlist", map[string]any{
+		"TITLE":      "My Playlist",
+		"DATE_ADD":   "2026-05-29",
+		"nested":     map[string]any{"value": "x"},
+		"empty":      "",
+		"empty_list": []any{},
+	}, []types.TrackType{
+		{
+			SongType: types.SongType{
+				ALB_TITLE:    "Discovery",
+				ART_NAME:     "Daft Punk",
+				SNG_TITLE:    "One More Time",
+				DATE_START:   "2001-03-07",
+				TRACK_NUMBER: 1,
+			},
+		},
+	})
+
+	if hasLayoutField(fields.Always, "RELEASE_YEAR") {
+		t.Fatal("always fields should not include response-dependent RELEASE_YEAR")
+	}
+	if !hasLayoutField(fields.Always, "TITLE") {
+		t.Fatal("playlist always fields should include TITLE")
+	}
+	if !hasLayoutField(fields.Current, "DATE_ADD") {
+		t.Fatal("current fields should include info response fields")
+	}
+	if !hasLayoutField(fields.Current, "nested.value") {
+		t.Fatal("current fields should include nested response fields")
+	}
+	if !hasLayoutField(fields.Current, "SNG_TITLE") {
+		t.Fatal("current fields should include track response fields")
+	}
+	if !hasLayoutField(fields.Current, "RELEASE_YEAR") {
+		t.Fatal("current fields should include derived release fields when a release date exists")
+	}
+	if hasLayoutField(fields.Current, "empty") {
+		t.Fatal("current fields should skip empty response fields")
+	}
+}
+
+func hasLayoutField(fields []layoutField, key string) bool {
+	for _, field := range fields {
+		if field.Key == key {
+			return true
+		}
+	}
+	return false
 }

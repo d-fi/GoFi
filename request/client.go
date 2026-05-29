@@ -35,7 +35,7 @@ func init() {
 		SetQueryParam("screenWidth", "320").
 		SetQueryParam("lang", "en").
 		SetTLSClientConfig(&tls.Config{InsecureSkipVerify: false}).
-		SetRetryCount(2).
+		SetRetryCount(3).
 		SetRetryWaitTime(2 * time.Second).
 		SetRetryMaxWaitTime(5 * time.Second)
 }

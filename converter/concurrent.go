@@ -6,7 +6,7 @@ import (
 	"github.com/d-fi/GoFi/types"
 )
 
-const converterConcurrency = 10
+const converterConcurrency = 25
 
 func convertTracksConcurrently[T any](items []T, convert func(int, T) (types.TrackType, bool)) []types.TrackType {
 	type result struct {

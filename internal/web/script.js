@@ -49,6 +49,7 @@ const settingsSections = {
     label: "Cover",
   },
 };
+const coverSizes = [56, 250, 500, 1000, 1200, 1400, 1500, 1800];
 const api = async (path, opts = {}) => {
   const res = await fetch(path, {
     headers: { "content-type": "application/json" },
@@ -140,13 +141,25 @@ function fillConfigSection(section, cfg) {
     return;
   }
   if (section === "cover") {
-    $("cfgCover128").value = cfg.coverSize?.["128"] || 500;
-    $("cfgCover320").value = cfg.coverSize?.["320"] || 500;
-    $("cfgCoverFlac").value = cfg.coverSize?.flac || 1000;
+    setCoverSizeValue("cfgCover128", cfg.coverSize?.["128"] || 500);
+    setCoverSizeValue("cfgCover320", cfg.coverSize?.["320"] || 500);
+    setCoverSizeValue("cfgCoverFlac", cfg.coverSize?.flac || 1000);
     $("cfgCoverMode").value = cfg.cover?.mode || "embed";
     $("cfgCoverFileName").value = cfg.cover?.fileName || "cover.jpg";
     syncCoverFileName();
   }
+}
+function fillCoverSizeOptions() {
+  ["cfgCover128", "cfgCover320", "cfgCoverFlac"].forEach((id) => {
+    $(id).innerHTML = coverSizes
+      .map((size) => '<option value="' + size + '">' + size + " px</option>")
+      .join("");
+  });
+}
+function setCoverSizeValue(id, value) {
+  const size = Number(value);
+  const fallback = id === "cfgCoverFlac" ? 1000 : 500;
+  $(id).value = coverSizes.includes(size) ? String(size) : String(fallback);
 }
 function readConfigSection(section) {
   if (section === "downloads") {
@@ -845,6 +858,7 @@ function escapeHTML(value) {
       })[ch],
   );
 }
+fillCoverSizeOptions();
 bindConfigControls();
 setTheme(currentTheme());
 $("themeToggle").addEventListener("click", toggleTheme);

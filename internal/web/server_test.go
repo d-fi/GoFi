@@ -60,6 +60,30 @@ func TestConfigHandlers(t *testing.T) {
 	}
 }
 
+func TestStaticAssetHandlers(t *testing.T) {
+	server := NewServer(Options{ConfigPath: filepath.Join(t.TempDir(), "d-fi.config.json")})
+
+	tests := map[string]string{
+		"/":          "text/html; charset=utf-8",
+		"/style.css": "text/css; charset=utf-8",
+		"/script.js": "application/javascript; charset=utf-8",
+	}
+	for path, contentType := range tests {
+		req := httptest.NewRequest(http.MethodGet, path, nil)
+		rec := httptest.NewRecorder()
+		server.ServeHTTP(rec, req)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("GET %s status = %d", path, rec.Code)
+		}
+		if got := rec.Header().Get("Content-Type"); got != contentType {
+			t.Fatalf("GET %s Content-Type = %q, want %q", path, got, contentType)
+		}
+		if rec.Body.Len() == 0 {
+			t.Fatalf("GET %s returned an empty body", path)
+		}
+	}
+}
+
 func TestConfigUpdatePreservesCoverSettingsWhenMissing(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "d-fi.config.json")
 	server := NewServer(Options{ConfigPath: path})

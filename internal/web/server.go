@@ -173,6 +173,8 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) routes() {
 	s.mux.HandleFunc("GET /", s.handleIndex)
+	s.mux.HandleFunc("GET /style.css", s.handleStyle)
+	s.mux.HandleFunc("GET /script.js", s.handleScript)
 	s.mux.HandleFunc("GET /api/config", s.handleConfig)
 	s.mux.HandleFunc("PUT /api/config", s.handleUpdateConfig)
 	s.mux.HandleFunc("POST /api/search-options", s.handleSearchOptions)
@@ -186,6 +188,16 @@ func (s *Server) routes() {
 func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	_, _ = w.Write([]byte(indexHTML))
+}
+
+func (s *Server) handleStyle(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/css; charset=utf-8")
+	_, _ = w.Write([]byte(styleCSS))
+}
+
+func (s *Server) handleScript(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/javascript; charset=utf-8")
+	_, _ = w.Write([]byte(scriptJS))
 }
 
 func (s *Server) handleConfig(w http.ResponseWriter, r *http.Request) {

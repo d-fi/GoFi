@@ -16,6 +16,9 @@ func TestLoadConfigDefaults(t *testing.T) {
 	if cfg.SaveLayout.Track != "Music/{ALB_TITLE}/{SNG_TITLE}" {
 		t.Fatalf("unexpected track layout: %s", cfg.SaveLayout.Track)
 	}
+	if cfg.SaveLayout.Album != "Music/{ALB_TITLE}/{SNG_TITLE}" {
+		t.Fatalf("unexpected album layout: %s", cfg.SaveLayout.Album)
+	}
 	if !cfg.TrackNumber {
 		t.Fatal("TrackNumber should default true")
 	}

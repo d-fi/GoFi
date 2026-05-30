@@ -45,24 +45,19 @@ func SaveLayout(props SaveLayoutProps) string {
 	albumInfo := make(map[string]any)
 	maps.Copy(albumInfo, props.Album)
 
-	// Adjust ALB_TITLE if necessary
-	trackDiskNumber, okTrackDisk := props.Track["DISK_NUMBER"]
-	albumNumberDisk, okAlbumDisk := props.Album["NUMBER_DISK"]
-	albumAlbTitle, okAlbumTitle := albumInfo["ALB_TITLE"]
-
-	if okTrackDisk && okAlbumDisk && okAlbumTitle {
-		numDisks := atoiOrZero(fmt.Sprintf("%v", albumNumberDisk))
-		if numDisks > 1 {
-			albumTitleStr := fmt.Sprintf("%v", albumAlbTitle)
-			if !strings.Contains(albumTitleStr, "Disc") {
-				discNumber := atoiOrZero(fmt.Sprintf("%v", trackDiskNumber))
-				albumInfo["ALB_TITLE"] = fmt.Sprintf("%s (Disc %02d)", albumTitleStr, discNumber)
-			}
+	usesDiskFolder := strings.Contains(props.Path, "{DISK_FOLDER}")
+	if _, ok := albumInfo["DISK_FOLDER"]; !ok && usesDiskFolder {
+		if diskFolder := diskFolder(props.Track, props.Album); diskFolder != "" {
+			albumInfo["DISK_FOLDER"] = diskFolder
 		}
 	}
 
+	if !usesDiskFolder {
+		adjustAlbumTitleForDisc(props.Track, props.Album, albumInfo)
+	}
+
 	if _, ok := albumInfo["RELEASE_DATE"]; !ok {
-		for _, key := range []string{"DIGITAL_RELEASE_DATE", "PHYSICAL_RELEASE_DATE", "release_date", "album.release_date", "DATE_START"} {
+		for _, key := range ReleaseDateKeys() {
 			var value any
 			var exists bool
 			if value, exists = GetNestedValue(albumInfo, key); !exists {
@@ -76,7 +71,7 @@ func SaveLayout(props SaveLayoutProps) string {
 				continue
 			}
 			albumInfo["RELEASE_DATE"] = date
-			if year, _, _ := strings.Cut(date, "-"); year != "" {
+			if year := ReleaseYear(date); year != "" {
 				albumInfo["RELEASE_YEAR"] = year
 			}
 			break
@@ -135,6 +130,72 @@ func SaveLayout(props SaveLayoutProps) string {
 	finalPath := strings.Trim(regexp.MustCompile(`[?%*|"<>]`).ReplaceAllString(props.Path, ""), " ")
 	logger.Debug("Final sanitized path: %s", finalPath)
 	return finalPath
+}
+
+func adjustAlbumTitleForDisc(track, album, albumInfo map[string]any) {
+	trackDiskNumber, okTrackDisk := track["DISK_NUMBER"]
+	albumNumberDisk, okAlbumDisk := album["NUMBER_DISK"]
+	albumAlbTitle, okAlbumTitle := albumInfo["ALB_TITLE"]
+	if !okTrackDisk || !okAlbumDisk || !okAlbumTitle {
+		return
+	}
+
+	numDisks := atoiOrZero(fmt.Sprintf("%v", albumNumberDisk))
+	if numDisks <= 1 {
+		return
+	}
+	albumTitleStr := fmt.Sprintf("%v", albumAlbTitle)
+	if strings.Contains(albumTitleStr, "Disc") {
+		return
+	}
+	discNumber := atoiOrZero(fmt.Sprintf("%v", trackDiskNumber))
+	albumInfo["ALB_TITLE"] = fmt.Sprintf("%s (Disc %02d)", albumTitleStr, discNumber)
+}
+
+func diskFolder(track, album map[string]any) string {
+	numDisks := valueAsInt(album, "NUMBER_DISK")
+	if numDisks <= 1 {
+		return ""
+	}
+	discNumber := valueAsInt(track, "DISK_NUMBER")
+	if discNumber <= 0 {
+		return ""
+	}
+	return fmt.Sprintf("CD%d", discNumber)
+}
+
+func valueAsInt(data map[string]any, key string) int {
+	value, ok := data[key]
+	if !ok {
+		return 0
+	}
+	return atoiOrZero(fmt.Sprintf("%v", value))
+}
+
+func ReleaseDateKeys() []string {
+	return []string{
+		"ORIGINAL_RELEASE_DATE",
+		"PHYSICAL_RELEASE_DATE",
+		"release_date",
+		"album.release_date",
+		"DIGITAL_RELEASE_DATE",
+		"DATE_START",
+	}
+}
+
+func ReleaseYear(date string) string {
+	date = strings.TrimSpace(date)
+	if date == "" || date == "0000-00-00" {
+		return ""
+	}
+	if year, _, ok := strings.Cut(date, "-"); ok && len(year) == 4 {
+		return year
+	}
+	parts := strings.Split(date, "/")
+	if len(parts) == 3 && len(parts[2]) == 4 {
+		return parts[2]
+	}
+	return ""
 }
 
 func resolveLayoutValue(album, track map[string]any, expression string) (string, any) {

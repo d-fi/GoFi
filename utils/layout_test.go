@@ -143,6 +143,44 @@ func TestSaveLayout(t *testing.T) {
 			expected: "Artist Name/Album Name (Disc 02)/01 - Song Title.mp3",
 		},
 		{
+			name: "Disk_folder_placeholder_keeps_album_title_unchanged",
+			props: SaveLayoutProps{
+				Track: map[string]any{
+					"TRACK_NUMBER": 1,
+					"TITLE":        "Song Title",
+					"DISK_NUMBER":  2,
+				},
+				Album: map[string]any{
+					"ARTIST":      "Artist Name",
+					"ALB_TITLE":   "Album Name",
+					"NUMBER_DISK": 3,
+				},
+				Path:                 "{ARTIST}/{ALB_TITLE}/{DISK_FOLDER}/{TRACK_NUMBER} - {TITLE}.mp3",
+				MinimumIntegerDigits: 2,
+				TrackNumber:          false,
+			},
+			expected: "Artist Name/Album Name/CD2/01 - Song Title.mp3",
+		},
+		{
+			name: "Single_disc_album_omits_disk_folder",
+			props: SaveLayoutProps{
+				Track: map[string]any{
+					"TRACK_NUMBER": 1,
+					"TITLE":        "Song Title",
+					"DISK_NUMBER":  1,
+				},
+				Album: map[string]any{
+					"ARTIST":      "Artist Name",
+					"ALB_TITLE":   "Album Name",
+					"NUMBER_DISK": 1,
+				},
+				Path:                 "{ARTIST}/{ALB_TITLE}/{DISK_FOLDER}/{TRACK_NUMBER} - {TITLE}.mp3",
+				MinimumIntegerDigits: 2,
+				TrackNumber:          false,
+			},
+			expected: "Artist Name/Album Name/01 - Song Title.mp3",
+		},
+		{
 			name: "Nested_key_access",
 			props: SaveLayoutProps{
 				Track: map[string]any{
@@ -182,20 +220,21 @@ func TestSaveLayout(t *testing.T) {
 			expected: "Daft Punk/Daft Punk/Song Title.mp3",
 		},
 		{
-			name: "Release_date_aliases_from_album",
+			name: "Release_date_prefers_physical_date_from_album",
 			props: SaveLayoutProps{
 				Track: map[string]any{
 					"TITLE": "Song Title",
 				},
 				Album: map[string]any{
-					"ALB_TITLE":            "Album Name",
-					"DIGITAL_RELEASE_DATE": "2001-03-07",
+					"ALB_TITLE":             "Album Name",
+					"PHYSICAL_RELEASE_DATE": "1990-10-29",
+					"DIGITAL_RELEASE_DATE":  "2011-06-10",
 				},
 				Path:                 "{RELEASE_YEAR}/{RELEASE_DATE}/{ALB_TITLE}/{TITLE}.mp3",
 				MinimumIntegerDigits: 2,
 				TrackNumber:          false,
 			},
-			expected: "2001/2001-03-07/Album Name/Song Title.mp3",
+			expected: "1990/1990-10-29/Album Name/Song Title.mp3",
 		},
 		{
 			name: "Release_date_aliases_from_public_track_album",

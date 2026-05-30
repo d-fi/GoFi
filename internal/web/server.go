@@ -21,6 +21,7 @@ import (
 	"github.com/d-fi/GoFi/metadata"
 	"github.com/d-fi/GoFi/request"
 	"github.com/d-fi/GoFi/types"
+	"github.com/d-fi/GoFi/utils"
 )
 
 type Options struct {
@@ -697,6 +698,8 @@ func layoutFields(linkType string, info any, tracks []types.TrackType) layoutFie
 			{Key: "ALB_TITLE", Scope: "track"},
 			{Key: "ART_NAME", Scope: "track"},
 			{Key: "SNG_TITLE", Scope: "track"},
+			{Key: "DISK_FOLDER", Scope: "derived"},
+			{Key: "DISK_NUMBER", Scope: "track"},
 			{Key: "TRACK_NUMBER", Scope: "special"},
 			{Key: "TRACK_POSITION", Scope: "special"},
 			{Key: "NO_TRACK_NUMBER", Scope: "special"},
@@ -713,9 +716,12 @@ func layoutFields(linkType string, info any, tracks []types.TrackType) layoutFie
 	}
 	if date := layoutReleaseDate(current); date != "" {
 		current["RELEASE_DATE"] = layoutField{Key: "RELEASE_DATE", Scope: "derived", Sample: date}
-		if year, _, _ := strings.Cut(date, "-"); year != "" {
+		if year := utils.ReleaseYear(date); year != "" {
 			current["RELEASE_YEAR"] = layoutField{Key: "RELEASE_YEAR", Scope: "derived", Sample: year}
 		}
+	}
+	if diskFolder := layoutDiskFolder(current); diskFolder != "" {
+		current["DISK_FOLDER"] = layoutField{Key: "DISK_FOLDER", Scope: "derived", Sample: diskFolder}
 	}
 
 	fields.Current = make([]layoutField, 0, len(current))
@@ -731,12 +737,24 @@ func addLayoutFields(out map[string]layoutField, scope string, data map[string]a
 }
 
 func layoutReleaseDate(fields map[string]layoutField) string {
-	for _, key := range []string{"DIGITAL_RELEASE_DATE", "PHYSICAL_RELEASE_DATE", "release_date", "album.release_date", "DATE_START"} {
+	for _, key := range utils.ReleaseDateKeys() {
 		if field, ok := fields[key]; ok && field.Sample != "" && field.Sample != "0000-00-00" {
 			return field.Sample
 		}
 	}
 	return ""
+}
+
+func layoutDiskFolder(fields map[string]layoutField) string {
+	numberDisk, ok := fields["NUMBER_DISK"]
+	if !ok || dfi.AsInt(numberDisk.Sample) <= 1 {
+		return ""
+	}
+	diskNumber, ok := fields["DISK_NUMBER"]
+	if !ok || dfi.AsInt(diskNumber.Sample) <= 0 {
+		return ""
+	}
+	return fmt.Sprintf("CD%d", dfi.AsInt(diskNumber.Sample))
 }
 
 func flattenLayoutFields(out map[string]layoutField, scope, prefix string, value any) {

@@ -689,6 +689,8 @@ function defaultLayoutFields() {
       { key: "ALB_TITLE", scope: "track" },
       { key: "ART_NAME", scope: "track" },
       { key: "SNG_TITLE", scope: "track" },
+      { key: "DISK_FOLDER", scope: "derived" },
+      { key: "DISK_NUMBER", scope: "track" },
       { key: "TRACK_NUMBER", scope: "special" },
       { key: "TRACK_POSITION", scope: "special" },
       { key: "NO_TRACK_NUMBER", scope: "special" },

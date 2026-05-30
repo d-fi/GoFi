@@ -171,11 +171,12 @@ func TestCancelJobMarksJobCanceling(t *testing.T) {
 
 func TestLayoutFieldsIncludesAlwaysAndCurrentResponseFields(t *testing.T) {
 	fields := layoutFields("playlist", map[string]any{
-		"TITLE":      "My Playlist",
-		"DATE_ADD":   "2026-05-29",
-		"nested":     map[string]any{"value": "x"},
-		"empty":      "",
-		"empty_list": []any{},
+		"TITLE":       "My Playlist",
+		"DATE_ADD":    "2026-05-29",
+		"NUMBER_DISK": 2,
+		"nested":      map[string]any{"value": "x"},
+		"empty":       "",
+		"empty_list":  []any{},
 	}, []types.TrackType{
 		{
 			SongType: types.SongType{
@@ -183,6 +184,7 @@ func TestLayoutFieldsIncludesAlwaysAndCurrentResponseFields(t *testing.T) {
 				ART_NAME:     "Daft Punk",
 				SNG_TITLE:    "One More Time",
 				DATE_START:   "2001-03-07",
+				DISK_NUMBER:  2,
 				TRACK_NUMBER: 1,
 				STATUS:       0,
 			},
@@ -206,6 +208,9 @@ func TestLayoutFieldsIncludesAlwaysAndCurrentResponseFields(t *testing.T) {
 	}
 	if !hasLayoutField(fields.Current, "RELEASE_YEAR") {
 		t.Fatal("current fields should include derived release fields when a release date exists")
+	}
+	if !hasLayoutField(fields.Current, "DISK_FOLDER") {
+		t.Fatal("current fields should include derived disk folder for multi-disc albums")
 	}
 	if hasLayoutField(fields.Current, "empty") {
 		t.Fatal("current fields should skip empty response fields")

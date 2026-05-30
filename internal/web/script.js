@@ -50,6 +50,8 @@ const settingsSections = {
   },
 };
 const coverSizes = [56, 250, 500, 1000, 1200, 1400, 1500, 1800];
+const minCoverSize = 50;
+const maxCoverSize = 1800;
 const api = async (path, opts = {}) => {
   const res = await fetch(path, {
     headers: { "content-type": "application/json" },
@@ -156,7 +158,21 @@ function fillCoverSizeOptions() {
 function setCoverSizeValue(id, value) {
   const size = Number(value);
   const fallback = id === "cfgCoverFlac" ? 1000 : 500;
-  $(id).value = coverSizes.includes(size) ? String(size) : String(fallback);
+  const select = $(id);
+  if (!Number.isInteger(size) || size < minCoverSize || size > maxCoverSize) {
+    select.value = String(fallback);
+    return;
+  }
+  ensureCoverSizeOption(select, size);
+  select.value = String(size);
+}
+function ensureCoverSizeOption(select, size) {
+  if ([...select.options].some((option) => Number(option.value) === size)) {
+    return;
+  }
+  const option = new Option(size + " px (custom)", String(size));
+  const before = [...select.options].find((item) => Number(item.value) > size);
+  select.add(option, before || null);
 }
 function readConfigSection(section) {
   if (section === "downloads") {

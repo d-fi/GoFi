@@ -83,17 +83,17 @@ func TestLoadConfigMergesFalseValues(t *testing.T) {
 func TestLoadConfigNormalizesCoverSizes(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "d-fi.config.json")
 	if err := os.WriteFile(path, []byte(`{
-		"coverSize": {"128": 1200, "320": 49, "flac": 1801}
+		"coverSize": {"128": 1234, "320": 50, "flac": 1801}
 	}`), 0644); err != nil {
 		t.Fatal(err)
 	}
 
 	cfg := LoadConfig(path)
-	if cfg.CoverSize.MP3_128 != 1200 {
-		t.Fatalf("MP3_128 cover size = %d, want 1200", cfg.CoverSize.MP3_128)
+	if cfg.CoverSize.MP3_128 != 1234 {
+		t.Fatalf("MP3_128 cover size = %d, want 1234", cfg.CoverSize.MP3_128)
 	}
-	if cfg.CoverSize.MP3_320 != 500 {
-		t.Fatalf("MP3_320 cover size = %d, want default 500", cfg.CoverSize.MP3_320)
+	if cfg.CoverSize.MP3_320 != 50 {
+		t.Fatalf("MP3_320 cover size = %d, want 50", cfg.CoverSize.MP3_320)
 	}
 	if cfg.CoverSize.FLAC != 1000 {
 		t.Fatalf("FLAC cover size = %d, want default 1000", cfg.CoverSize.FLAC)

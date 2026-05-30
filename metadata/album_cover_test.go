@@ -32,9 +32,10 @@ func TestDownloadAlbumCover(t *testing.T) {
 func TestIsValidCoverSize(t *testing.T) {
 	tests := map[int]bool{
 		49:   false,
-		50:   false,
+		50:   true,
 		56:   true,
 		1200: true,
+		1234: true,
 		1400: true,
 		1800: true,
 		1801: false,

@@ -20,15 +20,15 @@ const (
 	cacheTTL  = 30 * time.Minute
 )
 
-const DefaultCoverFileName = "cover.jpg"
+const (
+	MinCoverSize = 50
+	MaxCoverSize = 1800
+
+	DefaultCoverFileName = "cover.jpg"
+)
 
 func IsValidCoverSize(size int) bool {
-	switch size {
-	case 56, 250, 500, 1000, 1200, 1400, 1500, 1800:
-		return true
-	default:
-		return false
-	}
+	return size >= MinCoverSize && size <= MaxCoverSize
 }
 
 func NormalizeCoverSize(size, fallback int) int {

@@ -135,7 +135,7 @@ func TestConfigUpdateNormalizesCoverSizes(t *testing.T) {
 			"playlist": "Playlist/{TITLE}/{SNG_TITLE}"
 		},
 		"playlist": {"resolveFullPath": false},
-		"coverSize": {"128": 1200, "320": 49, "flac": 1801},
+		"coverSize": {"128": 1234, "320": 50, "flac": 1801},
 		"cover": {"mode": "embed", "fileName": "cover.jpg"},
 		"cookies": {"arl": ""}
 	}`)
@@ -145,11 +145,11 @@ func TestConfigUpdateNormalizesCoverSizes(t *testing.T) {
 	if rec.Code != http.StatusOK {
 		t.Fatalf("PUT /api/config status = %d body=%s", rec.Code, rec.Body.String())
 	}
-	if got := server.currentConfig().CoverSize.MP3_128; got != 1200 {
-		t.Fatalf("MP3_128 cover size = %d, want 1200", got)
+	if got := server.currentConfig().CoverSize.MP3_128; got != 1234 {
+		t.Fatalf("MP3_128 cover size = %d, want 1234", got)
 	}
-	if got := server.currentConfig().CoverSize.MP3_320; got != 500 {
-		t.Fatalf("MP3_320 cover size = %d, want default 500", got)
+	if got := server.currentConfig().CoverSize.MP3_320; got != 50 {
+		t.Fatalf("MP3_320 cover size = %d, want 50", got)
 	}
 	if got := server.currentConfig().CoverSize.FLAC; got != 1000 {
 		t.Fatalf("FLAC cover size = %d, want default 1000", got)

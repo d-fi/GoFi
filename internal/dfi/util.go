@@ -136,7 +136,15 @@ func CoverFilePolicy(tracks []types.TrackType, info any, path string, trackNumbe
 }
 
 func coverFilePolicyKey(track types.TrackType, info any, path string, trackNumber bool, totalTracks int) string {
-	return filepath.Dir(SaveLayout(track, info, path, trackNumber, totalTracks))
+	return coverFileDir(SaveLayout(track, info, path, trackNumber, totalTracks), path)
+}
+
+func coverFileDir(savePath, layout string) string {
+	dir := filepath.Dir(savePath)
+	if strings.Contains(layout, "{DISK_FOLDER}") && filepath.Base(dir) != "." {
+		return filepath.Dir(dir)
+	}
+	return dir
 }
 
 func AsInt(value any) int {

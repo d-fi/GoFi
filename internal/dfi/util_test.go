@@ -58,6 +58,26 @@ func TestCoverFilePolicyAllowsOnlySingleCoverPerDirectory(t *testing.T) {
 	}
 }
 
+func TestCoverFilePolicyUsesAlbumRootForDiskFolderLayout(t *testing.T) {
+	tracks := []types.TrackType{
+		{SongType: types.SongType{ALB_TITLE: "Album", SNG_TITLE: "A", ALB_PICTURE: "cover-a", DISK_NUMBER: 1}},
+		{SongType: types.SongType{ALB_TITLE: "Album", SNG_TITLE: "B", ALB_PICTURE: "cover-a", DISK_NUMBER: 2}},
+	}
+	info := map[string]any{"ALB_TITLE": "Album", "NUMBER_DISK": 2}
+	layout := "Music/{ALB_TITLE}/{DISK_FOLDER}/{SNG_TITLE}"
+
+	policy := CoverFilePolicy(tracks, info, layout, true)
+	if !policy["Music/Album"] {
+		t.Fatalf("album root should save cover.jpg: %#v", policy)
+	}
+	if policy["Music/Album/CD1"] || policy["Music/Album/CD2"] {
+		t.Fatalf("disc folders should not save cover.jpg: %#v", policy)
+	}
+	if got := coverFileDir("Music/Album/CD1/01 - A.mp3", layout); got != "Music/Album" {
+		t.Fatalf("coverFileDir = %q, want Music/Album", got)
+	}
+}
+
 func TestCommonPath(t *testing.T) {
 	got := commonPath([]string{"Playlist/Test", "Playlist/Test/Sub"})
 	if got != "Playlist/Test" {

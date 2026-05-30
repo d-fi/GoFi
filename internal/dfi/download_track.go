@@ -67,7 +67,7 @@ func DownloadTrack(ctx context.Context, options DownloadTrackOptions) (string, e
 	savePath := SaveLayout(track, options.Info, options.Path, options.TrackNumber, options.TotalTracks) + ext
 	if _, err := os.Stat(savePath); err == nil {
 		if options.shouldSaveCoverFile(savePath) && os.Getenv("SIMULATE") == "" && metadata.ShouldSaveCoverFile(options.CoverMode) {
-			if _, err := metadata.SaveAlbumCoverFile(filepath.Dir(savePath), options.CoverFileName, track.ALB_PICTURE, coverSize); err != nil {
+			if _, err := metadata.SaveAlbumCoverFile(coverFileDir(savePath, options.Path), options.CoverFileName, track.ALB_PICTURE, coverSize); err != nil {
 				return "", err
 			}
 		}
@@ -169,7 +169,7 @@ func DownloadTrack(ctx context.Context, options DownloadTrackOptions) (string, e
 			return "", err
 		}
 		if options.shouldSaveCoverFile(savePath) && metadata.ShouldSaveCoverFile(options.CoverMode) {
-			if _, err := metadata.SaveAlbumCoverFile(filepath.Dir(savePath), options.CoverFileName, track.ALB_PICTURE, coverSize); err != nil {
+			if _, err := metadata.SaveAlbumCoverFile(coverFileDir(savePath, options.Path), options.CoverFileName, track.ALB_PICTURE, coverSize); err != nil {
 				return "", err
 			}
 		}
@@ -189,7 +189,7 @@ func (options DownloadTrackOptions) shouldSaveCoverFile(savePath string) bool {
 	if options.CoverFilePolicy == nil {
 		return false
 	}
-	return options.CoverFilePolicy[filepath.Dir(savePath)]
+	return options.CoverFilePolicy[coverFileDir(savePath, options.Path)]
 }
 
 func terminalDownloadHooks(message string) DownloadTrackHooks {

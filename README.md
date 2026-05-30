@@ -246,7 +246,7 @@ When `true`, GoFi falls back to a lower available quality when the requested qua
 
 ### `coverSize`
 
-Album cover size used for metadata tagging and saved cover files. Original d-fi documents acceptable values between `50` and `1800`.
+Album cover size used for metadata tagging and saved cover files. Valid presets are `56`, `250`, `500`, `1000`, `1200`, `1400`, `1500`, and `1800`. The first four match Deezer's named cover variants; the larger values are common high-resolution Deezer CDN sizes.
 
 ```text
 coverSize.128     Cover size for MP3 128 downloads

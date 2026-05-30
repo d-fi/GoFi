@@ -145,13 +145,13 @@ func mergeConfig(cfg *Config, user Config) {
 		cfg.FallbackQuality = user.FallbackQuality
 	}
 	if user.CoverSize.MP3_128 != 0 {
-		cfg.CoverSize.MP3_128 = user.CoverSize.MP3_128
+		cfg.CoverSize.MP3_128 = metadata.NormalizeCoverSize(user.CoverSize.MP3_128, cfg.CoverSize.MP3_128)
 	}
 	if user.CoverSize.MP3_320 != 0 {
-		cfg.CoverSize.MP3_320 = user.CoverSize.MP3_320
+		cfg.CoverSize.MP3_320 = metadata.NormalizeCoverSize(user.CoverSize.MP3_320, cfg.CoverSize.MP3_320)
 	}
 	if user.CoverSize.FLAC != 0 {
-		cfg.CoverSize.FLAC = user.CoverSize.FLAC
+		cfg.CoverSize.FLAC = metadata.NormalizeCoverSize(user.CoverSize.FLAC, cfg.CoverSize.FLAC)
 	}
 	if user.Cover.Mode != "" {
 		cfg.Cover.Mode = metadata.NormalizeCoverMode(user.Cover.Mode)

@@ -20,25 +20,22 @@ const (
 	cacheTTL  = 30 * time.Minute
 )
 
-// Valid cover sizes
-const (
-	CoverSize56   = 56
-	CoverSize250  = 250
-	CoverSize500  = 500
-	CoverSize1000 = 1000
-	CoverSize1500 = 1500
-	CoverSize1800 = 1800
-)
-
 const DefaultCoverFileName = "cover.jpg"
 
-var validCoverSizes = map[int]bool{
-	CoverSize56:   true,
-	CoverSize250:  true,
-	CoverSize500:  true,
-	CoverSize1000: true,
-	CoverSize1500: true,
-	CoverSize1800: true,
+func IsValidCoverSize(size int) bool {
+	switch size {
+	case 56, 250, 500, 1000, 1200, 1400, 1500, 1800:
+		return true
+	default:
+		return false
+	}
+}
+
+func NormalizeCoverSize(size, fallback int) int {
+	if IsValidCoverSize(size) {
+		return size
+	}
+	return fallback
 }
 
 var albumCoverCache = expirable.NewLRU[string, []byte](cacheSize, nil, cacheTTL)
@@ -52,7 +49,7 @@ func DownloadAlbumCover(albumPicture string, albumCoverSize int) ([]byte, error)
 		return nil, errors.New("album picture hash is empty")
 	}
 
-	if !validCoverSizes[albumCoverSize] {
+	if !IsValidCoverSize(albumCoverSize) {
 		logger.Debug("Invalid cover size requested: %d", albumCoverSize)
 		return nil, fmt.Errorf("invalid cover size: %d", albumCoverSize)
 	}

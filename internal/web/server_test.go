@@ -119,6 +119,43 @@ func TestConfigUpdatePreservesCoverSettingsWhenMissing(t *testing.T) {
 	}
 }
 
+func TestConfigUpdateNormalizesCoverSizes(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "d-fi.config.json")
+	server := NewServer(Options{ConfigPath: path})
+
+	body := []byte(`{
+		"concurrency": 3,
+		"trackNumber": true,
+		"fallbackTrack": true,
+		"fallbackQuality": true,
+		"saveLayout": {
+			"track": "Music/{ALB_TITLE}/{SNG_TITLE}",
+			"album": "Music/{ALB_TITLE}/{SNG_TITLE}",
+			"artist": "Music/{ALB_TITLE}/{SNG_TITLE}",
+			"playlist": "Playlist/{TITLE}/{SNG_TITLE}"
+		},
+		"playlist": {"resolveFullPath": false},
+		"coverSize": {"128": 1200, "320": 49, "flac": 1801},
+		"cover": {"mode": "embed", "fileName": "cover.jpg"},
+		"cookies": {"arl": ""}
+	}`)
+	req := httptest.NewRequest(http.MethodPut, "/api/config", bytes.NewReader(body))
+	rec := httptest.NewRecorder()
+	server.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("PUT /api/config status = %d body=%s", rec.Code, rec.Body.String())
+	}
+	if got := server.currentConfig().CoverSize.MP3_128; got != 1200 {
+		t.Fatalf("MP3_128 cover size = %d, want 1200", got)
+	}
+	if got := server.currentConfig().CoverSize.MP3_320; got != 500 {
+		t.Fatalf("MP3_320 cover size = %d, want default 500", got)
+	}
+	if got := server.currentConfig().CoverSize.FLAC; got != 1000 {
+		t.Fatalf("FLAC cover size = %d, want default 1000", got)
+	}
+}
+
 func TestClearJobsKeepsActiveJobs(t *testing.T) {
 	server := NewServer(Options{ConfigPath: filepath.Join(t.TempDir(), "d-fi.config.json")})
 	now := time.Now()

@@ -224,7 +224,9 @@ func (s *Server) handleUpdateConfig(w http.ResponseWriter, r *http.Request) {
 	s.cfg.TrackNumber = cfg.TrackNumber
 	s.cfg.FallbackTrack = cfg.FallbackTrack
 	s.cfg.FallbackQuality = cfg.FallbackQuality
-	s.cfg.CoverSize = cfg.CoverSize
+	s.cfg.CoverSize.MP3_128 = metadata.NormalizeCoverSize(cfg.CoverSize.MP3_128, s.cfg.CoverSize.MP3_128)
+	s.cfg.CoverSize.MP3_320 = metadata.NormalizeCoverSize(cfg.CoverSize.MP3_320, s.cfg.CoverSize.MP3_320)
+	s.cfg.CoverSize.FLAC = metadata.NormalizeCoverSize(cfg.CoverSize.FLAC, s.cfg.CoverSize.FLAC)
 	if cfg.Cover.Mode != "" {
 		s.cfg.Cover.Mode = metadata.NormalizeCoverMode(cfg.Cover.Mode)
 	}

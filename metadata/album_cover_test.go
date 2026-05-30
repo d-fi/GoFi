@@ -10,7 +10,7 @@ const ALB_PICTURE = "2e018122cb56986277102d2041a592c8" // Discovery by Daft Punk
 
 func TestDownloadAlbumCover(t *testing.T) {
 	// Test valid cover sizes
-	coverSizes := []int{56, 250, 500, 1000, 1500, 1800}
+	coverSizes := []int{56, 250, 500, 1000, 1200, 1400, 1500, 1800}
 	for _, size := range coverSizes {
 		cover, err := DownloadAlbumCover(ALB_PICTURE, size)
 		assert.NoError(t, err)
@@ -27,4 +27,21 @@ func TestDownloadAlbumCover(t *testing.T) {
 	_, err = DownloadAlbumCover("", 500)
 	assert.Error(t, err)
 	assert.Equal(t, "album picture hash is empty", err.Error())
+}
+
+func TestIsValidCoverSize(t *testing.T) {
+	tests := map[int]bool{
+		49:   false,
+		50:   false,
+		56:   true,
+		1200: true,
+		1400: true,
+		1800: true,
+		1801: false,
+	}
+	for size, expected := range tests {
+		if got := IsValidCoverSize(size); got != expected {
+			t.Fatalf("IsValidCoverSize(%d) = %v, want %v", size, got, expected)
+		}
+	}
 }

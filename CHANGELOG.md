@@ -1,5 +1,33 @@
 # Changelog
 
+## 2.3.1 - 2026-05-30
+
+This release is a focused follow-up to 2.3.0. It improves compatibility with current Deezer links and playlist responses, adds more flexible save layouts for multi-disc albums, and tightens cover artwork handling in the CLI and web UI.
+
+### Added
+
+- Added support for modern Deezer share links such as `https://link.deezer.com/s/...`.
+- Added fallback save layout placeholders using `{FIRST|SECOND|THIRD}` syntax.
+- Added opt-in multi-disc folder layouts with `{DISK_FOLDER}` and `{DISK_NUMBER}`.
+- Added support for custom cover sizes between `50` and `1800`.
+- Added web handling for custom saved cover sizes, shown as custom dropdown options.
+
+### Changed
+
+- Kept the existing default multi-disc album behavior unchanged unless `{DISK_FOLDER}` is used in the save layout.
+- Changed separate cover-file saving for `{DISK_FOLDER}` layouts so one cover file is saved at the album root instead of once per disc folder.
+- Improved release date placeholder fallback behavior for layouts.
+- Improved web preview behavior by removing redundant success toasts when tracks are already shown in the preview table.
+- Improved release package checks so package contents are verified after `make pkg`.
+
+### Fixed
+
+- Fixed Deezer playlist decoding when `ALB_ID`, `ART_ID`, `SNG_ID`, and related IDs are returned as numbers instead of strings.
+- Fixed request cache collisions by including request params in cache keys.
+- Fixed cover size validation so web-selected high-resolution values like `1200` and `1400` do not fail during download.
+- Fixed invalid manual cover sizes so out-of-range values fall back to the existing/default value instead of being saved.
+- Fixed layout placeholder parsing for fallback placeholders and disc-folder detection.
+
 ## 2.3.0 - 2026-05-29
 
 This release focuses on the web UI, Spotify conversion reliability, cover artwork handling, and release packaging.

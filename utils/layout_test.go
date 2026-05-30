@@ -162,6 +162,25 @@ func TestSaveLayout(t *testing.T) {
 			expected: "Artist Name/Album Name/CD2/01 - Song Title.mp3",
 		},
 		{
+			name: "Disk_folder_fallback_placeholder_keeps_album_title_unchanged",
+			props: SaveLayoutProps{
+				Track: map[string]any{
+					"TRACK_NUMBER": 1,
+					"TITLE":        "Song Title",
+					"DISK_NUMBER":  2,
+				},
+				Album: map[string]any{
+					"ARTIST":      "Artist Name",
+					"ALB_TITLE":   "Album Name",
+					"NUMBER_DISK": 3,
+				},
+				Path:                 "{ARTIST}/{ALB_TITLE}/{DISK_FOLDER|DISK_NUMBER}/{TRACK_NUMBER} - {TITLE}.mp3",
+				MinimumIntegerDigits: 2,
+				TrackNumber:          false,
+			},
+			expected: "Artist Name/Album Name/CD2/01 - Song Title.mp3",
+		},
+		{
 			name: "Single_disc_album_omits_disk_folder",
 			props: SaveLayoutProps{
 				Track: map[string]any{

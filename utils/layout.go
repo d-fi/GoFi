@@ -11,6 +11,11 @@ import (
 	"github.com/d-fi/GoFi/logger"
 )
 
+var (
+	layoutPlaceholderRE = regexp.MustCompile(`\{([^}]*)\}`)
+	unsafePathCharsRE   = regexp.MustCompile(`[?%*|"<>]`)
+)
+
 // SaveLayoutProps holds the parameters required for the SaveLayout function.
 type SaveLayoutProps struct {
 	Track                map[string]any
@@ -45,7 +50,7 @@ func SaveLayout(props SaveLayoutProps) string {
 	albumInfo := make(map[string]any)
 	maps.Copy(albumInfo, props.Album)
 
-	usesDiskFolder := strings.Contains(props.Path, "{DISK_FOLDER}")
+	usesDiskFolder := layoutUsesKey(props.Path, "DISK_FOLDER")
 	if _, ok := albumInfo["DISK_FOLDER"]; !ok && usesDiskFolder {
 		if diskFolder := diskFolder(props.Track, props.Album); diskFolder != "" {
 			albumInfo["DISK_FOLDER"] = diskFolder
@@ -78,9 +83,7 @@ func SaveLayout(props SaveLayoutProps) string {
 		}
 	}
 
-	// Find keys inside {}
-	re := regexp.MustCompile(`\{([^}]*)\}`)
-	matches := re.FindAllStringSubmatch(props.Path, -1)
+	matches := layoutPlaceholderRE.FindAllStringSubmatch(props.Path, -1)
 
 	for _, match := range matches {
 		expression := match[1]
@@ -127,9 +130,20 @@ func SaveLayout(props SaveLayoutProps) string {
 	}
 
 	// Remove any remaining problematic characters
-	finalPath := strings.Trim(regexp.MustCompile(`[?%*|"<>]`).ReplaceAllString(props.Path, ""), " ")
+	finalPath := strings.Trim(unsafePathCharsRE.ReplaceAllString(props.Path, ""), " ")
 	logger.Debug("Final sanitized path: %s", finalPath)
 	return finalPath
+}
+
+func layoutUsesKey(path, wanted string) bool {
+	for _, match := range layoutPlaceholderRE.FindAllStringSubmatch(path, -1) {
+		for key := range strings.SplitSeq(match[1], "|") {
+			if strings.TrimSpace(key) == wanted {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func adjustAlbumTitleForDisc(track, album, albumInfo map[string]any) {

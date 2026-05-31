@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -40,6 +41,11 @@ func NormalizeCoverSize(size, fallback int) int {
 
 var albumCoverCache = expirable.NewLRU[string, []byte](cacheSize, nil, cacheTTL)
 
+var albumCoverURL = func(albumPicture string, albumCoverSize int) string {
+	return fmt.Sprintf("https://e-cdns-images.dzcdn.net/images/cover/%s/%dx%d-000000-80-0-0.jpg",
+		albumPicture, albumCoverSize, albumCoverSize)
+}
+
 // DownloadAlbumCover downloads an album cover based on the provided album picture hash and cover size.
 func DownloadAlbumCover(albumPicture string, albumCoverSize int) ([]byte, error) {
 	logger.Debug("Attempting to download album cover with hash: %s and size: %d", albumPicture, albumCoverSize)
@@ -60,14 +66,17 @@ func DownloadAlbumCover(albumPicture string, albumCoverSize int) ([]byte, error)
 		return cachedData, nil
 	}
 
-	url := fmt.Sprintf("https://e-cdns-images.dzcdn.net/images/cover/%s/%dx%d-000000-80-0-0.jpg",
-		albumPicture, albumCoverSize, albumCoverSize)
+	url := albumCoverURL(albumPicture, albumCoverSize)
 	logger.Debug("Downloading album cover from URL: %s", url)
 
 	resp, err := request.Client.R().Get(url)
 	if err != nil {
 		logger.Debug("Failed to download album cover: %v", err)
 		return nil, fmt.Errorf("failed to download album cover: %w", err)
+	}
+	if resp.StatusCode() < http.StatusOK || resp.StatusCode() >= http.StatusMultipleChoices {
+		logger.Debug("Failed to download album cover: %s", resp.Status())
+		return nil, fmt.Errorf("failed to download album cover: %s", resp.Status())
 	}
 
 	data := resp.Body()

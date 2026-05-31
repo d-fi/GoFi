@@ -1,9 +1,15 @@
 package metadata
 
 import (
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
+	"github.com/d-fi/GoFi/request"
+	"github.com/go-resty/resty/v2"
+	"github.com/hashicorp/golang-lru/v2/expirable"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const ALB_PICTURE = "2e018122cb56986277102d2041a592c8" // Discovery by Daft Punk
@@ -27,6 +33,44 @@ func TestDownloadAlbumCover(t *testing.T) {
 	_, err = DownloadAlbumCover("", 500)
 	assert.Error(t, err)
 	assert.Equal(t, "album picture hash is empty", err.Error())
+}
+
+func TestDownloadAlbumCoverDoesNotCacheHTTPError(t *testing.T) {
+	previousClient := request.Client
+	previousCache := albumCoverCache
+	previousAlbumCoverURL := albumCoverURL
+	t.Cleanup(func() {
+		request.Client = previousClient
+		albumCoverCache = previousCache
+		albumCoverURL = previousAlbumCoverURL
+	})
+
+	requests := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests++
+		if requests == 1 {
+			http.Error(w, "blocked", http.StatusForbidden)
+			return
+		}
+		_, err := w.Write([]byte("jpeg"))
+		require.NoError(t, err)
+	}))
+	t.Cleanup(server.Close)
+
+	request.Client = resty.New()
+	albumCoverCache = expirable.NewLRU[string, []byte](cacheSize, nil, cacheTTL)
+	albumCoverURL = func(albumPicture string, albumCoverSize int) string {
+		return server.URL
+	}
+
+	_, err := DownloadAlbumCover(ALB_PICTURE, 500)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "403 Forbidden")
+
+	cover, err := DownloadAlbumCover(ALB_PICTURE, 500)
+	require.NoError(t, err)
+	assert.Equal(t, []byte("jpeg"), cover)
+	assert.Equal(t, 2, requests)
 }
 
 func TestIsValidCoverSize(t *testing.T) {

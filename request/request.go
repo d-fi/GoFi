@@ -3,6 +3,7 @@ package request
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"net/url"
 	"strings"
 	"time"
@@ -18,6 +19,7 @@ const (
 )
 
 var cache = expirable.NewLRU[string, []byte](cacheSize, nil, cacheTTL)
+var publicAPIBaseURL = "https://api.deezer.com"
 
 func checkResponse(data []byte) (json.RawMessage, error) {
 	logger.Debug("Checking API response")
@@ -126,20 +128,23 @@ func RequestPublicApi(slug string) ([]byte, error) {
 	}
 
 	logger.Debug("Making public API request: %s", slug)
-	resp, err := Client.R().Get("https://api.deezer.com" + slug)
+	resp, err := Client.R().Get(publicAPIBaseURL + slug)
 	if err != nil {
 		logger.Debug("Failed to make public API request: %v", err)
 		return nil, err
 	}
 
 	results := resp.Body()
-
 	var errorResponse PublicAPIResponseError
 	if err := json.Unmarshal(results, &errorResponse); err == nil {
 		if errorResponse.Error.Type != "" {
 			logger.Debug("API error: %s - %s (Code: %d)", errorResponse.Error.Type, errorResponse.Error.Message, errorResponse.Error.Code)
 			return nil, fmt.Errorf("API error: %s - %s (Code: %d)", errorResponse.Error.Type, errorResponse.Error.Message, errorResponse.Error.Code)
 		}
+	}
+	if resp.StatusCode() < http.StatusOK || resp.StatusCode() >= http.StatusMultipleChoices {
+		logger.Debug("Public API request failed: %s", resp.Status())
+		return nil, fmt.Errorf("public API request failed: %s", resp.Status())
 	}
 
 	cache.Add(slug, results)

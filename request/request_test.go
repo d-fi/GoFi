@@ -46,6 +46,43 @@ func TestRequestGetCacheKeyIncludesParams(t *testing.T) {
 	assert.Equal(t, 2, requests)
 }
 
+func TestRequestPublicApiDoesNotCacheHTTPError(t *testing.T) {
+	previousClient := Client
+	previousCache := cache
+	previousPublicAPIBaseURL := publicAPIBaseURL
+	t.Cleanup(func() {
+		Client = previousClient
+		cache = previousCache
+		publicAPIBaseURL = previousPublicAPIBaseURL
+	})
+
+	requests := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, "/album/1", r.URL.Path)
+		requests++
+		if requests == 1 {
+			http.Error(w, "blocked", http.StatusForbidden)
+			return
+		}
+		_, err := fmt.Fprint(w, `{"id":1}`)
+		require.NoError(t, err)
+	}))
+	t.Cleanup(server.Close)
+
+	Client = resty.New()
+	cache = expirable.NewLRU[string, []byte](cacheSize, nil, cacheTTL)
+	publicAPIBaseURL = server.URL
+
+	_, err := RequestPublicApi("/album/1")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "403 Forbidden")
+
+	body, err := RequestPublicApi("/album/1")
+	require.NoError(t, err)
+	assert.JSONEq(t, `{"id":1}`, string(body))
+	assert.Equal(t, 2, requests)
+}
+
 func TestEncodeQueryParamsIsStable(t *testing.T) {
 	params := map[string]string{"b": "2", "a": "1"}
 

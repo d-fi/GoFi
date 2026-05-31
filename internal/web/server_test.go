@@ -234,6 +234,15 @@ func TestLayoutFieldsIncludesAlwaysAndCurrentResponseFields(t *testing.T) {
 	if !hasLayoutField(fields.Always, "TITLE") {
 		t.Fatal("playlist always fields should include TITLE")
 	}
+	if sample := layoutFieldSample(fields.Always, "SNG_TITLE"); sample != "One More Time" {
+		t.Fatalf("common SNG_TITLE sample = %q, want One More Time", sample)
+	}
+	if sample := layoutFieldSample(fields.Always, "TITLE"); sample != "My Playlist" {
+		t.Fatalf("common TITLE sample = %q, want My Playlist", sample)
+	}
+	if sample := layoutFieldSample(fields.Always, "DISK_FOLDER"); sample != "CD2" {
+		t.Fatalf("common DISK_FOLDER sample = %q, want CD2", sample)
+	}
 	if !hasLayoutField(fields.Current, "DATE_ADD") {
 		t.Fatal("current fields should include info response fields")
 	}
@@ -264,4 +273,13 @@ func hasLayoutField(fields []layoutField, key string) bool {
 		}
 	}
 	return false
+}
+
+func layoutFieldSample(fields []layoutField, key string) string {
+	for _, field := range fields {
+		if field.Key == key {
+			return field.Sample
+		}
+	}
+	return ""
 }

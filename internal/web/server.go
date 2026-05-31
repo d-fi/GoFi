@@ -726,6 +726,12 @@ func layoutFields(linkType string, info any, tracks []types.TrackType) layoutFie
 		current["DISK_FOLDER"] = layoutField{Key: "DISK_FOLDER", Scope: "derived", Sample: diskFolder}
 	}
 
+	for i, field := range fields.Always {
+		if currentField, ok := current[field.Key]; ok {
+			fields.Always[i].Sample = currentField.Sample
+		}
+	}
+
 	fields.Current = make([]layoutField, 0, len(current))
 	for _, field := range current {
 		fields.Current = append(fields.Current, field)

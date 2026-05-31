@@ -1,6 +1,10 @@
 package metadata
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/d-fi/GoFi/types"
+)
 
 func TestCoverModeDefaultsToEmbed(t *testing.T) {
 	if got := NormalizeCoverMode(""); got != CoverModeEmbed {
@@ -35,5 +39,27 @@ func TestNormalizeCoverFileName(t *testing.T) {
 		if got := NormalizeCoverFileName(input); got != expected {
 			t.Fatalf("NormalizeCoverFileName(%q) = %q, want %q", input, got, expected)
 		}
+	}
+}
+
+func TestTagReleaseDatePrefersPrivateAlbumDate(t *testing.T) {
+	publicAlbum := &types.AlbumTypePublicApi{ReleaseDate: "2011-06-10"}
+	privateAlbum := map[string]any{
+		"ORIGINAL_RELEASE_DATE": "1990-10-29",
+	}
+
+	got := tagReleaseDate(publicAlbum, privateAlbum, types.TrackType{})
+	if got != "1990-10-29" {
+		t.Fatalf("tagReleaseDate = %q, want 1990-10-29", got)
+	}
+}
+
+func TestTagReleaseDateFallsBackToPublicAlbumDate(t *testing.T) {
+	publicAlbum := &types.AlbumTypePublicApi{ReleaseDate: "2011-06-10"}
+	track := types.TrackType{SongType: types.SongType{DATE_START: "1990-10-29"}}
+
+	got := tagReleaseDate(publicAlbum, nil, track)
+	if got != "2011-06-10" {
+		t.Fatalf("tagReleaseDate = %q, want 2011-06-10", got)
 	}
 }

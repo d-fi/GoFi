@@ -570,7 +570,7 @@ func WritePlaylistFile(info any, savedFiles []string, resolveFullPath bool) (str
 }
 
 func playlistName(info any) string {
-	data := StructMap(info)
+	data := utils.StructMap(info)
 	for _, key := range []string{"TITLE", "ALB_TITLE"} {
 		if value, ok := data[key]; ok {
 			return fmt.Sprintf("%v", value)

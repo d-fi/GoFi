@@ -349,3 +349,15 @@ func TestGetNestedValue(t *testing.T) {
 	_, ok = GetNestedValue(data, "ARTISTS.1.ART_NAME")
 	assert.False(t, ok)
 }
+
+func TestBestReleaseDate(t *testing.T) {
+	got := BestReleaseDate(map[string]any{
+		"PHYSICAL_RELEASE_DATE": "1990-10-29",
+		"release_date":          "2011-06-10",
+	}, map[string]any{
+		"DATE_START": "2001-03-07",
+	})
+	if got != "1990-10-29" {
+		t.Fatalf("BestReleaseDate = %q, want 1990-10-29", got)
+	}
+}

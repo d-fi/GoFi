@@ -150,6 +150,7 @@ func DownloadTrack(ctx context.Context, options DownloadTrackOptions) (string, e
 	tagged, err := metadata.AddTrackTags(raw, track, metadata.TagOptions{
 		CoverSize: coverSize,
 		CoverMode: options.CoverMode,
+		AlbumInfo: options.Info,
 	})
 	if err != nil {
 		return "", err

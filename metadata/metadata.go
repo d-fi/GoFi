@@ -10,6 +10,7 @@ import (
 	"github.com/d-fi/GoFi/api"
 	"github.com/d-fi/GoFi/logger"
 	"github.com/d-fi/GoFi/types"
+	"github.com/d-fi/GoFi/utils"
 )
 
 type CoverMode string
@@ -24,6 +25,7 @@ const (
 type TagOptions struct {
 	CoverSize int
 	CoverMode CoverMode
+	AlbumInfo any
 }
 
 func NormalizeCoverMode(mode CoverMode) CoverMode {
@@ -88,6 +90,7 @@ func AddTrackTags(trackBuffer []byte, track types.TrackType, options TagOptions)
 		return nil, albumErr
 	}
 	logger.Debug("Fetched album info successfully for album: %s", album.Title)
+	releaseDate := tagReleaseDate(&album, options.AlbumInfo, track)
 
 	if strings.ToLower(track.ART_NAME) == "various" {
 		track.ART_NAME = "Various Artists"
@@ -107,9 +110,19 @@ func AddTrackTags(trackBuffer []byte, track types.TrackType, options TagOptions)
 	isFlac := bytes.HasPrefix(trackBuffer, []byte("fLaC"))
 	if isFlac {
 		logger.Debug("Detected FLAC format for track: %s", track.SNG_TITLE)
-		return WriteMetadataFlac(trackBuffer, track, &album, options.CoverSize, cover)
+		return WriteMetadataFlac(trackBuffer, track, &album, releaseDate, options.CoverSize, cover)
 	}
 
 	logger.Debug("Detected MP3 format for track: %s", track.SNG_TITLE)
-	return WriteMetadataMp3(trackBuffer, track, &album, cover)
+	return WriteMetadataMp3(trackBuffer, track, &album, releaseDate, cover)
+}
+
+func tagReleaseDate(album *types.AlbumTypePublicApi, albumInfo any, track types.TrackType) string {
+	albumMap := utils.StructMap(albumInfo)
+	if album != nil {
+		if _, ok := albumMap["release_date"]; !ok && album.ReleaseDate != "" {
+			albumMap["release_date"] = album.ReleaseDate
+		}
+	}
+	return utils.BestReleaseDate(albumMap, utils.StructMap(track))
 }

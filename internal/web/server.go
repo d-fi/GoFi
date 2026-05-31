@@ -712,9 +712,9 @@ func layoutFields(linkType string, info any, tracks []types.TrackType) layoutFie
 	}
 
 	current := map[string]layoutField{}
-	addLayoutFields(current, "info", dfi.StructMap(info))
+	addLayoutFields(current, "info", utils.StructMap(info))
 	if len(tracks) > 0 {
-		addLayoutFields(current, "track", dfi.StructMap(tracks[0]))
+		addLayoutFields(current, "track", utils.StructMap(tracks[0]))
 	}
 	if date := layoutReleaseDate(current); date != "" {
 		current["RELEASE_DATE"] = layoutField{Key: "RELEASE_DATE", Scope: "derived", Sample: date}

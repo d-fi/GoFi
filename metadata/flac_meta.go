@@ -7,9 +7,10 @@ import (
 	"github.com/d-fi/GoFi/logger"
 	"github.com/d-fi/GoFi/metaflac"
 	"github.com/d-fi/GoFi/types"
+	"github.com/d-fi/GoFi/utils"
 )
 
-func WriteMetadataFlac(buffer []byte, track types.TrackType, album *types.AlbumTypePublicApi, dimension int, cover []byte) ([]byte, error) {
+func WriteMetadataFlac(buffer []byte, track types.TrackType, album *types.AlbumTypePublicApi, releaseDate string, dimension int, cover []byte) ([]byte, error) {
 	logger.Debug("Initializing FLAC metadata writing for track: %s", track.SNG_TITLE)
 
 	flac, err := metaflac.NewMetaflac(buffer)
@@ -18,11 +19,8 @@ func WriteMetadataFlac(buffer []byte, track types.TrackType, album *types.AlbumT
 		return nil, err
 	}
 
-	var RELEASE_YEAR string
-	if album != nil {
-		RELEASE_YEAR, _, _ = strings.Cut(album.ReleaseDate, "-")
-		logger.Debug("Release year extracted: %s", RELEASE_YEAR)
-	}
+	releaseYear := utils.ReleaseYear(releaseDate)
+	logger.Debug("Release year extracted: %s", releaseYear)
 
 	flac.SetTag("TITLE=" + track.SNG_TITLE)
 	flac.SetTag("ALBUM=" + track.ALB_TITLE)
@@ -53,8 +51,8 @@ func WriteMetadataFlac(buffer []byte, track types.TrackType, album *types.AlbumT
 		flac.SetTag("ALBUMARTIST=" + album.Artist.Name)
 		flac.SetTag("BARCODE=" + album.UPC)
 		flac.SetTag("LABEL=" + album.Label)
-		flac.SetTag("DATE=" + album.ReleaseDate)
-		flac.SetTag("YEAR=" + RELEASE_YEAR)
+		flac.SetTag("DATE=" + releaseDate)
+		flac.SetTag("YEAR=" + releaseYear)
 		logger.Debug("Set album-related tags")
 
 		compilation := "0"
@@ -85,8 +83,8 @@ func WriteMetadataFlac(buffer []byte, track types.TrackType, album *types.AlbumT
 		contributors := track.SNG_CONTRIBUTORS
 
 		if len(contributors.MainArtist) > 0 {
-			copyright := RELEASE_YEAR
-			if RELEASE_YEAR != "" {
+			copyright := releaseYear
+			if releaseYear != "" {
 				copyright += " "
 			}
 			copyright += contributors.MainArtist[0]

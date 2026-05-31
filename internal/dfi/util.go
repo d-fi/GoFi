@@ -1,7 +1,6 @@
 package dfi
 
 import (
-	"encoding/json"
 	"fmt"
 	"path/filepath"
 	"sort"
@@ -57,24 +56,6 @@ func progressBar(total int64, width int) func(int64) string {
 	}
 }
 
-func StructMap(value any) map[string]any {
-	if value == nil {
-		return map[string]any{}
-	}
-	if data, ok := value.(map[string]any); ok {
-		return data
-	}
-	raw, err := json.Marshal(value)
-	if err != nil {
-		return map[string]any{}
-	}
-	var out map[string]any
-	if err := json.Unmarshal(raw, &out); err != nil {
-		return map[string]any{}
-	}
-	return out
-}
-
 func SaveLayout(track types.TrackType, info any, path string, trackNumber bool, totalTracks int) string {
 	minDigits := 2
 	if totalTracks >= 100 {
@@ -84,8 +65,8 @@ func SaveLayout(track types.TrackType, info any, path string, trackNumber bool, 
 		path = "." + string(filepath.Separator) + path
 	}
 	return utils.SaveLayout(utils.SaveLayoutProps{
-		Track:                StructMap(track),
-		Album:                StructMap(info),
+		Track:                utils.StructMap(track),
+		Album:                utils.StructMap(info),
 		Path:                 path,
 		MinimumIntegerDigits: minDigits,
 		TrackNumber:          trackNumber,

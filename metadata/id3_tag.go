@@ -9,9 +9,10 @@ import (
 	"github.com/bogem/id3v2/v2"
 	"github.com/d-fi/GoFi/logger"
 	"github.com/d-fi/GoFi/types"
+	"github.com/d-fi/GoFi/utils"
 )
 
-func WriteMetadataMp3(buffer []byte, track types.TrackType, album *types.AlbumTypePublicApi, cover []byte) ([]byte, error) {
+func WriteMetadataMp3(buffer []byte, track types.TrackType, album *types.AlbumTypePublicApi, releaseDate string, cover []byte) ([]byte, error) {
 	logger.Debug("Starting MP3 metadata writing for track: %s", track.SNG_TITLE)
 
 	reader := bytes.NewReader(buffer)
@@ -40,7 +41,7 @@ func WriteMetadataMp3(buffer []byte, track types.TrackType, album *types.AlbumTy
 	tag.AddTextFrame("TSRC", id3v2.EncodingUTF8, track.ISRC)
 
 	if album != nil {
-		setAlbumMetadata(tag, album)
+		setAlbumMetadata(tag, album, releaseDate)
 	}
 
 	tag.AddTextFrame("TMED", id3v2.EncodingUTF8, "Digital Media")
@@ -51,7 +52,7 @@ func WriteMetadataMp3(buffer []byte, track types.TrackType, album *types.AlbumTy
 		setTrackNumberFrames(tag, track, album)
 	}
 
-	setContributorsMetadata(tag, track, album)
+	setContributorsMetadata(tag, track, album, releaseDate)
 
 	if track.LYRICS != nil {
 		tag.AddUnsynchronisedLyricsFrame(id3v2.UnsynchronisedLyricsFrame{
@@ -102,7 +103,7 @@ func processArtistNames(artists []types.ArtistType) []string {
 	return names
 }
 
-func setAlbumMetadata(tag *id3v2.Tag, album *types.AlbumTypePublicApi) {
+func setAlbumMetadata(tag *id3v2.Tag, album *types.AlbumTypePublicApi, releaseDate string) {
 	if len(album.Genres.Data) > 0 {
 		var genres []string
 		for _, genre := range album.Genres.Data {
@@ -111,9 +112,8 @@ func setAlbumMetadata(tag *id3v2.Tag, album *types.AlbumTypePublicApi) {
 		tag.SetGenre(strings.Join(genres, ", "))
 	}
 
-	releaseDates := strings.Split(album.ReleaseDate, "-")
-	if len(releaseDates) >= 1 {
-		year := releaseDates[0]
+	releaseDates := strings.Split(releaseDate, "-")
+	if year := utils.ReleaseYear(releaseDate); year != "" {
 		tag.AddTextFrame("TDRC", id3v2.EncodingUTF8, year)
 		tag.AddTextFrame("TYER", id3v2.EncodingUTF8, year)
 	}
@@ -140,7 +140,7 @@ func setTrackNumberFrames(tag *id3v2.Tag, track types.TrackType, album *types.Al
 	tag.AddTextFrame("TPOS", id3v2.EncodingUTF8, fmt.Sprintf("%d", int(track.DISK_NUMBER)))
 }
 
-func setContributorsMetadata(tag *id3v2.Tag, track types.TrackType, album *types.AlbumTypePublicApi) {
+func setContributorsMetadata(tag *id3v2.Tag, track types.TrackType, album *types.AlbumTypePublicApi, releaseDate string) {
 	contributors := track.SNG_CONTRIBUTORS
 	if contributors == nil {
 		return
@@ -149,10 +149,7 @@ func setContributorsMetadata(tag *id3v2.Tag, track types.TrackType, album *types
 	if len(contributors.MainArtist) > 0 {
 		releaseYear := ""
 		if album != nil {
-			releaseDates := strings.Split(album.ReleaseDate, "-")
-			if len(releaseDates) >= 1 {
-				releaseYear = releaseDates[0]
-			}
+			releaseYear = utils.ReleaseYear(releaseDate)
 		}
 		tag.AddTextFrame("TCOP", id3v2.EncodingUTF8, fmt.Sprintf("%s %s", releaseYear, contributors.MainArtist[0]))
 	}

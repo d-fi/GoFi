@@ -62,24 +62,11 @@ func SaveLayout(props SaveLayoutProps) string {
 	}
 
 	if _, ok := albumInfo["RELEASE_DATE"]; !ok {
-		for _, key := range ReleaseDateKeys() {
-			var value any
-			var exists bool
-			if value, exists = GetNestedValue(albumInfo, key); !exists {
-				value, exists = GetNestedValue(props.Track, key)
-			}
-			if !exists {
-				continue
-			}
-			date := fmt.Sprintf("%v", value)
-			if date == "" || date == "<nil>" || date == "0000-00-00" {
-				continue
-			}
+		if date := BestReleaseDate(albumInfo, props.Track); date != "" {
 			albumInfo["RELEASE_DATE"] = date
 			if year := ReleaseYear(date); year != "" {
 				albumInfo["RELEASE_YEAR"] = year
 			}
-			break
 		}
 	}
 
@@ -195,6 +182,25 @@ func ReleaseDateKeys() []string {
 		"DIGITAL_RELEASE_DATE",
 		"DATE_START",
 	}
+}
+
+func BestReleaseDate(album, track map[string]any) string {
+	for _, key := range ReleaseDateKeys() {
+		var value any
+		var exists bool
+		if value, exists = GetNestedValue(album, key); !exists {
+			value, exists = GetNestedValue(track, key)
+		}
+		if !exists {
+			continue
+		}
+		date := fmt.Sprintf("%v", value)
+		if date == "" || date == "<nil>" || date == "0000-00-00" {
+			continue
+		}
+		return date
+	}
+	return ""
 }
 
 func ReleaseYear(date string) string {

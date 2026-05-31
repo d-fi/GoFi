@@ -190,7 +190,7 @@ Common placeholders for track, album, artist, and playlist layouts:
 {ART_NAME}         Artist name
 {SNG_TITLE}        Track title
 {DISK_FOLDER}      CD1, CD2, etc. for multi-disc albums, empty for single-disc albums
-{DISK_NUMBER}      Disc number from the track metadata
+{DISK_NUMBER}      Raw disc number from the track metadata, such as 1 or 2
 {RELEASE_DATE}     Album release date, such as 2001-03-07. Prefers physical/original dates when Deezer provides them.
 {RELEASE_YEAR}     Album release year, such as 2001
 {TRACK_NUMBER}     Force track number in this position
@@ -200,7 +200,7 @@ Common placeholders for track, album, artist, and playlist layouts:
 
 `{TRACK_NUMBER}` forces the track number at that position. `{NO_TRACK_NUMBER}` disables the automatic number prefix for that layout.
 
-By default, multi-disc album folders keep the previous behavior and append the disc to `{ALB_TITLE}`, such as `Album Name (Disc 01)`. Use `{DISK_FOLDER}` in the layout to opt into a shared album folder with disc subfolders, such as `Album Name/CD1`.
+By default, multi-disc album folders keep the previous behavior and append the disc to `{ALB_TITLE}`, such as `Album Name (Disc 01)`. Use `{DISK_FOLDER}` in the layout to opt into a shared album folder with disc subfolders, such as `Album Name/CD1`. `{DISK_NUMBER}` only writes the raw disc number; it does not create the `CD1` folder name by itself.
 
 Any field from the track or album metadata can be used as a placeholder. Nested values can be accessed with dot notation, including array indexes, like `{ARTISTS.0.ART_NAME}` or `{SNG_CONTRIBUTORS.main_artist.0}`.
 

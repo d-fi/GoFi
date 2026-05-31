@@ -141,10 +141,18 @@ func coverFilePolicyKey(track types.TrackType, info any, path string, trackNumbe
 
 func coverFileDir(savePath, layout string) string {
 	dir := filepath.Dir(savePath)
-	if strings.Contains(layout, "{DISK_FOLDER}") && filepath.Base(dir) != "." {
+	if utils.LayoutUsesKey(layout, "DISK_FOLDER") && isDiskFolderName(filepath.Base(dir)) {
 		return filepath.Dir(dir)
 	}
 	return dir
+}
+
+func isDiskFolderName(name string) bool {
+	if !strings.HasPrefix(name, "CD") {
+		return false
+	}
+	n, err := strconv.Atoi(strings.TrimPrefix(name, "CD"))
+	return err == nil && n > 0
 }
 
 func AsInt(value any) int {

@@ -239,13 +239,14 @@ func TestSaveLayout(t *testing.T) {
 			expected: "Daft Punk/Daft Punk/Song Title.mp3",
 		},
 		{
-			name: "Release_date_prefers_physical_date_from_album",
+			name: "Release_date_prefers_original_date_from_album",
 			props: SaveLayoutProps{
 				Track: map[string]any{
 					"TITLE": "Song Title",
 				},
 				Album: map[string]any{
 					"ALB_TITLE":             "Album Name",
+					"ORIGINAL_RELEASE_DATE": "1980-01-01",
 					"PHYSICAL_RELEASE_DATE": "1990-10-29",
 					"DIGITAL_RELEASE_DATE":  "2011-06-10",
 				},
@@ -253,7 +254,7 @@ func TestSaveLayout(t *testing.T) {
 				MinimumIntegerDigits: 2,
 				TrackNumber:          false,
 			},
-			expected: "1990/1990-10-29/Album Name/Song Title.mp3",
+			expected: "1980/1980-01-01/Album Name/Song Title.mp3",
 		},
 		{
 			name: "Release_date_aliases_from_public_track_album",

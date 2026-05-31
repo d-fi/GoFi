@@ -50,7 +50,7 @@ func SaveLayout(props SaveLayoutProps) string {
 	albumInfo := make(map[string]any)
 	maps.Copy(albumInfo, props.Album)
 
-	usesDiskFolder := layoutUsesKey(props.Path, "DISK_FOLDER")
+	usesDiskFolder := LayoutUsesKey(props.Path, "DISK_FOLDER")
 	if _, ok := albumInfo["DISK_FOLDER"]; !ok && usesDiskFolder {
 		if diskFolder := diskFolder(props.Track, props.Album); diskFolder != "" {
 			albumInfo["DISK_FOLDER"] = diskFolder
@@ -135,7 +135,7 @@ func SaveLayout(props SaveLayoutProps) string {
 	return finalPath
 }
 
-func layoutUsesKey(path, wanted string) bool {
+func LayoutUsesKey(path, wanted string) bool {
 	for _, match := range layoutPlaceholderRE.FindAllStringSubmatch(path, -1) {
 		for key := range strings.SplitSeq(match[1], "|") {
 			if strings.TrimSpace(key) == wanted {

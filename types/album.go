@@ -38,6 +38,7 @@ type AlbumType struct {
 	ART_NAME              string       `json:"ART_NAME"`                        // Artist name, e.g., 'Avicii'
 	ARTIST_IS_DUMMY       bool         `json:"ARTIST_IS_DUMMY"`                 // Indicates if the artist is a dummy
 	DIGITAL_RELEASE_DATE  string       `json:"DIGITAL_RELEASE_DATE"`            // Digital release date, e.g., '2014-12-01'
+	ORIGINAL_RELEASE_DATE string       `json:"ORIGINAL_RELEASE_DATE"`           // Original release date, e.g., '2001-03-07'
 	EXPLICIT_LYRICS       *string      `json:"EXPLICIT_LYRICS,omitempty"`       // Optional explicit lyrics status
 	NB_FAN                int          `json:"NB_FAN"`                          // Number of fans, e.g., 36285
 	NUMBER_DISK           string       `json:"NUMBER_DISK"`                     // Number of disks, e.g., '1'

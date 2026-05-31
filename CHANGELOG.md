@@ -1,5 +1,23 @@
 # Changelog
 
+## 2.3.2 - 2026-05-31
+
+This release continues the 2.3.x follow-up work around save layouts, release dates, cover artwork, and web UI polish.
+
+### Changed
+
+- Aligned metadata release-date tagging with save layout release-date selection.
+- Metadata tags now prefer richer album dates when available, including original and physical release dates, before falling back to Deezer's public album release date.
+- The web layout Fields modal now shows sample values for common fields when a preview is loaded.
+- Shared struct-to-map conversion is now centralized in `utils`.
+
+### Fixed
+
+- Fixed separate cover-file placement for single-disc albums when the save layout contains `{DISK_FOLDER}`. Covers now stay inside the album folder instead of moving up to the artist folder.
+- Fixed public Deezer API HTTP errors being cached as valid responses.
+- Fixed failed Deezer cover CDN responses being cached or saved as artwork.
+- Added `ORIGINAL_RELEASE_DATE` decoding from Deezer album data so release date fields can use it when Deezer provides it.
+
 ## 2.3.1 - 2026-05-30
 
 This release is a focused follow-up to 2.3.0. It improves compatibility with current Deezer links and playlist responses, adds more flexible save layouts for multi-disc albums, and tightens cover artwork handling in the CLI and web UI.

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"sync"
 
 	"github.com/d-fi/GoFi/decrypt"
 	"github.com/d-fi/GoFi/logger"
@@ -32,9 +33,47 @@ func (e *GeoBlocked) Error() string {
 }
 
 var userData *UserData
+var userDataMu sync.Mutex
+
+type deezerUserDataResponse struct {
+	Results struct {
+		Country string `json:"COUNTRY"`
+		User    struct {
+			Options struct {
+				LicenseToken  string     `json:"license_token"`
+				WebLossless   deezerBool `json:"web_lossless"`
+				MobileLosless deezerBool `json:"mobile_loseless"`
+				WebHQ         deezerBool `json:"web_hq"`
+				MobileHQ      deezerBool `json:"mobile_hq"`
+			} `json:"OPTIONS"`
+		} `json:"USER"`
+	} `json:"results"`
+}
+
+type deezerBool bool
+
+func (b *deezerBool) UnmarshalJSON(data []byte) error {
+	var value any
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+	switch value := value.(type) {
+	case bool:
+		*b = deezerBool(value)
+	case string:
+		*b = deezerBool(value == "true" || value == "1")
+	case float64:
+		*b = deezerBool(value != 0)
+	default:
+		*b = false
+	}
+	return nil
+}
 
 // DzAuthenticate authenticates with Deezer and retrieves user data.
 func DzAuthenticate(ctx context.Context) (*UserData, error) {
+	userDataMu.Lock()
+	defer userDataMu.Unlock()
 	if userData != nil {
 		logger.Debug("Using cached user data.")
 		return userData, nil
@@ -55,25 +94,33 @@ func DzAuthenticate(ctx context.Context) (*UserData, error) {
 		return nil, err
 	}
 
-	var data map[string]any
-	if err := json.Unmarshal(resp.Body(), &data); err != nil {
+	parsed, err := parseDeezerUserData(resp.Body())
+	if err != nil {
 		logger.Debug("Failed to parse Deezer user data response: %v", err)
 		return nil, err
 	}
 
-	results := data["results"].(map[string]any)
-	options := results["USER"].(map[string]any)["OPTIONS"].(map[string]any)
-	country := results["COUNTRY"].(string)
-
-	userData = &UserData{
-		LicenseToken:      options["license_token"].(string),
-		CanStreamLossless: options["web_lossless"].(bool) || options["mobile_loseless"].(bool),
-		CanStreamHQ:       options["web_hq"].(bool) || options["mobile_hq"].(bool),
-		Country:           country,
-	}
+	userData = parsed
 	logger.Debug("Deezer authentication successful. User country: %s", userData.Country)
 
 	return userData, nil
+}
+
+func parseDeezerUserData(body []byte) (*UserData, error) {
+	var data deezerUserDataResponse
+	if err := json.Unmarshal(body, &data); err != nil {
+		return nil, err
+	}
+	options := data.Results.User.Options
+	if options.LicenseToken == "" {
+		return nil, fmt.Errorf("invalid Deezer user data response: missing license token")
+	}
+	return &UserData{
+		LicenseToken:      options.LicenseToken,
+		CanStreamLossless: bool(options.WebLossless) || bool(options.MobileLosless),
+		CanStreamHQ:       bool(options.WebHQ) || bool(options.MobileHQ),
+		Country:           data.Results.Country,
+	}, nil
 }
 
 // GetTrackUrlFromServer fetches the track URL from the server based on the track token and format.

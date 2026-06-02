@@ -52,6 +52,7 @@ const settingsSections = {
 const coverSizes = [56, 250, 500, 1000, 1200, 1400, 1500, 1800];
 const minCoverSize = 50;
 const maxCoverSize = 1800;
+const qualityStorageKey = "d-fi-download-quality";
 const api = async (path, opts = {}) => {
   const res = await fetch(path, {
     headers: { "content-type": "application/json" },
@@ -82,6 +83,20 @@ function setTheme(theme) {
   );
   try {
     localStorage.setItem("d-fi-theme", next);
+  } catch (_) {}
+}
+function loadSavedQuality() {
+  let saved = "";
+  try {
+    saved = localStorage.getItem(qualityStorageKey) || "";
+  } catch (_) {}
+  if ([...$("quality").options].some((option) => option.value === saved)) {
+    $("quality").value = saved;
+  }
+}
+function saveSelectedQuality() {
+  try {
+    localStorage.setItem(qualityStorageKey, $("quality").value);
   } catch (_) {}
 }
 function showToast(text, kind = "success") {
@@ -609,6 +624,7 @@ async function startDownload() {
     quality: $("quality").value,
     tracks: selected,
   };
+  saveSelectedQuality();
   setMainMessage("Starting download...");
   try {
     await api("/api/downloads", {
@@ -754,8 +770,6 @@ function renderJobs(jobs) {
     return;
   }
   root.innerHTML = jobs
-    .slice()
-    .reverse()
     .map((job) => {
       const files = (job.files || [])
         .slice(-4)
@@ -870,6 +884,7 @@ function escapeHTML(value) {
 fillCoverSizeOptions();
 bindConfigControls();
 setTheme(currentTheme());
+loadSavedQuality();
 $("themeToggle").addEventListener("click", () =>
   setTheme(currentTheme() === "dark" ? "light" : "dark"),
 );
@@ -894,6 +909,7 @@ $("previewBtn").addEventListener("click", preview);
 $("query").addEventListener("keydown", (event) => {
   if (event.key === "Enter") preview();
 });
+$("quality").addEventListener("change", saveSelectedQuality);
 $("downloadSelectedBtn").addEventListener("click", startDownload);
 $("clearHistoryBtn").addEventListener("click", clearHistory);
 $("selectAllTracks").addEventListener("change", toggleAllTracks);

@@ -358,6 +358,7 @@ func (s *Server) handleJobs(w http.ResponseWriter, r *http.Request) {
 		jobs = append(jobs, cloneJob(job))
 	}
 	s.mu.Unlock()
+	sortJobs(jobs)
 	writeJSON(w, http.StatusOK, map[string]any{"jobs": jobs})
 }
 
@@ -676,6 +677,23 @@ func jobProgress(job *downloadJob) float64 {
 
 func isActiveJob(job *downloadJob) bool {
 	return job != nil && (job.Status == "queued" || job.Status == "running" || job.Status == "canceling")
+}
+
+func sortJobs(jobs []*downloadJob) {
+	sort.SliceStable(jobs, func(i, j int) bool {
+		leftActive := isActiveJob(jobs[i])
+		rightActive := isActiveJob(jobs[j])
+		if leftActive != rightActive {
+			return leftActive
+		}
+		if !jobs[i].UpdatedAt.Equal(jobs[j].UpdatedAt) {
+			return jobs[i].UpdatedAt.After(jobs[j].UpdatedAt)
+		}
+		if !jobs[i].CreatedAt.Equal(jobs[j].CreatedAt) {
+			return jobs[i].CreatedAt.After(jobs[j].CreatedAt)
+		}
+		return jobs[i].ID > jobs[j].ID
+	})
 }
 
 func previewTracks(tracks []types.TrackType) []trackPreview {

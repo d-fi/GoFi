@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
+	"reflect"
 	"testing"
 	"time"
 
@@ -176,6 +177,33 @@ func TestClearJobsKeepsActiveJobs(t *testing.T) {
 	}
 	if server.jobs[3] == nil || server.jobs[4] == nil || server.jobs[5] == nil {
 		t.Fatal("active jobs should be kept")
+	}
+}
+
+func TestJobsAreReturnedActiveThenNewestFirst(t *testing.T) {
+	server := NewServer(Options{ConfigPath: filepath.Join(t.TempDir(), "d-fi.config.json")})
+	base := time.Now()
+	server.jobs[1] = &downloadJob{ID: 1, Status: "done", CreatedAt: base, UpdatedAt: base.Add(5 * time.Minute)}
+	server.jobs[2] = &downloadJob{ID: 2, Status: "running", CreatedAt: base, UpdatedAt: base.Add(time.Minute)}
+	server.jobs[3] = &downloadJob{ID: 3, Status: "error", CreatedAt: base, UpdatedAt: base.Add(10 * time.Minute)}
+	server.jobs[4] = &downloadJob{ID: 4, Status: "queued", CreatedAt: base, UpdatedAt: base.Add(2 * time.Minute)}
+
+	req := httptest.NewRequest(http.MethodGet, "/api/jobs", nil)
+	rec := httptest.NewRecorder()
+	server.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("GET /api/jobs status = %d", rec.Code)
+	}
+	var body struct {
+		Jobs []downloadJob `json:"jobs"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("unmarshal jobs response: %v", err)
+	}
+	got := []int64{body.Jobs[0].ID, body.Jobs[1].ID, body.Jobs[2].ID, body.Jobs[3].ID}
+	want := []int64{4, 2, 3, 1}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("job order = %v, want %v", got, want)
 	}
 }
 

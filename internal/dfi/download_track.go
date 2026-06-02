@@ -288,7 +288,8 @@ func downloadToTemp(ctx context.Context, trackData *download.TrackDownloadUrl, t
 	total := trackData.FileSize
 	transferred := downloaded
 	lastPrinted := transferred
-	lastProgressUpdate := time.Now().Add(-500 * time.Millisecond)
+	progressUpdateInterval := time.Second
+	lastProgressUpdate := time.Now().Add(-progressUpdateInterval)
 	buffer := make([]byte, 32*1024)
 	for {
 		n, readErr := resp.Body.Read(buffer)
@@ -300,7 +301,7 @@ func downloadToTemp(ctx context.Context, trackData *download.TrackDownloadUrl, t
 			transferred += int64(written)
 			now := time.Now()
 			completed := total > 0 && transferred >= total
-			if (transferred-lastPrinted > 50000 && now.Sub(lastProgressUpdate) >= 500*time.Millisecond) || completed {
+			if (transferred-lastPrinted > 50000 && now.Sub(lastProgressUpdate) >= progressUpdateInterval) || completed {
 				lastPrinted = transferred
 				lastProgressUpdate = now
 				if onProgress != nil {

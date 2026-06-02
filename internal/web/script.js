@@ -53,6 +53,8 @@ const coverSizes = [56, 250, 500, 1000, 1200, 1400, 1500, 1800];
 const minCoverSize = 50;
 const maxCoverSize = 1800;
 const qualityStorageKey = "d-fi-download-quality";
+const activeJobsPollInterval = 1000;
+const idleJobsPollInterval = 5000;
 const api = async (path, opts = {}) => {
   const res = await fetch(path, {
     headers: { "content-type": "application/json" },
@@ -647,12 +649,14 @@ async function loadJobs() {
     const jobs = data.jobs || [];
     renderJobs(jobs);
     syncClearHistoryButton(jobs);
-    scheduleJobsPoll(jobs.some(isActiveJob) ? 2000 : 5000);
+    scheduleJobsPoll(
+      jobs.some(isActiveJob) ? activeJobsPollInterval : idleJobsPollInterval,
+    );
   } catch (err) {
     $("jobs").innerHTML = '<p class="muted">Unable to load downloads</p>';
     syncClearHistoryButton([]);
     showToast(err.message, "error");
-    scheduleJobsPoll(5000);
+    scheduleJobsPoll(idleJobsPollInterval);
   } finally {
     state.jobsLoading = false;
   }

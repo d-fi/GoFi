@@ -21,7 +21,7 @@ import (
 	"github.com/d-fi/GoFi/utils"
 )
 
-const Version = "2.3.2-go"
+const Version = "2.3.3-go"
 
 type options struct {
 	quality         string

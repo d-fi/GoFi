@@ -1,5 +1,20 @@
 # Changelog
 
+## 2.3.3 - 2026-06-02
+
+This release is a small stability and polish update for the CLI and web UI. It fixes a Deezer authentication panic reported on Windows, smooths progress refresh behavior, and improves how the web interface remembers and orders download state.
+
+### Changed
+
+- Web download quality is now remembered in the browser, so the last selected quality is restored when reopening the web UI.
+- Web download history is now returned in a stable order: active jobs first, then most recently updated jobs.
+- CLI and web progress updates are now aligned to a 1 second interval for a more consistent download experience.
+
+### Fixed
+
+- Fixed a panic when Deezer returns nullable stream capability flags during download URL authentication.
+- Deezer download authentication data is now cached safely across concurrent download workers.
+
 ## 2.3.2 - 2026-05-31
 
 This release continues the 2.3.x follow-up work around save layouts, release dates, cover artwork, and web UI polish.

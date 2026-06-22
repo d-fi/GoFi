@@ -13,6 +13,45 @@ import (
 	"github.com/d-fi/GoFi/types"
 )
 
+func TestTryQualityFallback(t *testing.T) {
+	t.Run("flac falls back to 320", func(t *testing.T) {
+		options := DownloadTrackOptions{FallbackQuality: true}
+		if !options.tryQualityFallback(9) {
+			t.Fatal("expected quality fallback")
+		}
+		if options.Quality != 3 {
+			t.Fatalf("quality = %v, want 3", options.Quality)
+		}
+		if !options.IsQualityFallback {
+			t.Fatal("expected IsQualityFallback")
+		}
+	})
+
+	t.Run("320 falls back to 128", func(t *testing.T) {
+		options := DownloadTrackOptions{FallbackQuality: true}
+		if !options.tryQualityFallback(3) {
+			t.Fatal("expected quality fallback")
+		}
+		if options.Quality != 1 {
+			t.Fatalf("quality = %v, want 1", options.Quality)
+		}
+	})
+
+	t.Run("128 does not fall back", func(t *testing.T) {
+		options := DownloadTrackOptions{FallbackQuality: true}
+		if options.tryQualityFallback(1) {
+			t.Fatal("did not expect quality fallback")
+		}
+	})
+
+	t.Run("disabled", func(t *testing.T) {
+		options := DownloadTrackOptions{FallbackQuality: false}
+		if options.tryQualityFallback(9) {
+			t.Fatal("did not expect quality fallback")
+		}
+	})
+}
+
 func TestDownloadToTempRestartsWhenRangeIgnored(t *testing.T) {
 	dir := t.TempDir()
 	tmpFile := filepath.Join(dir, "d-fi_partial")

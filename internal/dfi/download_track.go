@@ -80,7 +80,11 @@ func DownloadTrack(ctx context.Context, options DownloadTrackOptions) (string, e
 	trackData, err := download.GetTrackDownloadUrl(ctx, track, quality)
 	if err != nil {
 		var geoBlocked *download.GeoBlocked
-		if !errors.As(err, &geoBlocked) || track.FALLBACK == nil {
+		if errors.As(err, &geoBlocked) && track.FALLBACK != nil {
+			// Try the alternate track below when geo-blocked.
+		} else if options.tryQualityFallback(quality) {
+			return DownloadTrack(ctx, options)
+		} else {
 			return "", err
 		}
 	}
@@ -96,13 +100,7 @@ func DownloadTrack(ctx context.Context, options DownloadTrackOptions) (string, e
 			options.IsFallback = true
 			return DownloadTrack(ctx, options)
 		}
-		if options.FallbackQuality && quality != 1 {
-			if quality == 9 {
-				options.Quality = 3
-			} else {
-				options.Quality = 1
-			}
-			options.IsQualityFallback = true
+		if options.tryQualityFallback(quality) {
 			return DownloadTrack(ctx, options)
 		}
 		if options.Hooks.Skip != nil {
@@ -120,6 +118,9 @@ func DownloadTrack(ctx context.Context, options DownloadTrackOptions) (string, e
 			options.Hooks.Progress(track, transferred, total)
 		}
 	}); err != nil {
+		if options.tryQualityFallback(quality) {
+			return DownloadTrack(ctx, options)
+		}
 		return "", err
 	}
 	defer os.Remove(tmpFile)
@@ -184,6 +185,19 @@ func DownloadTrack(ctx context.Context, options DownloadTrackOptions) (string, e
 		options.Hooks.Done(track, savePath, options.IsFallback, options.IsQualityFallback, label)
 	}
 	return savePath, nil
+}
+
+func (options *DownloadTrackOptions) tryQualityFallback(quality int) bool {
+	if !options.FallbackQuality || quality == 1 {
+		return false
+	}
+	if quality == 9 {
+		options.Quality = 3
+	} else {
+		options.Quality = 1
+	}
+	options.IsQualityFallback = true
+	return true
 }
 
 func (options DownloadTrackOptions) shouldSaveCoverFile(savePath string) bool {

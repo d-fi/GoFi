@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.3.4 - 2026-06-23
+
+This release fixes quality fallback during downloads and updates Go module dependencies.
+
+### Changed
+
+- Updated `golang.org/x/crypto` and `golang.org/x/text`.
+
+### Fixed
+
+- Fixed `fallbackQuality` not retrying at a lower bitrate when URL resolution or the download itself failed with an error. FLAC and MP3 320 requests now correctly fall back to MP3 320 and MP3 128 when higher qualities are unreachable.
+
 ## 2.3.3 - 2026-06-02
 
 This release is a small stability and polish update for the CLI and web UI. It fixes a Deezer authentication panic reported on Windows, smooths progress refresh behavior, and improves how the web interface remembers and orders download state.

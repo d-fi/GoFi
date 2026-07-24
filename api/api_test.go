@@ -9,6 +9,7 @@ import (
 	"github.com/d-fi/GoFi/request"
 	"github.com/d-fi/GoFi/types"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -164,9 +165,9 @@ func TestGetShowInfo(t *testing.T) {
 
 func TestGetPlaylistChannel(t *testing.T) {
 	response, err := GetPlaylistChannel("channels/dance")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotEmpty(t, response.Title)
-	assert.NotEmpty(t, response.Sections)
-	assert.NotEmpty(t, response.Sections[0].Items)
+	require.NotEmpty(t, response.Sections)
+	require.NotEmpty(t, response.Sections[0].Items)
 	assert.IsType(t, &types.PlaylistChannelPlaylistData{}, response.Sections[0].Items[0].Data)
 }
